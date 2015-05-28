@@ -19,19 +19,19 @@
     xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>org.jboss.tools.examples</groupId>
-    <artifactId>jboss-javaee6-webapp</artifactId>
+    <groupId>at.ac.tuwien.thesis</groupId>
+    <artifactId>em-app</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <packaging>war</packaging>
-    <name>jboss-javaee6-webapp</name>
-    <description>A starter Java EE 6 webapp project for use on JBoss AS 7 / EAP 6, generated from the jboss-javaee6-webapp archetype</description>
+    <name>em-app</name>
+    <description>A project for data retrieval from energy markets where price forecasts are done based on current energy price data</description>
 
-    <url>http://jboss.org/jbossas</url>
+    <url>https://github.com/and2egg/em-app</url>
     <licenses>
         <license>
-            <name>Apache License, Version 2.0</name>
+            <name>GNU General Public License, Version 3.0</name>
             <distribution>repo</distribution>
-            <url>http://www.apache.org/licenses/LICENSE-2.0.html</url>
+            <url>http://www.gnu.org/copyleft/gpl.html</url>
         </license>
     </licenses>
 
