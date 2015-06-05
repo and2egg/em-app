@@ -1,1 +1,7 @@
+# General
 /target/
+
+# javadoc
+/doc/
+javadoc.xml
+
