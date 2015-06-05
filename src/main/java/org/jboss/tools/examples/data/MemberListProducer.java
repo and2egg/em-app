@@ -43,6 +43,8 @@ public class MemberListProducer {
         return members;
     }
 
+    // @Observes annotation listens to events of the same type as their arguments (Member in this case)
+    // An event of type Event<Member> has to be fired to be caught by this Observer 
     public void onMemberListChanged(@Observes(notifyObserver = Reception.IF_EXISTS) final Member member) {
         retrieveAllMembersOrderedByName();
     }
