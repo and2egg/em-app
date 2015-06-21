@@ -44,6 +44,9 @@ import org.jboss.tools.examples.data.EnergyMarketRepository;
 import org.jboss.tools.examples.model.EnergyMarket;
 import org.jboss.tools.examples.model.Member;
 import org.jboss.tools.examples.service.MemberRegistration;
+import org.jboss.tools.examples.service.RManager;
+import org.rosuda.REngine.REXPMismatchException;
+import org.rosuda.REngine.Rserve.RserveException;
 
 /**
  * JAX-RS Example
@@ -65,22 +68,44 @@ public class EnergyMarketResourceRESTService {
 
     @Inject
     MemberRegistration registration;
+    
+    @Inject
+    RManager rManager;
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
-    public List<EnergyMarket> listAllMembers() {
+    public List<EnergyMarket> listAllEMs() {
         return repository.findAllOrderedByName();
     }
 
     @GET
     @Path("/{id:[0-9]+}")
     @Produces(MediaType.APPLICATION_JSON)
-    public EnergyMarket lookupEnergyMarketById(@PathParam("id") long id) {
+    public EnergyMarket lookupEMById(@PathParam("id") long id) {
     	EnergyMarket energyMarket = repository.findById(id);
         if (energyMarket == null) {
             throw new WebApplicationException(Response.Status.NOT_FOUND);
         }
         return energyMarket;
+    }
+    
+    @GET
+    @Path("/rtest")
+    @Produces(MediaType.APPLICATION_JSON)
+    public String testR() {
+    	String result = "";
+    	try {
+			result = rManager.testR();
+		} catch (RserveException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			result = e.getMessage();
+		} catch (REXPMismatchException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			result = e.getMessage();
+		}
+    	return result;
     }
 
     /**

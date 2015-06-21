@@ -10,6 +10,6 @@ public class Scheduler {
 
 	@Schedule(second="0", minute="0", hour="*")
 	public void importData() {
-		System.out.println(new Date());
+		System.out.println("Scheduler active on "+new Date());
 	}
 }

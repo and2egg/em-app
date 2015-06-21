@@ -1,4 +1,4 @@
-# Energy market application
+# Energy market management application
 
 
 This application is part of my diploma thesis called "Cost aware resource management in distributed cloud data centers". 

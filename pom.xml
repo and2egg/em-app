@@ -176,6 +176,14 @@
             <artifactId>hibernate-validator-annotation-processor</artifactId>
             <scope>provided</scope>
         </dependency>
+        
+        <!-- Dependency for Rserve which acts as a socket server (TCP/IP or local sockets) 
+        that allows binary requests to be sent to R. -->
+		<dependency>
+		  <groupId>net.rforge</groupId>
+		  <artifactId>Rserve</artifactId>
+		  <version>0.6-8.1</version>
+		</dependency>
 
         <!-- Needed for running tests (you may also use TestNG) -->
         <dependency>
