@@ -79,7 +79,7 @@ acf_ci <- function(series, main="Acf Series", type="correlation", ci=0.95, lag.m
 
 
 hello_world <- function(hi) {
-  return(hi)
+  return(paste("Hello, ",hi,sep=""))
 }
 
 
