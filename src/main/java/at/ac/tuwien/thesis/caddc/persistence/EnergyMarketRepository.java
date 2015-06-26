@@ -1,5 +1,5 @@
 
-package at.ac.tuwien.thesis.caddc.data;
+package at.ac.tuwien.thesis.caddc.persistence;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -36,9 +36,6 @@ public class EnergyMarketRepository {
         CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<EnergyMarket> criteria = cb.createQuery(EnergyMarket.class);
         Root<EnergyMarket> energyMarket = criteria.from(EnergyMarket.class);
-        // Swap criteria statements if you would like to try out type-safe criteria queries, a new
-        // feature in JPA 2.0
-        // criteria.select(member).where(cb.equal(member.get(Member_.email), email));
         criteria.select(energyMarket).where(cb.equal(energyMarket.get("location"), location));
         return em.createQuery(criteria).getSingleResult();
     }
@@ -47,9 +44,6 @@ public class EnergyMarketRepository {
         CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<EnergyMarket> criteria = cb.createQuery(EnergyMarket.class);
         Root<EnergyMarket> energyMarket = criteria.from(EnergyMarket.class);
-        // Swap criteria statements if you would like to try out type-safe criteria queries, a new
-        // feature in JPA 2.0
-        // criteria.select(energyMarket).orderBy(cb.asc(energyMarket.get(EnergyMarket_.name)));
         criteria.select(energyMarket).orderBy(cb.asc(energyMarket.get("name")));
         return em.createQuery(criteria).getResultList();
     }

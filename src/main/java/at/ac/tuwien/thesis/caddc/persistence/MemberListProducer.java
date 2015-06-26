@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package at.ac.tuwien.thesis.caddc.data;
+package at.ac.tuwien.thesis.caddc.persistence;
 
 import javax.annotation.PostConstruct;
 import javax.enterprise.context.RequestScoped;

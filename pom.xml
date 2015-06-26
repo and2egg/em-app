@@ -107,6 +107,13 @@
             <artifactId>jboss-jaxrs-api_1.1_spec</artifactId>
             <scope>provided</scope>
         </dependency>
+        
+        <!-- Jersey Client for setting RESTful requests -->
+        <dependency>
+			<groupId>com.sun.jersey</groupId>
+			<artifactId>jersey-client</artifactId>
+			<version>1.8</version>
+		</dependency>
 
         <!-- Import the JPA API, we use provided scope as the API is included in 
             JBoss AS 7 -->

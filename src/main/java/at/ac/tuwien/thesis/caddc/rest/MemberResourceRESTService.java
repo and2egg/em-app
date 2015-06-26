@@ -40,8 +40,8 @@ import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import at.ac.tuwien.thesis.caddc.data.MemberRepository;
 import at.ac.tuwien.thesis.caddc.model.Member;
+import at.ac.tuwien.thesis.caddc.persistence.MemberRepository;
 import at.ac.tuwien.thesis.caddc.service.MemberRegistration;
 
 /**
