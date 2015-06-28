@@ -46,6 +46,7 @@ import org.rosuda.REngine.Rserve.RserveException;
 import at.ac.tuwien.thesis.caddc.model.EnergyMarket;
 import at.ac.tuwien.thesis.caddc.model.Member;
 import at.ac.tuwien.thesis.caddc.persistence.EnergyMarketRepository;
+import at.ac.tuwien.thesis.caddc.rest.client.RESTClient;
 import at.ac.tuwien.thesis.caddc.service.MemberRegistration;
 import at.ac.tuwien.thesis.caddc.service.RManager;
 
@@ -107,6 +108,16 @@ public class EnergyMarketResourceRESTService {
 			result = e.getMessage();
 		}
     	return result;
+    }
+    
+    @GET
+    @Path("/data")
+    @Produces(MediaType.APPLICATION_JSON)
+    public String testDataFetch() {
+    	String url = "http://www.nordpoolspot.com/globalassets/marketdata-excel-files/elspot-prices_2014_hourly_eur.xls";
+		RESTClient client = new RESTClient();
+		String result = client.fetchNordPoolSpotData(url);
+		return "DATA FETCH\n"+result;
     }
 
 
