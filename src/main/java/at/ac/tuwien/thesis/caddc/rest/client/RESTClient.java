@@ -10,10 +10,15 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.SocketException;
 import java.net.URL;
+import java.util.ArrayList;
 
 import javax.net.ssl.HttpsURLConnection;
 
 import org.apache.commons.io.IOUtils;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
 
 import at.ac.tuwien.thesis.caddc.data.parse.NordPoolFinlandParser;
 import at.ac.tuwien.thesis.caddc.data.parse.XLSParser;
@@ -78,37 +83,19 @@ public class RESTClient {
 			url = new URL(urlString);
 			conn = (HttpURLConnection) url.openConnection();
 			if (conn.getResponseCode() != 200) {
-				System.err.println("OTHER RESPNSE CODE: "+conn.getResponseCode());
-//				throw new RuntimeException("Failed : HTTP error code : "
-//						+ conn.getResponseCode());
-				String output = "", temp;
-				br = new BufferedReader(new InputStreamReader(
-						(conn.getErrorStream())));
-				System.out.println("Error: ");
-				while ((temp = br.readLine()) != null) {
-					String line = temp + System.lineSeparator();
-					System.out.println(line);
-				}
-				br.close();
+				System.err.println("OTHER RESPONSE CODE: "+conn.getResponseCode());
+				throw new RuntimeException("Failed : HTTP error code : "
+						+ conn.getResponseCode());
 			}
-			
-			conn.setConnectTimeout(300000);
-			conn.setReadTimeout(300000);
-			
-			System.out.println("connect timeout: "+conn.getConnectTimeout()+System.lineSeparator()+
-								"expiration: "+conn.getExpiration()+System.lineSeparator()+
-								"read timeout: "+conn.getReadTimeout()+System.lineSeparator());
 			
 			br = new BufferedReader(new InputStreamReader(
 				(conn.getInputStream())));
 			
 			in = conn.getInputStream();
 			
-			String output = "", temp;
 			StringWriter writer = new StringWriter();
 			IOUtils.copy(in, writer, "UTF-8");
 			result = writer.toString();
-			System.out.println("string leng = "+result.length());
 			prices = NordPoolFinlandParser.parsePrices(result);
 
 		} catch (MalformedURLException e) {
