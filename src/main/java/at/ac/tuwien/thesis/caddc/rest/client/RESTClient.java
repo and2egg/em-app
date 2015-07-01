@@ -29,9 +29,65 @@ import sun.misc.BASE64Encoder;
  */
 public class RESTClient {
 
+	public static String fetchData(String urlString) {
+		URL url = null;
+		HttpURLConnection conn = null;
+		InputStream inputStream = null;
+
+		try {
+			url = new URL(urlString);
+			conn = (HttpURLConnection) url.openConnection();
+			if (conn.getResponseCode() != 200) {
+				throw new SocketException("Failed : HTTP error code : "
+						+ conn.getResponseCode());
+			}
+			inputStream = conn.getInputStream();
+			conn.disconnect();
+			return null;
+			
+		} catch (MalformedURLException e) {
+			System.err.println("MalformedURLException: "+e.getLocalizedMessage());
+		} catch (SocketException e) {
+			System.err.println("SocketException: "+e.getLocalizedMessage()+"\n"+e.getMessage());
+			e.printStackTrace();
+		} catch (IOException e) {
+			System.err.println("IOException: "+e.getLocalizedMessage());
+		} finally {
+			conn.disconnect();
+		}
+		return null;
+	}
 	
+	public static InputStream secureFetchData(String urlString) {
+		URL url = null;
+		HttpsURLConnection conn = null;
+		InputStream inputStream = null;
+
+		try {
+			url = new URL(urlString);
+			conn = (HttpsURLConnection) url.openConnection();
+			if (conn.getResponseCode() != 200) {
+				throw new SocketException("Failed : HTTP error code : "
+						+ conn.getResponseCode());
+			}
+			inputStream = conn.getInputStream();
+			conn.disconnect();
+			return inputStream;
+			
+		} catch (MalformedURLException e) {
+			System.err.println("MalformedURLException: "+e.getLocalizedMessage());
+		} catch (SocketException e) {
+			System.err.println("SocketException: "+e.getLocalizedMessage()+"\n"+e.getMessage());
+			e.printStackTrace();
+		} catch (IOException e) {
+			System.err.println("IOException: "+e.getLocalizedMessage());
+		} finally {
+			conn.disconnect();
+		}
+		return inputStream;
+	}
 	
-	public void fetchURL(String urlString) {
+	public static void fetchURL(String urlString) {
 		try {
 			 
 			URL url = new URL(urlString);
@@ -71,14 +127,12 @@ public class RESTClient {
 	}
 	
 	
-	public String fetchNordPoolSpotData(String urlString) {
+	public static String fetchDataString(String urlString) {
 		URL url = null;
 		HttpURLConnection conn = null;
-		BufferedReader br = null;
 		InputStream in = null;
-		
 		String result = null;
-		String prices = null;
+		
 		try {
 			url = new URL(urlString);
 			conn = (HttpURLConnection) url.openConnection();
@@ -87,17 +141,10 @@ public class RESTClient {
 				throw new RuntimeException("Failed : HTTP error code : "
 						+ conn.getResponseCode());
 			}
-			
-			br = new BufferedReader(new InputStreamReader(
-				(conn.getInputStream())));
-			
 			in = conn.getInputStream();
-			
 			StringWriter writer = new StringWriter();
 			IOUtils.copy(in, writer, "UTF-8");
 			result = writer.toString();
-			prices = NordPoolFinlandParser.parsePrices(result);
-
 		} catch (MalformedURLException e) {
 			System.err.println("MalformedURLException: "+e.getLocalizedMessage());
 		} catch (SocketException e) {
@@ -106,15 +153,13 @@ public class RESTClient {
 		} catch (IOException e) {
 			System.err.println("IOException: "+e.getLocalizedMessage());
 		} finally {
-			try {
-				br.close();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
 			conn.disconnect();
 		}
-		return result + "\n"+ prices;
+		return result;
 	}
+	
+	
+	// PARSE prices = NordPoolFinlandParser.parsePrices(result);
 	
 	
 	public void parseXLS(String urlString) {

@@ -34,13 +34,13 @@ public class Scheduler {
 //		client.fetchURL(urlIsoNe);
 //	}
 	
-//	@Schedule(second="0/30", minute="*", hour="*")
-//	public void importNordPoolData() {
-//		System.out.println("Scheduler NordPool active on "+new Date());
-//		String url = "http://www.nordpoolspot.com/globalassets/marketdata-excel-files/elspot-prices_2014_hourly_eur.xls";
-//		RESTClient client = new RESTClient();
-//		client.fetchNordPoolSpotData(url);
-//	}
+	@Schedule(second="0", minute="0", hour="*")
+	public void importNordPoolData() {
+		System.out.println("Scheduler NordPool active on "+new Date());
+		String url = "http://www.nordpoolspot.com/globalassets/marketdata-excel-files/elspot-prices_2014_hourly_eur.xls";
+		String result = RESTClient.fetchDataString(url);
+		System.out.println("DATA FETCH\n"+NordPoolFinlandParser.parsePrices(result));
+	}
 	
 //	@Schedule(second="0", minute="0", hour="*")
 //	public void importNordPoolFinlandData() {
