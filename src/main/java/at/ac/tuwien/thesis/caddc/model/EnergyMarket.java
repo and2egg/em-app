@@ -39,10 +39,9 @@ import javax.validation.constraints.Size;
 @SuppressWarnings("serial")
 @Entity
 public class EnergyMarket implements Serializable {
-
 	
 	@Id
-    private Integer id;
+    private Long id;
 
     @NotNull
     @Size(min = 2, max = 30)
@@ -51,11 +50,11 @@ public class EnergyMarket implements Serializable {
 
     private String description;
 
-    public Integer getId() {
+    public Long getId() {
         return id;
     }
 
-    public void setId(Integer id) {
+    public void setId(Long id) {
         this.id = id;
     }
 

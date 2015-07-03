@@ -84,7 +84,7 @@ public class EnergyMarketResourceRESTService {
     @GET
     @Path("/{id:[0-9]+}")
     @Produces(MediaType.APPLICATION_JSON)
-    public EnergyMarket lookupEMById(@PathParam("id") long id) {
+    public EnergyMarket lookupEMById(@PathParam("id") Long id) {
     	EnergyMarket energyMarket = repository.findById(id);
         if (energyMarket == null) {
             throw new WebApplicationException(Response.Status.NOT_FOUND);
