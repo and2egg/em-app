@@ -29,10 +29,7 @@ import javax.validation.constraints.Digits;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Pattern;
 import javax.validation.constraints.Size;
-import javax.xml.bind.annotation.XmlRootElement;
 
-import org.hibernate.validator.constraints.Email;
-import org.hibernate.validator.constraints.NotEmpty;
 
 /**
  * Entity wrapper for energy markets
@@ -43,24 +40,22 @@ import org.hibernate.validator.constraints.NotEmpty;
 @Entity
 public class EnergyMarket implements Serializable {
 
-    @Id
-    @GeneratedValue //(strategy=GenerationType.AUTO)
-    private Long id;
+	
+	@Id
+    private Integer id;
 
     @NotNull
     @Size(min = 2, max = 30)
     @Pattern(regexp = "[^0-9](\\w+)", message = "Must not use number as first character")
     private String name;
 
-    @NotNull
-    @NotEmpty
-    private String location;
+    private String description;
 
-    public Long getId() {
+    public Integer getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(Integer id) {
         this.id = id;
     }
 
@@ -72,12 +67,12 @@ public class EnergyMarket implements Serializable {
         this.name = name;
     }
 
-    public String getLocation() {
-        return location;
+    public String getDescription() {
+        return description;
     }
 
-    public void setLocation(String location) {
-        this.location = location;
+    public void setDescription(String description) {
+        this.description = description;
     }
     
 }

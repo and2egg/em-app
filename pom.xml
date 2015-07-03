@@ -50,7 +50,14 @@
         <maven.compiler.target>1.6</maven.compiler.target>
         <maven.compiler.source>1.6</maven.compiler.source>
     </properties>
-
+    
+    <repositories>
+	    <repository>
+	      <id>codelds</id>
+	      <name>codeIds-nexus</name>
+	      <url>https://code.lds.org/nexus/content/groups/main-repo</url>
+	    </repository>
+	</repositories>
 
     <dependencyManagement>
         <dependencies>
@@ -152,6 +159,13 @@
             <artifactId>jboss-ejb-api_3.1_spec</artifactId>
             <scope>provided</scope>
         </dependency>
+        
+        <!-- ORACLE database driver -->
+		<dependency>
+			<groupId>com.oracle</groupId>
+			<artifactId>ojdbc6</artifactId>
+			<version>11.2.0.2.0</version>
+		</dependency>
 
         <!-- JSR-303 (Bean Validation) Implementation -->
         <!-- Provides portable constraints such as @Email -->
@@ -271,6 +285,24 @@
                 </plugins>
             </build>
         </profile>
+        
+        <profile>
+	      <id>codelds</id>
+	      <repositories>
+	        <repository>
+	          <id>codelds</id>
+	          <name>codeIds-nexus</name>
+	          <url>https://code.lds.org/nexus/content/groups/main-repo</url>
+	        </repository>
+	      </repositories>
+	      <pluginRepositories>
+	        <pluginRepository>
+	          <id>codelds</id>
+	          <name>codeIds-nexus</name>
+	          <url>https://code.lds.org/nexus/content/groups/main-repo</url>
+	        </pluginRepository>
+	      </pluginRepositories>
+	    </profile>
 
         <profile>
             <!-- An optional Arquillian testing profile that executes tests in your 

@@ -18,4 +18,4 @@
 -- You can use this file to load seed data into the database using SQL statements
 insert into Member (id, name, email, phone_number) values (0, 'John Smith', 'john.smith@mailinator.com', '2125551212')
 
-insert into EnergyMarket (id, name, location) values (0, 'ISO-NE_ME', 'ME')
+insert into EnergyMarket (id, name, description) values (0, 'ISO-NE', 'Energy market responsible for managing spot prices in the New England region')
