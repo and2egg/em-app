@@ -16,6 +16,8 @@
  */
 package at.ac.tuwien.thesis.caddc.rest.service;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -31,6 +33,7 @@ import javax.validation.ConstraintViolationException;
 import javax.validation.ValidationException;
 import javax.validation.Validator;
 import javax.ws.rs.Consumes;
+import javax.ws.rs.Encoded;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -46,6 +49,7 @@ import org.rosuda.REngine.Rserve.RserveException;
 import at.ac.tuwien.thesis.caddc.data.parse.NordPoolFinlandParser;
 import at.ac.tuwien.thesis.caddc.model.EnergyMarket;
 import at.ac.tuwien.thesis.caddc.model.Member;
+import at.ac.tuwien.thesis.caddc.persistence.EnergyMarketPersistence;
 import at.ac.tuwien.thesis.caddc.persistence.EnergyMarketRepository;
 import at.ac.tuwien.thesis.caddc.rest.client.RESTClient;
 import at.ac.tuwien.thesis.caddc.service.MemberRegistration;
@@ -68,34 +72,36 @@ public class EnergyMarketResourceRESTService {
 
     @Inject
     private EnergyMarketRepository repository;
-
-    @Inject
-    MemberRegistration registration;
     
     @Inject
-    RManager rManager;
+    private EnergyMarketPersistence resource;
+    
+    @Inject
+    private RManager rManager;
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
-    public List<EnergyMarket> listAllEMs() {
-        return repository.findAllOrderedByName();
+    public Response listAllEMs() {
+    	List<EnergyMarket> markets = repository.findAllOrderedByName();
+        return Response.status(200).entity(markets).build();
     }
 
     @GET
     @Path("/{id:[0-9]+}")
     @Produces(MediaType.APPLICATION_JSON)
-    public EnergyMarket lookupEMById(@PathParam("id") Long id) {
+    public Response lookupEMById(@PathParam("id") Long id) {
     	EnergyMarket energyMarket = repository.findById(id);
         if (energyMarket == null) {
-            throw new WebApplicationException(Response.Status.NOT_FOUND);
+        	String output = "No energy market with id "+id+" found";
+            return Response.status(Response.Status.NOT_FOUND).entity(output).build();
         }
-        return energyMarket;
+    	return Response.status(200).entity(energyMarket).build();
     }
     
     @GET
     @Path("/rtest")
     @Produces(MediaType.APPLICATION_JSON)
-    public String testR() {
+    public Response testR() {
     	String result = "";
     	try {
 			result = rManager.testR();
@@ -108,16 +114,40 @@ public class EnergyMarketResourceRESTService {
 			e.printStackTrace();
 			result = e.getMessage();
 		}
-    	return result;
+    	String output = "R result: "+result;
+    	return Response.status(200).entity(output).build();
     }
     
     @GET
     @Path("/data")
     @Produces(MediaType.APPLICATION_JSON)
-    public String testDataFetch() {
+    public Response testDataFetch() {
     	String url = "http://www.nordpoolspot.com/globalassets/marketdata-excel-files/elspot-prices_2014_hourly_eur.xls";
 		String result = RESTClient.fetchDataString(url);
-		return "DATA FETCH\n"+NordPoolFinlandParser.parsePrices(result);
+		String output = "DATA FETCH\n"+NordPoolFinlandParser.parsePrices(result);
+		return Response.status(200).entity(output).build();
+    }
+    
+    
+    @GET
+    @Path("/create/name/{name}/description/{description}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Encoded
+    public Response createEnergyMarket(@PathParam("name") String name, @PathParam("description") String description) {
+    	
+    	// decode path params URL strings
+    	try {
+    		name = URLDecoder.decode(name, "UTF-8");
+    		description = URLDecoder.decode(description, "UTF-8");
+		} catch (UnsupportedEncodingException e) {}
+    	
+    	EnergyMarket energyMarket = new EnergyMarket();
+    	energyMarket.setName(name);
+    	energyMarket.setDescription(description);
+    	
+    	resource.saveEnergyMarketToDB(energyMarket);
+    	String output = "Successfully saved energy market "+energyMarket.getName()+", desc: "+energyMarket.getDescription();
+    	return Response.status(200).entity(output).build();
     }
 
 

@@ -41,14 +41,25 @@ import javax.validation.constraints.Size;
 public class EnergyMarket implements Serializable {
 	
 	@Id
+	@GeneratedValue
     private Long id;
 
     @NotNull
     @Size(min = 2, max = 30)
-    @Pattern(regexp = "[^0-9](\\w+)", message = "Must not use number as first character")
+    @Pattern(regexp = "[^0-9][\\s\\w]+", message = "Must not use number as first character")
     private String name;
 
     private String description;
+    
+    public EnergyMarket() {
+    	
+    }
+    
+    public EnergyMarket(Long id, String name, String description) {
+    	this.id = id;
+    	this.name = name;
+    	this.description = description;
+    }
 
     public Long getId() {
         return id;

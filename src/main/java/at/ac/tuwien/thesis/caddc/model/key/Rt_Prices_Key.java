@@ -15,7 +15,7 @@ import at.ac.tuwien.thesis.caddc.model.Location;
  * 
  * @author Andreas Egger
  */
-public class Da_Prices_Key implements Serializable {
+public class Rt_Prices_Key implements Serializable {
 
 	private Date biddingDate;
 	private Location location;

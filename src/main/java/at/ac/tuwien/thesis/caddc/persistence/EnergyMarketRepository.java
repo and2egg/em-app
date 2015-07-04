@@ -47,4 +47,5 @@ public class EnergyMarketRepository {
         criteria.select(energyMarket).orderBy(cb.asc(energyMarket.get("name")));
         return em.createQuery(criteria).getResultList();
     }
+    
 }

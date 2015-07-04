@@ -1,21 +1,28 @@
---
--- JBoss, Home of Professional Open Source
--- Copyright 2013, Red Hat, Inc. and/or its affiliates, and individual
--- contributors by the @authors tag. See the copyright.txt in the
--- distribution for a full listing of individual contributors.
---
--- Licensed under the Apache License, Version 2.0 (the "License");
--- you may not use this file except in compliance with the License.
--- You may obtain a copy of the License at
--- http://www.apache.org/licenses/LICENSE-2.0
--- Unless required by applicable law or agreed to in writing, software
--- distributed under the License is distributed on an "AS IS" BASIS,
--- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
--- See the License for the specific language governing permissions and
--- limitations under the License.
---
+
 
 -- You can use this file to load seed data into the database using SQL statements
-insert into Member (id, name, email, phone_number) values (0, 'John Smith', 'john.smith@mailinator.com', '2125551212')
 
-insert into EnergyMarket (id, name, description) values (0, 'ISO-NE', 'Energy market responsible for managing spot prices in the New England region')
+--------------------
+-- Energy Markets --
+--------------------
+
+--insert into EnergyMarket (id,name,description) values(1, 'Nord Pool Spot', 'Spot Market responsible for bidding area of northern europe');
+--insert into EnergyMarket (id, name, description) values (2, 'ISO-NE', 'Energy market responsible for managing spot prices in the New England region')
+
+--------------------
+--    Location    --
+--------------------
+
+--insert into location (id,name,em_id) values(1,'Finland',1);
+--insert into location (id,name,em_id) values(2,'Sweden',1);
+--insert into location (id,name,em_id) values(3,'Maine',2);
+--insert into location (id,name,em_id) values(4,'Massachusetts',2);
+
+--------------------
+--    DA Prices   --
+--------------------
+
+--insert into da_prices (id,bid_date,interval,interval_unit,price,time_lag,location_id) values (1,TO_DATE('2015-07-03 04:00', 'YYYY-MM-DD HH24:MI'),1,'hour',450,4,1);
+--insert into da_prices (id,bid_date,interval,interval_unit,price,time_lag,location_id) values (2,TO_DATE('2015-07-03 05:00', 'YYYY-MM-DD HH24:MI'),1,'hour',460,4,1);
+--insert into da_prices (id,bid_date,interval,interval_unit,price,time_lag,location_id) values (10,TO_DATE('2015-07-03 07:00', 'YYYY-MM-DD HH24:MI'),1,'hour',490,4,1);
+
