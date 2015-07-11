@@ -159,9 +159,6 @@ public class RESTClient {
 	}
 	
 	
-	// PARSE prices = NordPoolFinlandParser.parsePrices(result);
-	
-	
 	public void parseXLS(String urlString) {
 		try {
 			URL url = new URL(urlString);

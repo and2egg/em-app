@@ -17,12 +17,17 @@
 package at.ac.tuwien.thesis.caddc.model;
 
 import java.io.Serializable;
+import java.util.List;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.NamedQueries;
+import javax.persistence.NamedQuery;
+import javax.persistence.OneToMany;
 import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
 import javax.validation.constraints.Digits;
@@ -38,6 +43,31 @@ import javax.validation.constraints.Size;
  */
 @SuppressWarnings("serial")
 @Entity
+@NamedQueries({
+		@NamedQuery(name="EnergyMarket.findAll", query="SELECT e FROM EnergyMarket e " +
+														"ORDER BY name ASC"),
+		@NamedQuery(name = "EnergyMarket.findByName", query = "SELECT e FROM EnergyMarket e " +
+																"WHERE e.name LIKE :name"),
+//		@NamedQuery(name = "EnergyMarket.findLocationsByName", query = "SELECT l " +
+//																"FROM EnergyMarket e JOIN e.locations l " +
+//																"WHERE l.name = :name"),
+//		@NamedQuery(name = "EnergyMarket.findLocationByMarketandName", query = "SELECT l " +
+//																"FROM EnergyMarket e JOIN e.locations l " +
+//																"WHERE e.name = :marketName "
+//																+ "AND l.name = :locationName")
+		
+//			    "FROM Organization o, User u " +
+//			    "JOIN o.roles oRole " +
+//			    "JOIN u.roles uRole " +
+//			    "WHERE oRole.id = uRole.id AND u.id = :uId")
+//		@NamedQuery(name = "Location.findLocationByMarketandName", 
+//		query = "SELECT l "
+//				+ "FROM EnergyMarket e JOIN Location l "
+//				+ "WHERE l.em.id = e.id "
+//				+ "AND e.name = :marketName "
+//				+ "AND l.name = :locationName")
+})
+
 public class EnergyMarket implements Serializable {
 	
 	@Id
@@ -45,13 +75,18 @@ public class EnergyMarket implements Serializable {
     private Long id;
 
     @NotNull
-    @Size(min = 2, max = 30)
+    @Column(unique=true)
+    @Size(min = 2, max = 40, message = "Please provide a name of length between 2 and 40 characters")
     @Pattern(regexp = "[^0-9][\\s\\w]+", message = "Must not use number as first character")
     private String name;
 
     private String description;
     
-    public EnergyMarket() {
+//    @OneToMany(fetch=FetchType.EAGER, mappedBy="em")
+//    private List<Location> locations;
+    
+
+	public EnergyMarket() {
     	
     }
     
@@ -85,4 +120,11 @@ public class EnergyMarket implements Serializable {
         this.description = description;
     }
     
+//   	public List<Location> getLocations() {
+//   		return locations;
+//   	}
+//
+//   	public void setLocations(List<Location> locations) {
+//   		this.locations = locations;
+//   	}
 }

@@ -11,8 +11,10 @@ import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.Root;
 
+import java.util.Date;
 import java.util.List;
 
+import at.ac.tuwien.thesis.caddc.model.DAPrice;
 import at.ac.tuwien.thesis.caddc.model.EnergyMarket;
 import at.ac.tuwien.thesis.caddc.model.Location;
 import at.ac.tuwien.thesis.caddc.model.Member;
@@ -28,35 +30,25 @@ import at.ac.tuwien.thesis.caddc.model.Member;
  * @author Andreas Egger
  */
 @ApplicationScoped
-public class EnergyMarketRepository {
+public class DAPriceRepository {
 
     @Inject
     private EntityManager em;
 
-    public EnergyMarket findById(Long id) {
+    public DAPrice findById(Long id) {
     	// retrieve energy market by id (primary key)
-        return em.find(EnergyMarket.class, id);
-    }
-    
-    public EnergyMarket findByName(String name) {
-    	TypedQuery<EnergyMarket> q = em.createNamedQuery("EnergyMarket.findByName", EnergyMarket.class);
-    	q.setParameter("name", name);
-    	EnergyMarket eMarket = null;
-		try {
-		  	eMarket = q.getSingleResult();
-		} catch(NoResultException nrEx) {
-		  	// eMarket = null;
-		}
-    	return eMarket;
-    }
-    
-    public List<Location> findLocationsByName(String name) {
-    	TypedQuery<Location> q = em.createNamedQuery("EnergyMarket.findLocationsByName", Location.class);
-    	return q.getResultList();
+        return em.find(DAPrice.class, id);
     }
 
-    public List<EnergyMarket> findAllOrderedByName() {
-    	TypedQuery<EnergyMarket> q = em.createNamedQuery("EnergyMarket.findAll", EnergyMarket.class);
+    public List<DAPrice> findAll() {
+    	TypedQuery<DAPrice> q = em.createNamedQuery("DAPrice.findAll", DAPrice.class);
+    	return q.getResultList();
+    }
+    
+    public List<DAPrice> findByDate(Date startDate, Date endDate) {
+    	TypedQuery<DAPrice> q = em.createNamedQuery("DAPrice.findByDate", DAPrice.class);
+    	q.setParameter("startDate", startDate);
+    	q.setParameter("endDate", endDate);
     	return q.getResultList();
     }
     
