@@ -133,6 +133,7 @@ public class RESTClient {
 		InputStream in = null;
 		String result = null;
 		
+		System.out.println("URL = "+urlString);
 		try {
 			url = new URL(urlString);
 			conn = (HttpURLConnection) url.openConnection();

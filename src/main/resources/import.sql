@@ -14,10 +14,10 @@ insert into EnergyMarket (id, name, description) values (3, 'Belpex', 'Energy ma
 --    Location    --
 --------------------
 
-insert into location (id,name,em_id) values(1,'Finland',1);
-insert into location (id,name,em_id) values(2,'Sweden',1);
-insert into location (id,name,em_id) values(3,'Maine',2);
-insert into location (id,name,em_id) values(4,'Massachusetts',2);
+insert into location (id,name,em_id) values(1,'Helsinki',1);
+insert into location (id,name,em_id) values(2,'Stockholm',1);
+insert into location (id,name,em_id) values(3,'Portland',2);
+insert into location (id,name,em_id) values(4,'Boston',2);
 insert into location (id,name,em_id) values(5,'Brussels',3);
 
 --------------------

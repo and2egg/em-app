@@ -151,26 +151,40 @@ public class EnergyMarketResourceRESTService {
     @GET
     @Path("/import/{id:[0-9]+}/{year}")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response importMarketData(@PathParam("id") Integer marketId, @PathParam("year") Integer year) {
-    	if(marketId == 1) {
-    		importNPSMarketData(year);
-    	} else if(marketId == 2) {
-    		importISONEMarketData(year);
-    	} else if(marketId == 3) {
-    		importBelpexMarketData(year);
+    public Response importMarketData(@PathParam("id") Integer locationId, @PathParam("year") Integer year) {
+    	if(locationId == 1) {
+    		importFinlandMarketData(year);
+    	} else if(locationId == 2) {
+    		importSwedenMarketData(year);
+    	} else if(locationId == 3) {
+    		importMaineMarketData(year);
+    	} else if(locationId == 4) {
+    		importBostonMarketData(year);
+    	} else if(locationId == 5) {
+    		importBrusselsMarketData(year);
     	}
-		return Response.status(200).entity("Successfully imported data").build();
+		return Response.status(200).entity("Successfully imported data for location "+locationId).build();
     }
     
-    private void importNPSMarketData(Integer year) {
+    private void importFinlandMarketData(Integer year) {
+    	String url = "http://www.nordpoolspot.com/globalassets/marketdata-excel-files/elspot-prices_"+year.toString()+"_hourly_eur.xls";
+		String result = RESTClient.fetchDataString(url);
+		daPriceResource.saveDAPrices(NordPoolFinlandParser.parsePrices(result), "Helsinki");
+    }
+    
+    private void importSwedenMarketData(Integer year) {
     	
     }
     
-    private void importISONEMarketData(Integer year) {
+    private void importMaineMarketData(Integer year) {
     	
     }
     
-    private void importBelpexMarketData(Integer year) {
+    private void importBostonMarketData(Integer year) {
+    	
+    }
+    
+    private void importBrusselsMarketData(Integer year) {
     	
     }
     

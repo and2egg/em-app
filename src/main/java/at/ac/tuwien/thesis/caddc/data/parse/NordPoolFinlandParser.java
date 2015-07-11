@@ -2,6 +2,7 @@ package at.ac.tuwien.thesis.caddc.data.parse;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -13,18 +14,30 @@ import org.jsoup.select.Elements;
  */
 public class NordPoolFinlandParser {
 
-	public static String parsePrices(String htmlString) {
+	public static List<String> parsePrices(String htmlString) {
+		
+		// index of the column of locations
+		Integer colPriceIndex = 5;
 		
 		Document doc = Jsoup.parse(htmlString);
 		Elements hourlyPrices = doc.select("tbody > tr");
 		System.out.println("hourly prices length = "+hourlyPrices.size());
 		ArrayList<String> arrPrices = new ArrayList<String>();
 		for(Element hourPrice : hourlyPrices) {
-			Elements list = hourPrice.select("td[style=text-align:right;]").eq(5);
-			arrPrices.add(list.get(0).text());
+			Elements date = hourPrice.select("td[style=text-align:left;]").eq(0);
+			Elements time = hourPrice.select("td[style=text-align:left;]").eq(1);
+			Elements prices = hourPrice.select("td[style=text-align:right;]").eq(colPriceIndex);
+			
+			String dateString = date.get(0).text();
+			String timeString = time.get(0).text();
+			String price = prices.get(0).text();
+			if(price.equals("-")) 
+				continue;
+			
+			arrPrices.add(dateString +";"+ timeString +";"+ price);
 			System.out.print(" "+arrPrices.get(arrPrices.size()-1));
 		}
 		System.out.println("\nprices length: "+arrPrices.size());
-		return arrPrices.toString();
+		return arrPrices;
 	}
 }
