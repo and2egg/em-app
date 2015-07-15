@@ -39,8 +39,11 @@ public class Location implements Serializable {
     @Size(min = 2, max = 40, message = "Please provide a name of length between 2 and 40 characters")
     @Pattern(regexp = "[^0-9](\\w+)", message = "Must not use number as first character")
     private String name;
+    
+    @Column(name="TIMEZONE")
+    private String timeZone;
 
-    @ManyToOne
+	@ManyToOne
     private EnergyMarket em;
 
 	/**
@@ -63,6 +66,20 @@ public class Location implements Serializable {
 	public void setName(String name) {
 		this.name = name;
 	}
+	
+	/**
+	 * @return the timeZone
+	 */
+	public String getTimeZone() {
+		return timeZone;
+	}
+
+	/**
+	 * @param timeZone the timeZone to set
+	 */
+	public void setTimeZone(String timeZone) {
+		this.timeZone = timeZone;
+	}
 
 	/**
 	 * @return the em
@@ -83,6 +100,7 @@ public class Location implements Serializable {
 		return "Location: "+
 				"id="+this.getId()+
 				", name="+this.getName()+
+				", timezone="+this.getTimeZone()+
 				", Energy Market="+this.getEm().getName();
 	}
 }

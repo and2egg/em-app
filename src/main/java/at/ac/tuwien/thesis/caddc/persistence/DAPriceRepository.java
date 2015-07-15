@@ -52,4 +52,14 @@ public class DAPriceRepository {
     	return q.getResultList();
     }
     
+    public List<DAPrice> findByDateAndLocation(Date startDate, Date endDate, Long locationId) {
+    	TypedQuery<DAPrice> q = em.createNamedQuery("DAPrice.findByDateAndLocation", DAPrice.class);
+    	q.setParameter("startDate", startDate);
+    	q.setParameter("endDate", endDate);
+    	q.setParameter("locationId", locationId);
+    	return q.getResultList();
+    }
+    
+    
+    
 }

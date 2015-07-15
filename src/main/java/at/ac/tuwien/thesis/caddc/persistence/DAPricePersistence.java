@@ -3,6 +3,7 @@ package at.ac.tuwien.thesis.caddc.persistence;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 import java.util.TimeZone;
 
@@ -44,17 +45,18 @@ public class DAPricePersistence {
     public void saveDAPrices(List<String> priceData, String location) {
     	
     	TimeZone timeZone = getTimeZone(location);
-    	
     	Location loc = locationRepository.findByName(location);
 		if(loc == null) {
 			System.err.println("Please provide a valid location");
 			return;
 		}
+		Calendar cal = Calendar.getInstance(timeZone);
+		Calendar temp = Calendar.getInstance();
     	
     	for(int i = 0; i < priceData.size(); i++) {
     		String[] split = priceData.get(i).split(";");
     		if(split.length != 3) {
-    			System.err.println("Price data format at index "+i+" is invalid");
+    			System.err.println("Price data format at index "+i+" is invalid: "+priceData.get(i));
     			continue;
     		}
     		String dateString = split[0];
@@ -62,39 +64,44 @@ public class DAPricePersistence {
     		String price = split[2];
     		
     		String[] priceParts = price.split(",");
-    		Integer calcPrice = Integer.parseInt(priceParts[0])*100 + Integer.parseInt(priceParts[1]);
+    		int priceBeforeComma = Integer.parseInt(priceParts[0])*100;
+    		int priceAfterComma = Integer.parseInt(priceParts[1]);
+    		int finalPrice = priceBeforeComma + priceAfterComma; // price in integer, multiplied by 100
     		
-    		if(i < 10)
-    			System.out.println(dateString+","+timeString+","+price);
-    		
-    		Calendar cal = Calendar.getInstance(timeZone);
-    		SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy");
-    		try {
-				cal.setTime(sdf.parse(dateString));
-			} catch (ParseException e) {
-				System.err.println("DAPricePersistence: Could not parse date string: "+e.getMessage());
-			}
+    		temp.setTime(parseDate(dateString, "dd-MM-yyyy"));
+    		cal.set(temp.get(Calendar.YEAR), temp.get(Calendar.MONTH), temp.get(Calendar.DATE));
     		
     		String start = timeString.substring(0, 2);
-    		
-    		if(i < 10) 
-    			System.out.println("start = "+start);
-    		
-    		cal.set(Calendar.HOUR, Integer.parseInt(start));
+    		cal.set(Calendar.HOUR_OF_DAY, Integer.parseInt(start));
     		cal.set(Calendar.MINUTE, 0);
     		cal.set(Calendar.SECOND, 0);
     		cal.set(Calendar.MILLISECOND, 0);
+    		
+    		int timeLag = timeZone.getOffset(cal.getTimeInMillis()) / 3600000; // 3600000 is the minimum offset for a 
+																		// dst time (one hour in milliseconds)
     		
     		DAPrice daPrice = new DAPrice();
         	daPrice.setBiddingDate(cal.getTime());
         	daPrice.setInterval(1);
         	daPrice.setIntervalUnit("hour");
         	daPrice.setLocation(loc);
-        	daPrice.setPrice(calcPrice);
-        	daPrice.setTimelag(0);
+        	daPrice.setPrice(finalPrice);
+        	daPrice.setTimelag(timeLag);
         	
         	saveDAPrice(daPrice);
     	}
+    }
+    
+    private Date parseDate(String dateString, String format) {
+    	Date date = null;
+    	SimpleDateFormat sdf = new SimpleDateFormat(format);
+		try {
+			date = sdf.parse(dateString);
+			return date;
+		} catch (ParseException e) {
+			System.err.println("DAPricePersistence: Could not parse date string: "+e.getMessage());
+			return null;
+		}
     }
     
     private TimeZone getTimeZone(String location) {

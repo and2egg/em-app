@@ -31,11 +31,12 @@ public class NordPoolFinlandParser {
 			String dateString = date.get(0).text();
 			String timeString = time.get(0).text();
 			String price = prices.get(0).text();
-			if(price.equals("-")) 
-				continue;
 			
+			if(price.length() < 2) {
+				System.out.println(dateString +";"+ timeString +";"+ price);
+				continue;
+			}
 			arrPrices.add(dateString +";"+ timeString +";"+ price);
-			System.out.print(" "+arrPrices.get(arrPrices.size()-1));
 		}
 		System.out.println("\nprices length: "+arrPrices.size());
 		return arrPrices;

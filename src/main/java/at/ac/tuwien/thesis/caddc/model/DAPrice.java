@@ -33,12 +33,16 @@ import javax.validation.constraints.Size;
 													"ORDER BY id ASC"),
 	@NamedQuery(name="DAPrice.findByDate", query="SELECT p FROM DAPrice p "
 									+ "WHERE p.biddingDate BETWEEN :startDate AND :endDate "
+									+ "ORDER BY p.biddingDate"),
+	@NamedQuery(name="DAPrice.findByDateAndLocation", query="SELECT p FROM DAPrice p "
+									+ "WHERE p.biddingDate BETWEEN :startDate AND :endDate "
+									+ "AND p.location.id = :locationId "
 									+ "ORDER BY p.biddingDate")
 })
 @Table(
-	name="DA_PRICES",
-    uniqueConstraints=
-        @UniqueConstraint(columnNames={"bid_date", "location_id"})
+	name="DA_PRICES"
+//    uniqueConstraints=
+//        @UniqueConstraint(columnNames={"bid_date", "location_id"})
 )
 public class DAPrice implements Serializable {
 

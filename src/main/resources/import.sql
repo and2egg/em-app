@@ -6,7 +6,7 @@
 -- Energy Markets --
 --------------------
 
-insert into EnergyMarket (id,name,description) values(1, 'Nord Pool Spot', 'Spot Market responsible for bidding area of northern europe');
+insert into EnergyMarket (id, name, description) values (1, 'Nord Pool Spot', 'Spot Market responsible for bidding area of northern europe');
 insert into EnergyMarket (id, name, description) values (2, 'ISO-NE', 'Energy market responsible for managing spot prices in the New England region')
 insert into EnergyMarket (id, name, description) values (3, 'Belpex', 'Energy market responsible for managing spot prices in the Belgian region')
 
@@ -14,11 +14,11 @@ insert into EnergyMarket (id, name, description) values (3, 'Belpex', 'Energy ma
 --    Location    --
 --------------------
 
-insert into location (id,name,em_id) values(1,'Helsinki',1);
-insert into location (id,name,em_id) values(2,'Stockholm',1);
-insert into location (id,name,em_id) values(3,'Portland',2);
-insert into location (id,name,em_id) values(4,'Boston',2);
-insert into location (id,name,em_id) values(5,'Brussels',3);
+insert into location (id,name,timezone,em_id) values(1,'Helsinki','Europe/Helsinki',1);
+insert into location (id,name,timezone,em_id) values(2,'Stockholm','Europe/Stockholm',1);
+insert into location (id,name,timezone,em_id) values(3,'Portland','America/New_York',2);
+insert into location (id,name,timezone,em_id) values(4,'Boston','America/New_York',2);
+insert into location (id,name,timezone,em_id) values(5,'Brussels','Europe/Brussels',3);
 
 --------------------
 --    DA Prices   --

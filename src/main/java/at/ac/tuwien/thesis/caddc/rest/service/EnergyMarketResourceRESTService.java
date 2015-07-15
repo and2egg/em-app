@@ -16,8 +16,11 @@
  */
 package at.ac.tuwien.thesis.caddc.rest.service;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
@@ -27,6 +30,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.logging.Logger;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
@@ -167,9 +172,22 @@ public class EnergyMarketResourceRESTService {
     }
     
     private void importFinlandMarketData(Integer year) {
-    	String url = "http://www.nordpoolspot.com/globalassets/marketdata-excel-files/elspot-prices_"+year.toString()+"_hourly_eur.xls";
-		String result = RESTClient.fetchDataString(url);
-		daPriceResource.saveDAPrices(NordPoolFinlandParser.parsePrices(result), "Helsinki");
+    	String result = null;
+    	if(year == 2012) {
+    	    String path = getResourcePath("energydata", "/NPS/Elspot_Prices_2012_Hourly_EUR.xls");
+    	    try {
+    	    	result = new String(Files.readAllBytes(Paths.get(path)));
+			} catch (IOException e) {
+				System.err.println("Could not read resource file: "+path);
+			}
+    	}
+    	else {
+    		String url = "http://www.nordpoolspot.com/globalassets/marketdata-excel-files/elspot-prices_"+year.toString()+"_hourly_eur.xls";
+    		result = RESTClient.fetchDataString(url);
+    	}
+		
+    	if(result != null) 
+    		daPriceResource.saveDAPrices(NordPoolFinlandParser.parsePrices(result), "Helsinki");
     }
     
     private void importSwedenMarketData(Integer year) {
@@ -188,16 +206,184 @@ public class EnergyMarketResourceRESTService {
     	
     }
     
+    private String getResourcePath(String resourceRoot, String resourcePath) {
+    	String path = getClass().getClassLoader().getResource(resourceRoot).getPath();
+		path = path + resourcePath;
+	    path = path.substring(1); // remove leading slash
+	    return path;
+	}
     
+    /**
+     * Retrieve day ahead prices from the location with the given id
+     * and within a start- and enddate, based on the local timezone
+     * @param locationId the id of the location where the query should be executed
+     * @param startDate the startdate of the query (Dateformat: yyyy-MM-dd or yyyy-MM-dd HH:mm:ss)
+     * @param endDate the enddate of the query (Dateformat: yyyy-MM-dd or yyyy-MM-dd HH:mm:ss)
+     * @return Response to indicate whether or not the query was successful
+     */
     @GET
-    @Path("/daprice")
+    @Path("/daprice/{loc_id}/{startDate}/{endDate}/localTZ")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response testDAPriceSave() {
-    	Location location = locationRepository.findByMarketandName("Nord Pool Spot", "Finland");
+    public Response retrieveDAPricesLocal(@PathParam("loc_id") Long locationId, @PathParam("startDate") String startDate, @PathParam("endDate") String endDate) {
+    	Location location = locationRepository.findById(locationId);
     	if(location == null) 
     		return Response.status(Response.Status.BAD_REQUEST).entity("DA Price save: Invalid location").build();
-    	else
-    		System.out.println("Location = "+location.toString());
+
+    	System.out.println("Location = "+location.toString());
+    	System.out.println("startDate = "+startDate.toString());
+    	System.out.println("endDate = "+endDate.toString());
+
+//    	Calendar utc = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+//    	System.out.println("UTC TIME: "+utc.setTime(s.getTime())+", "+e.getTime());
+    	
+    	Calendar start = Calendar.getInstance(TimeZone.getTimeZone(location.getTimeZone()));
+    	Calendar end = Calendar.getInstance(TimeZone.getTimeZone(location.getTimeZone()));
+    	
+    	// Check date formats
+    	String format = "";
+    	if(startDate.length() == 10) {
+    		format = "yyyy-MM-dd";
+    	} else if(startDate.length() == 19) {
+    		format = "yyyy-MM-dd HH:mm:ss";
+    	}
+    	SimpleDateFormat sdfStart = new SimpleDateFormat(format);
+    	
+    	if(endDate.length() == 10) {
+    		format = "yyyy-MM-dd";
+    	} else if(endDate.length() == 19) {
+    		format = "yyyy-MM-dd HH:mm:ss";
+    	}
+    	SimpleDateFormat sdfEnd = new SimpleDateFormat(format);
+    	try {
+    		// Parse dates
+    		sdfStart.parse(startDate);
+    		sdfEnd.parse(endDate);
+			
+			Calendar s = sdfStart.getCalendar();
+			Calendar e = sdfEnd.getCalendar();
+			System.out.println("S DATE = "+s.getTime());
+			
+			start.set(s.get(Calendar.YEAR), s.get(Calendar.MONTH), s.get(Calendar.DAY_OF_MONTH), 
+					s.get(Calendar.HOUR_OF_DAY), s.get(Calendar.MINUTE), s.get(Calendar.SECOND));
+	    	start.set(Calendar.MILLISECOND, 0);
+	    	
+	    	end.set(e.get(Calendar.YEAR), e.get(Calendar.MONTH), e.get(Calendar.DAY_OF_MONTH), 
+					e.get(Calendar.HOUR_OF_DAY), e.get(Calendar.MINUTE), e.get(Calendar.SECOND));
+	    	end.set(Calendar.MILLISECOND, 0);
+	    	
+	    	System.out.println("START DATE = "+start.getTime());
+		} catch (ParseException e) {
+			System.err.println("Error parsing date: "+e.getLocalizedMessage());
+			return Response.status(Response.Status.CONFLICT).entity("Error parsing date: "+e.getLocalizedMessage()).build();
+		}
+    	
+    	System.out.println("start time = "+start.getTime());
+    	System.out.println("end time = "+end.getTime());
+    	
+    	List<DAPrice> prices = daPriceRepository.findByDate(start.getTime(), end.getTime());
+    	
+    	for(DAPrice price : prices) {
+    		System.out.println("price: "+price);
+    	}
+		return Response.status(200).entity("Retrieved da prices from location id "+locationId+" "
+				+ "from "+startDate+" to "+endDate).build();
+    }
+    
+    
+    /**
+     * Retrieve day ahead prices from the location with the given id
+     * and within a start- and enddate, based on current local time
+     * @param locationId the id of the location where the query should be executed
+     * 					if -1 then all stored locations are queried
+     * @param startDate the startdate of the query (Dateformat: yyyy-MM-dd or yyyy-MM-dd HH:mm:ss)
+     * @param endDate the enddate of the query (Dateformat: yyyy-MM-dd or yyyy-MM-dd HH:mm:ss)
+     * @return Response to indicate whether or not the query was successful
+     */
+    @GET
+    @Path("/daprice/{loc_id}/{startDate}/{endDate}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response retrieveDAPrices(@PathParam("loc_id") Long locationId, @PathParam("startDate") String startDate, @PathParam("endDate") String endDate) {
+    	Location location = null;
+    	if(locationId != -1) {
+    		location = locationRepository.findById(locationId);
+        	if(location == null) 
+        		return Response.status(Response.Status.BAD_REQUEST).entity("DA Price save: Invalid location").build();
+
+        	System.out.println("Location = "+location.toString());
+    	}
+    	
+    	System.out.println("startDate = "+startDate.toString());
+    	System.out.println("endDate = "+endDate.toString());
+    	
+    	Calendar start = Calendar.getInstance();
+    	Calendar end = Calendar.getInstance();
+    	
+    	// Check date formats
+    	String format = "";
+    	if(startDate.length() == 10) {
+    		format = "yyyy-MM-dd";
+    	} else if(startDate.length() == 19) {
+    		format = "yyyy-MM-dd HH:mm:ss";
+    	}
+    	SimpleDateFormat sdfStart = new SimpleDateFormat(format);
+    	
+    	if(endDate.length() == 10) {
+    		format = "yyyy-MM-dd";
+    	} else if(endDate.length() == 19) {
+    		format = "yyyy-MM-dd HH:mm:ss";
+    	}
+    	SimpleDateFormat sdfEnd = new SimpleDateFormat(format);
+    	try {
+    		// Parse dates
+    		sdfStart.parse(startDate);
+    		sdfEnd.parse(endDate);
+			
+			Calendar s = sdfStart.getCalendar();
+			Calendar e = sdfEnd.getCalendar();
+			
+			start.set(s.get(Calendar.YEAR), s.get(Calendar.MONTH), s.get(Calendar.DAY_OF_MONTH), 
+					s.get(Calendar.HOUR_OF_DAY), s.get(Calendar.MINUTE), s.get(Calendar.SECOND));
+	    	start.set(Calendar.MILLISECOND, 0);
+	    	
+	    	end.set(e.get(Calendar.YEAR), e.get(Calendar.MONTH), e.get(Calendar.DAY_OF_MONTH), 
+					e.get(Calendar.HOUR_OF_DAY), e.get(Calendar.MINUTE), e.get(Calendar.SECOND));
+	    	end.set(Calendar.MILLISECOND, 0);
+	    	
+	    	System.out.println("START DATE = "+start.getTime());
+		} catch (ParseException e) {
+			System.err.println("Error parsing date: "+e.getLocalizedMessage());
+			return Response.status(Response.Status.CONFLICT).entity("Error parsing date: "+e.getLocalizedMessage()).build();
+		}
+    	
+    	System.out.println("start time = "+start.getTime());
+    	System.out.println("end time = "+end.getTime());
+    	
+    	List<DAPrice> prices = null;
+    	
+    	if(locationId == -1) {
+    		prices = daPriceRepository.findByDate(start.getTime(), end.getTime());
+    	}
+    	else {
+    		prices = daPriceRepository.findByDateAndLocation(start.getTime(), end.getTime(), locationId);
+    	}
+    	
+    	for(DAPrice price : prices) {
+    		System.out.println("price: "+price);
+    	}
+		return Response.status(200).entity("Retrieved da prices from location id "+locationId+" "
+				+ "from "+startDate+" to "+endDate+": "+prices.size()).build();
+    }
+    
+    
+    @GET
+    @Path("/daprice/save")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response testDAPriceSave() {
+    	Location location = locationRepository.findById(1L);
+    	if(location == null) 
+    		return Response.status(Response.Status.BAD_REQUEST).entity("DA Price save: Invalid location").build();
+
+    	System.out.println("Location = "+location.toString());
     	
     	Calendar c = Calendar.getInstance(TimeZone.getTimeZone("America/New_York"));
     	c.set(2015, 06, 11, 10, 00, 00);
@@ -212,30 +398,10 @@ public class EnergyMarketResourceRESTService {
     	daPrice.setTimelag(new Integer(0));
     	System.out.println("DAPrice = "+daPrice.toString());
     	
-//    	daPriceResource.saveDAPrice(daPrice);
-    	
-//    	List<DAPrice> prices = daPriceRepository.findAll();
-
-//    	Calendar utc = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-//    	
-//    	System.out.println("UTC TIME: "+utc.setTime(s.getTime())+", "+e.getTime());
-    	
-    	Calendar start = Calendar.getInstance();
-    	start.set(2015, 06, 11, 16, 00, 00);
-    	start.set(Calendar.MILLISECOND, 0);
-    	
-    	Calendar end = Calendar.getInstance(); //TimeZone.getTimeZone("America/New_York")
-    	end.set(2015, 06, 11, 17, 00, 00);
-    	end.set(Calendar.MILLISECOND, 0);
-    	
-    	List<DAPrice> prices = daPriceRepository.findByDate(start.getTime(), end.getTime());
-    	
-    	for(DAPrice price : prices) {
-    		System.out.println("price: "+price);
-    	}
+    	daPriceResource.saveDAPrice(daPrice);
     	
     	String output = "Saved DA Price: "+daPrice.toString()+"\n for location "+location.toString();
-		return Response.status(200).entity(output).build();
+    	return Response.status(200).entity(output).build();
     }
     
     
@@ -243,30 +409,43 @@ public class EnergyMarketResourceRESTService {
     @Path("/tz")
     @Produces(MediaType.APPLICATION_JSON)
     public Response testTZ() {
-    	Calendar c1 = Calendar.getInstance(TimeZone.getTimeZone("Europe/Stockholm"));
-    	c1.set(2015, 02, 25, 01, 00, 00);
+    	
+    	
+    	TimeZone UTC = TimeZone.getTimeZone("UTC");
+    	TimeZone HLS = TimeZone.getTimeZone("Europe/Helsinki");
+    	
+    	Calendar c0 = Calendar.getInstance(TimeZone.getTimeZone("Europe/Helsinki"));
+    	c0.set(2012, 02, 25, 00, 00, 00);
+    	c0.set(Calendar.MILLISECOND, 0);
+    	System.out.println("HELSINKI TIME: "+c0.getTimeInMillis()+", "+c0.getTime()+", "+HLS.getOffset(c0.getTimeInMillis()));
+    	c0.set(2012, 02, 25, 01, 00, 00);
+    	System.out.println("HELSINKI TIME: "+c0.getTimeInMillis()+", "+c0.getTime()+", "+HLS.getOffset(c0.getTimeInMillis()));
+    	c0.set(2012, 02, 25, 02, 00, 00);
+    	System.out.println("HELSINKI TIME: "+c0.getTimeInMillis()+", "+c0.getTime()+", "+HLS.getOffset(c0.getTimeInMillis()));
+    	System.out.println("THIS TIME DOES NOT EXIST !!!!");
+    	c0.set(2012, 02, 25, 03, 00, 00);
+    	System.out.println("HELSINKI TIME: "+c0.getTimeInMillis()+", "+c0.getTime()+", "+HLS.getOffset(c0.getTimeInMillis()));
+    	c0.set(2012, 02, 25, 04, 00, 00);
+    	System.out.println("HELSINKI TIME: "+c0.getTimeInMillis()+", "+c0.getTime()+", "+HLS.getOffset(c0.getTimeInMillis()));
+    	c0.set(2012, 02, 25, 05, 00, 00);
+    	System.out.println("HELSINKI TIME: "+c0.getTimeInMillis()+", "+c0.getTime()+", "+HLS.getOffset(c0.getTimeInMillis()));
+    	c0.set(2012, 02, 25, 06, 00, 00);
+    	System.out.println("HELSINKI TIME: "+c0.getTimeInMillis()+", "+c0.getTime()+", "+HLS.getOffset(c0.getTimeInMillis()));
+
+    	
+    	Calendar c1 = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+    	c1.set(2012, 02, 25, 00, 00, 00);
     	c1.set(Calendar.MILLISECOND, 0);
-    	
-    	Calendar c2 = Calendar.getInstance(TimeZone.getTimeZone("Europe/Stockholm"));
-    	c2.set(2015, 02, 25, 02, 00, 00);
-    	c2.set(Calendar.MILLISECOND, 0);
-    	
-    	Calendar c3 = Calendar.getInstance(TimeZone.getTimeZone("Europe/Stockholm"));
-    	c3.set(2015, 02, 25, 03, 00, 00);
-    	c3.set(Calendar.MILLISECOND, 0);
-    	
-    	System.out.println("SWEDEN TIME: "+c1.getTime()+", "+c1.getTime());
-    	System.out.println("SWEDEN TIME: "+c2.getTime()+", "+c2.getTime());
-    	System.out.println("SWEDEN TIME: "+c3.getTime()+", "+c3.getTime());
-    	
-    	c1.setTimeZone(TimeZone.getTimeZone("UTC"));
-    	c2.setTimeZone(TimeZone.getTimeZone("UTC"));
-    	c3.setTimeZone(TimeZone.getTimeZone("UTC"));
-    	
-    	System.out.println("UTC TIME: "+c1.getTime()+", "+c1.getTime());
-    	System.out.println("UTC TIME: "+c2.getTime()+", "+c2.getTime());
-    	System.out.println("UTC TIME: "+c3.getTime()+", "+c3.getTime());
-    	
+    	System.out.println("UTC TIME: "+c1.getTimeInMillis()+", "+c1.getTime()+", "+HLS.getOffset(c1.getTimeInMillis()));
+    	c1.set(2012, 02, 25, 01, 00, 00);
+    	System.out.println("UTC TIME: "+c1.getTimeInMillis()+", "+c1.getTime()+", "+HLS.getOffset(c1.getTimeInMillis()));
+    	c1.set(2012, 02, 25, 02, 00, 00);
+    	System.out.println("UTC TIME: "+c1.getTimeInMillis()+", "+c1.getTime()+", "+HLS.getOffset(c1.getTimeInMillis()));
+    	c1.set(2012, 02, 25, 03, 00, 00);
+    	System.out.println("UTC TIME: "+c1.getTimeInMillis()+", "+c1.getTime()+", "+HLS.getOffset(c1.getTimeInMillis()));
+    	c1.set(2012, 02, 25, 04, 00, 00);
+    	System.out.println("UTC TIME: "+c1.getTimeInMillis()+", "+c1.getTime()+", "+HLS.getOffset(c1.getTimeInMillis()));
+
     	
     	String output = "Finished";
     	return Response.status(200).entity(output).build();
