@@ -1,7 +1,8 @@
 package at.ac.tuwien.thesis.caddc.data.parse;
 
-import java.io.FileInputStream;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.poi.hssf.usermodel.HSSFCell;
 import org.apache.poi.hssf.usermodel.HSSFRow;
@@ -15,11 +16,11 @@ import org.apache.poi.poifs.filesystem.POIFSFileSystem;
 public class XLSParser {
 
 	
-	public void parse(InputStream in) {
+	public List<String> parse(InputStream in, int sheetNumber, int rowOffset, int[] colIndices) {
 		try {
 		    POIFSFileSystem fs = new POIFSFileSystem(in);
 		    HSSFWorkbook wb = new HSSFWorkbook(fs);
-		    HSSFSheet sheet = wb.getSheetAt(0);
+		    HSSFSheet sheet = wb.getSheetAt(sheetNumber);
 		    HSSFRow row;
 		    HSSFCell cell;
 
@@ -39,20 +40,29 @@ public class XLSParser {
 		            if(tmp > cols) cols = tmp;
 		        }
 		    }
+		    
+		    System.out.println("rows = "+rows+", cols = "+cols);
 
-		    for(int r = 0; r < rows; r++) {
+		    List<String> priceList = new ArrayList<String>();
+		    for(int r = rowOffset; r < rows; r++) {
 		        row = sheet.getRow(r);
+		        StringBuilder rowData = new StringBuilder();
 		        if(row != null) {
-		            for(int c = 0; c < cols; c++) {
-		                cell = row.getCell((short)c);
+		        	// go through column indices given by parameter
+		            for(int c : colIndices) {
+		                cell = row.getCell(c);
 		                if(cell != null) {
-		                    // Your code here
+		                	rowData.append(cell);
+		                	rowData.append(";");
 		                }
 		            }
 		        }
+		        priceList.add(rowData.toString());
 		    }
+		    return priceList;
 		} catch(Exception ioe) {
 		    ioe.printStackTrace();
 		}
+		return null;
 	}
 }

@@ -143,6 +143,12 @@
 			<version>2.4</version>
 		</dependency>
 				
+		<!-- Add dependency for parsing dates in strings automatically -->
+		<dependency>
+	        <groupId>com.rubiconproject.oss</groupId>
+	        <artifactId>jchronic</artifactId>
+	        <version>0.2.6</version>
+	    </dependency>
 				
         <!-- Import the JPA API, we use provided scope as the API is included in 
             JBoss AS 7 -->

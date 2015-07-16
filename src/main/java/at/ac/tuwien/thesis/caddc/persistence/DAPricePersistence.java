@@ -14,6 +14,8 @@ import javax.persistence.EntityManager;
 import at.ac.tuwien.thesis.caddc.model.DAPrice;
 import at.ac.tuwien.thesis.caddc.model.Location;
 
+import at.ac.tuwien.thesis.caddc.util.DateParser;
+
 /**
  * 
  * @author Andreas Egger
@@ -41,6 +43,7 @@ public class DAPricePersistence {
      * @param prices a String array containing prices encoded in Strings
      * 			The encoding for a single price needs to have the following form: 
      * 			datestring;timestring;price
+     * 			Example: 2015-07-11;02;44,23
      */
     public void saveDAPrices(List<String> priceData, String location) {
     	
@@ -63,16 +66,36 @@ public class DAPricePersistence {
     		String timeString = split[1];
     		String price = split[2];
     		
-    		String[] priceParts = price.split(",");
-    		int priceBeforeComma = Integer.parseInt(priceParts[0])*100;
-    		int priceAfterComma = Integer.parseInt(priceParts[1]);
-    		int finalPrice = priceBeforeComma + priceAfterComma; // price in integer, multiplied by 100
+    		if(i < 10) {
+    			
+    			System.out.println("price: "+dateString+", "+timeString+", "+price);
+    		}
     		
-    		temp.setTime(parseDate(dateString, "dd-MM-yyyy"));
+    		int finalPrice;    		
+    		if(!price.contains(".") && !price.contains(",")) {
+    			finalPrice = Integer.parseInt(price) * 100;
+    		}
+    		else {
+    			String[] priceParts = null;
+    			if(price.contains(","))
+        			priceParts = price.split(",");
+        		if(price.contains("."))
+        			priceParts = price.split("\\.");
+        		
+        		int priceBeforeComma = Integer.parseInt(priceParts[0])*100;
+        		int priceAfterComma = Integer.parseInt(priceParts[1]);
+        		finalPrice = priceBeforeComma + priceAfterComma; // price in integer, multiplied by 100
+    		}
+    		if(i < 25) {
+    			System.out.println("price: "+dateString+", "+timeString+", "+finalPrice);
+    		}
+    		
+    		Date d = DateParser.parseDate(dateString);
+    		temp.setTime(d);
     		cal.set(temp.get(Calendar.YEAR), temp.get(Calendar.MONTH), temp.get(Calendar.DATE));
     		
-    		String start = timeString.substring(0, 2);
-    		cal.set(Calendar.HOUR_OF_DAY, Integer.parseInt(start));
+    		Integer hour = (int)Double.parseDouble(timeString);
+    		cal.set(Calendar.HOUR_OF_DAY, hour);
     		cal.set(Calendar.MINUTE, 0);
     		cal.set(Calendar.SECOND, 0);
     		cal.set(Calendar.MILLISECOND, 0);

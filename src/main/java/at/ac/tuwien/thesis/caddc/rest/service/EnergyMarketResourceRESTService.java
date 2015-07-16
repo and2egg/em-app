@@ -21,6 +21,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
@@ -55,18 +56,17 @@ import javax.ws.rs.core.Response;
 import org.rosuda.REngine.REXPMismatchException;
 import org.rosuda.REngine.Rserve.RserveException;
 
-import at.ac.tuwien.thesis.caddc.data.parse.NordPoolFinlandParser;
+import at.ac.tuwien.thesis.caddc.data.parse.NordPoolHTMLParser;
+import at.ac.tuwien.thesis.caddc.data.parse.HTMLParser;
 import at.ac.tuwien.thesis.caddc.model.DAPrice;
 import at.ac.tuwien.thesis.caddc.model.EnergyMarket;
 import at.ac.tuwien.thesis.caddc.model.Location;
-import at.ac.tuwien.thesis.caddc.model.Member;
 import at.ac.tuwien.thesis.caddc.persistence.DAPricePersistence;
 import at.ac.tuwien.thesis.caddc.persistence.DAPriceRepository;
 import at.ac.tuwien.thesis.caddc.persistence.EnergyMarketPersistence;
 import at.ac.tuwien.thesis.caddc.persistence.EnergyMarketRepository;
 import at.ac.tuwien.thesis.caddc.persistence.LocationRepository;
 import at.ac.tuwien.thesis.caddc.rest.client.RESTClient;
-import at.ac.tuwien.thesis.caddc.service.MemberRegistration;
 import at.ac.tuwien.thesis.caddc.service.RManager;
 
 /**
@@ -148,8 +148,29 @@ public class EnergyMarketResourceRESTService {
     public Response testDataFetch() {
     	String url = "http://www.nordpoolspot.com/globalassets/marketdata-excel-files/elspot-prices_2014_hourly_eur.xls";
 		String result = RESTClient.fetchDataString(url);
-		String output = "DATA FETCH\n"+NordPoolFinlandParser.parsePrices(result);
+		String output = "DATA FETCH\n"+new NordPoolHTMLParser().parsePrices(result, 0, new int[]{5});
 		return Response.status(200).entity(output).build();
+    }
+    
+    
+    @GET
+    @Path("/importall/{id:[0-9]+}/{yearfrom}/{yearto}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response importYearsPerLocation(@PathParam("id") Integer locationId, @PathParam("yearfrom") Integer yearFrom, @PathParam("yearto") Integer yearTo) {
+    	for(int year = yearFrom; year <= yearTo; year++) {
+    		if(locationId == 1) {
+        		importFinlandMarketData(year);
+        	} else if(locationId == 2) {
+        		importSwedenMarketData(year);
+        	} else if(locationId == 3) {
+        		importMaineMarketData(year);
+        	} else if(locationId == 4) {
+        		importMassachusettsMarketData(year);
+        	} else if(locationId == 5) {
+        		importBelgiumMarketData(year);
+        	}
+    	}
+    	return Response.status(200).entity("Successfully imported all data for location "+locationId).build();
     }
     
     
@@ -164,9 +185,9 @@ public class EnergyMarketResourceRESTService {
     	} else if(locationId == 3) {
     		importMaineMarketData(year);
     	} else if(locationId == 4) {
-    		importBostonMarketData(year);
+    		importMassachusettsMarketData(year);
     	} else if(locationId == 5) {
-    		importBrusselsMarketData(year);
+    		importBelgiumMarketData(year);
     	}
 		return Response.status(200).entity("Successfully imported data for location "+locationId).build();
     }
@@ -185,33 +206,150 @@ public class EnergyMarketResourceRESTService {
     		String url = "http://www.nordpoolspot.com/globalassets/marketdata-excel-files/elspot-prices_"+year.toString()+"_hourly_eur.xls";
     		result = RESTClient.fetchDataString(url);
     	}
-		
-    	if(result != null) 
-    		daPriceResource.saveDAPrices(NordPoolFinlandParser.parsePrices(result), "Helsinki");
+    	
+    	if(result != null) {
+    		HTMLParser htmlParser = new NordPoolHTMLParser();
+    		List<String> prices = htmlParser.parsePrices(result, // html content to parse
+					0,   // row offset
+					new int[]{5} // price column indices
+    		);
+    		daPriceResource.saveDAPrices(prices, "Helsinki");
+    	}
     }
     
     private void importSwedenMarketData(Integer year) {
-    	
+    	String result = null;
+    	if(year == 2012) {
+    	    String path = getResourcePath("energydata", "/NPS/Elspot_Prices_2012_Hourly_EUR.xls");
+    	    try {
+    	    	result = new String(Files.readAllBytes(Paths.get(path)));
+			} catch (IOException e) {
+				System.err.println("Could not read resource file: "+path);
+			}
+    	}
+    	else {
+    		String url = "http://www.nordpoolspot.com/globalassets/marketdata-excel-files/elspot-prices_"+year.toString()+"_hourly_eur.xls";
+    		result = RESTClient.fetchDataString(url);
+    	}
+		
+    	if(result != null) {
+    		HTMLParser htmlParser = new NordPoolHTMLParser();
+    		List<String> prices = htmlParser.parsePrices(result, // html content to parse
+					0,   // row offset
+					new int[]{1} // price column indices
+    		);
+    		daPriceResource.saveDAPrices(prices, "Stockholm");
+    	}
+    		
     }
     
     private void importMaineMarketData(Integer year) {
-    	
+    	String url = "";
+    	if(year == 2014) {
+    		url = "http://www.iso-ne.com/static-assets/documents/2015/05/2014_smd_hourly.xls";
+    	}
+    	else {
+    		url = "http://www.iso-ne.com/static-assets/documents/markets/hstdata/znl_info/hourly/"+year+"_smd_hourly.xls";
+    	}
+		int[] colIdx = {0,1,4};
+		
+		List<String> priceList = RESTClient.fetchAndParseXLS(url, // fetch URL
+																2, // sheet number
+																1, // row Offset
+																colIdx // column indices array
+															);
+		
+		List<String> newList = new ArrayList<String>();
+		for(String price : priceList) {
+			String[] split = price.split(";");
+			int hour = (int)Double.parseDouble(split[1]); // parse hour
+			hour --; // reduce hour by one to get hours from 0-23 instead of 1-24
+			String result = split[0] + ";" + String.valueOf(hour) + ";" + split[2];
+			newList.add(result);
+		}
+		
+		System.out.println("newList (1-10) : ");
+		for(int i = 0; i < 10; i++) {
+			System.out.println(newList.get(i));
+		}
+		
+		daPriceResource.saveDAPrices(newList, "Portland");
     }
     
-    private void importBostonMarketData(Integer year) {
-    	
+    private void importMassachusettsMarketData(Integer year) {
+    	String url = "";
+    	if(year == 2014) {
+    		url = "http://www.iso-ne.com/static-assets/documents/2015/05/2014_smd_hourly.xls";
+    	}
+    	else {
+    		url = "http://www.iso-ne.com/static-assets/documents/markets/hstdata/znl_info/hourly/"+year+"_smd_hourly.xls";
+    	}
+		int[] colIdx = {0,1,4};
+		
+		List<String> priceList = RESTClient.fetchAndParseXLS(url, // fetch URL
+																9, // sheet number
+																1, // row Offset
+																colIdx // column indices array
+															);
+		List<String> newList = new ArrayList<String>();
+		for(String price : priceList) {
+			String[] split = price.split(";");
+			int hour = (int)Double.parseDouble(split[1]); // parse hour
+			hour --; // reduce hour by one to get hours from 0-23 instead of 1-24
+			String result = split[0] + ";" + String.valueOf(hour) + ";" + split[2];
+			newList.add(result);
+		}
+		
+		System.out.println("newList (1-10) : ");
+		for(int i = 0; i < 10; i++) {
+			System.out.println(newList.get(i));
+		}
+		
+		daPriceResource.saveDAPrices(newList, "Boston");
     }
     
-    private void importBrusselsMarketData(Integer year) {
-    	
+    private void importBelgiumMarketData(Integer year) {
+    	String path = getResourcePath("energydata","/BELPEX/spotmarket_data_"+year+".xls");
+		int[] colIdx = new int[26];
+		for(int i = 0; i < 26; i++) {
+			colIdx[i] = i;
+		}
+		List<String> priceList = RESTClient.fileFetchAndParseXLS(path, // fetch URL
+																1, // sheet number
+																1, // row Offset
+																colIdx // column indices array
+															);
+		System.out.println("priceList (1-10) : ");
+		for(int i = 0; i < 10; i++) {
+			System.out.println(priceList.get(i));
+		}
+		
+		List<String> transformedPrices = new ArrayList<String>();
+		int count = 0;
+		for(String prices: priceList) {
+			String[] split = prices.split(";");
+			
+			for(int i = 1; i < split.length; i++) {
+				String result = split[0] + ";"; // date
+				String price = split[i].trim();
+				if(i == 25 && !price.isEmpty()) {
+					result += 1 + ";" + price;
+				}
+				else {
+					result += (i-1) + ";" + price;
+				}
+				transformedPrices.add(result);
+			}
+			
+			if(count < 10) {
+				System.out.println("price: "+transformedPrices.get(count));
+				count++;
+			}
+		}
+		
+		daPriceResource.saveDAPrices(transformedPrices, "Brussels");
     }
-    
-    private String getResourcePath(String resourceRoot, String resourcePath) {
-    	String path = getClass().getClassLoader().getResource(resourceRoot).getPath();
-		path = path + resourcePath;
-	    path = path.substring(1); // remove leading slash
-	    return path;
-	}
+
     
     /**
      * Retrieve day ahead prices from the location with the given id
@@ -224,7 +362,7 @@ public class EnergyMarketResourceRESTService {
     @GET
     @Path("/daprice/{loc_id}/{startDate}/{endDate}/localTZ")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response retrieveDAPricesLocal(@PathParam("loc_id") Long locationId, @PathParam("startDate") String startDate, @PathParam("endDate") String endDate) {
+    public Response retrieveDAPricesLocalTZ(@PathParam("loc_id") Long locationId, @PathParam("startDate") String startDate, @PathParam("endDate") String endDate) {
     	Location location = locationRepository.findById(locationId);
     	if(location == null) 
     		return Response.status(Response.Status.BAD_REQUEST).entity("DA Price save: Invalid location").build();
@@ -232,9 +370,6 @@ public class EnergyMarketResourceRESTService {
     	System.out.println("Location = "+location.toString());
     	System.out.println("startDate = "+startDate.toString());
     	System.out.println("endDate = "+endDate.toString());
-
-//    	Calendar utc = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-//    	System.out.println("UTC TIME: "+utc.setTime(s.getTime())+", "+e.getTime());
     	
     	Calendar start = Calendar.getInstance(TimeZone.getTimeZone(location.getTimeZone()));
     	Calendar end = Calendar.getInstance(TimeZone.getTimeZone(location.getTimeZone()));
@@ -282,9 +417,6 @@ public class EnergyMarketResourceRESTService {
     	
     	List<DAPrice> prices = daPriceRepository.findByDate(start.getTime(), end.getTime());
     	
-    	for(DAPrice price : prices) {
-    		System.out.println("price: "+price);
-    	}
 		return Response.status(200).entity("Retrieved da prices from location id "+locationId+" "
 				+ "from "+startDate+" to "+endDate).build();
     }
@@ -367,9 +499,6 @@ public class EnergyMarketResourceRESTService {
     		prices = daPriceRepository.findByDateAndLocation(start.getTime(), end.getTime(), locationId);
     	}
     	
-    	for(DAPrice price : prices) {
-    		System.out.println("price: "+price);
-    	}
 		return Response.status(200).entity("Retrieved da prices from location id "+locationId+" "
 				+ "from "+startDate+" to "+endDate+": "+prices.size()).build();
     }
@@ -498,6 +627,20 @@ public class EnergyMarketResourceRESTService {
     	
     	return builder.build();
     }
+    
+    
+    /**
+     * Returns the path for a given resource at a resource root
+     * @param resourceRoot the root folder of the resource
+     * @param resourcePath the path relative to the root folder
+     * @return the complete real resource path
+     */
+    private String getResourcePath(String resourceRoot, String resourcePath) {
+    	String path = getClass().getClassLoader().getResource(resourceRoot).getPath();
+		path = path + resourcePath;
+	    path = path.substring(1); // remove leading slash
+	    return path;
+	}
     
     
     /**

@@ -1,6 +1,7 @@
 package at.ac.tuwien.thesis.caddc.rest.client;
 
 import java.io.BufferedReader;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -11,6 +12,7 @@ import java.net.MalformedURLException;
 import java.net.SocketException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.List;
 
 import javax.net.ssl.HttpsURLConnection;
 
@@ -20,7 +22,6 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
-import at.ac.tuwien.thesis.caddc.data.parse.NordPoolFinlandParser;
 import at.ac.tuwien.thesis.caddc.data.parse.XLSParser;
 import sun.misc.BASE64Encoder;
 
@@ -160,7 +161,7 @@ public class RESTClient {
 	}
 	
 	
-	public void parseXLS(String urlString) {
+	public static List<String> fetchAndParseXLS(String urlString, Integer sheetNumber, int rowOffset, int[] colIndices) {
 		try {
 			URL url = new URL(urlString);
 			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -168,33 +169,31 @@ public class RESTClient {
 				throw new RuntimeException("Failed : HTTP error code : "
 						+ conn.getResponseCode());
 			}
-	 
-			BufferedReader br = new BufferedReader(new InputStreamReader(
-				(conn.getInputStream())));
-			
-			
+			List<String> result;
 			XLSParser parser = new XLSParser();
-			parser.parse(conn.getInputStream());
-			
-//			String output;
-//			System.out.println("Output from Server .... \n");
-//			
-//			// create file
-//			String path = getClass().getClassLoader().getResource("test").getPath();
-//			System.out.println("Path = "+path);
-//			PrintWriter writer = new PrintWriter(path+"XLSOutput.txt", "UTF-8");
-//			
-//			while ((output = br.readLine()) != null) {
-//				writer.println(output);
-//			}
-//			writer.close();
-	 
+			result = parser.parse(conn.getInputStream(),sheetNumber,rowOffset,colIndices);
+				 
 			conn.disconnect();
+			return result;
 	 
 		} catch (MalformedURLException e) {
 			System.err.println("MalformedURLException: "+e.getLocalizedMessage());
 		} catch (IOException e) {
 			System.err.println("IOException: "+e.getLocalizedMessage());
 		}
+		return null;
+	}
+	
+	public static List<String> fileFetchAndParseXLS(String path, Integer sheetNumber, int rowOffset, int[] colIndices) {
+		try {
+			InputStream in = new FileInputStream(path);
+			List<String> result;
+			XLSParser parser = new XLSParser();
+			result = parser.parse(in,sheetNumber,rowOffset,colIndices);
+			return result;
+		} catch (IOException e) {
+			System.err.println("IOException: "+e.getLocalizedMessage());
+		}
+		return null;
 	}
 }

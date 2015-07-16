@@ -41,8 +41,6 @@ import javax.validation.constraints.Size;
 })
 @Table(
 	name="DA_PRICES"
-//    uniqueConstraints=
-//        @UniqueConstraint(columnNames={"bid_date", "location_id"})
 )
 public class DAPrice implements Serializable {
 
