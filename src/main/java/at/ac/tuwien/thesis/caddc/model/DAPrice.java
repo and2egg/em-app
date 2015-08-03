@@ -7,6 +7,7 @@ import javax.annotation.Generated;
 import javax.persistence.Column;
 import javax.persistence.EmbeddedId;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
@@ -52,7 +53,7 @@ public class DAPrice implements Serializable {
 	private Date biddingDate;
 	
 	@NotNull
-	@ManyToOne
+	@ManyToOne//(fetch=FetchType.LAZY)
 	private Location location;
 	
 	/**

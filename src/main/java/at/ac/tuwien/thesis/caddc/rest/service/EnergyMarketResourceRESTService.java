@@ -52,6 +52,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.ResponseBuilder;
 
 import org.rosuda.REngine.REXPMismatchException;
 import org.rosuda.REngine.Rserve.RserveException;
@@ -98,9 +99,6 @@ public class EnergyMarketResourceRESTService {
     private EnergyMarketPersistence energyMarketResource;
     
     @Inject
-    private DAPricePersistence daPriceResource;
-    
-    @Inject
     private RManager rManager;
 
     @GET
@@ -130,11 +128,9 @@ public class EnergyMarketResourceRESTService {
     	try {
 			result = rManager.testR();
 		} catch (RserveException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 			result = e.getMessage();
 		} catch (REXPMismatchException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 			result = e.getMessage();
 		}
@@ -142,441 +138,39 @@ public class EnergyMarketResourceRESTService {
     	return Response.status(200).entity(output).build();
     }
     
-    @GET
-    @Path("/data")
-    @Produces(MediaType.APPLICATION_JSON)
-    public Response testDataFetch() {
-    	String url = "http://www.nordpoolspot.com/globalassets/marketdata-excel-files/elspot-prices_2014_hourly_eur.xls";
-		String result = RESTClient.fetchDataString(url);
-		String output = "DATA FETCH\n"+new NordPoolHTMLParser().parsePrices(result, 0, new int[]{5});
-		return Response.status(200).entity(output).build();
-    }
-    
     
     @GET
-    @Path("/importall/{id:[0-9]+}/{yearfrom}/{yearto}")
+    @Path("/r/getdata")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response importYearsPerLocation(@PathParam("id") Integer locationId, @PathParam("yearfrom") Integer yearFrom, @PathParam("yearto") Integer yearTo) {
-    	for(int year = yearFrom; year <= yearTo; year++) {
-    		if(locationId == 1) {
-        		importFinlandMarketData(year);
-        	} else if(locationId == 2) {
-        		importSwedenMarketData(year);
-        	} else if(locationId == 3) {
-        		importMaineMarketData(year);
-        	} else if(locationId == 4) {
-        		importMassachusettsMarketData(year);
-        	} else if(locationId == 5) {
-        		importBelgiumMarketData(year);
-        	}
+    public Response getDataR() {
+    	String result = "";
+    	List<DAPrice> prices;
+    	Calendar start = Calendar.getInstance(),
+    			end = Calendar.getInstance();
+    	start.set(2014, 06, 07, 0, 0, 0);
+    	end.set(2014, 06, 20, 23, 0, 0);
+    	Long locationId = 1L;
+    	prices = daPriceRepository.findByDateAndLocation(start.getTime(), end.getTime(), locationId);
+    	
+    	StringBuilder builder = new StringBuilder();
+    	for(DAPrice price : prices) {
+    		builder.append(price.getBiddingDate());
+    		builder.append(",");
+    		builder.append(price.getPrice().doubleValue() / 100.0);
+    		builder.append(System.lineSeparator());
     	}
-    	return Response.status(200).entity("Successfully imported all data for location "+locationId).build();
-    }
-    
-    
-    @GET
-    @Path("/import/{id:[0-9]+}/{year}")
-    @Produces(MediaType.APPLICATION_JSON)
-    public Response importMarketData(@PathParam("id") Integer locationId, @PathParam("year") Integer year) {
-    	if(locationId == 1) {
-    		importFinlandMarketData(year);
-    	} else if(locationId == 2) {
-    		importSwedenMarketData(year);
-    	} else if(locationId == 3) {
-    		importMaineMarketData(year);
-    	} else if(locationId == 4) {
-    		importMassachusettsMarketData(year);
-    	} else if(locationId == 5) {
-    		importBelgiumMarketData(year);
-    	}
-		return Response.status(200).entity("Successfully imported data for location "+locationId).build();
-    }
-    
-    private void importFinlandMarketData(Integer year) {
-    	String result = null;
-    	if(year == 2012) {
-    	    String path = getResourcePath("energydata", "/NPS/Elspot_Prices_2012_Hourly_EUR.xls");
-    	    try {
-    	    	result = new String(Files.readAllBytes(Paths.get(path)));
-			} catch (IOException e) {
-				System.err.println("Could not read resource file: "+path);
-			}
-    	}
-    	else {
-    		String url = "http://www.nordpoolspot.com/globalassets/marketdata-excel-files/elspot-prices_"+year.toString()+"_hourly_eur.xls";
-    		result = RESTClient.fetchDataString(url);
-    	}
-    	
-    	if(result != null) {
-    		HTMLParser htmlParser = new NordPoolHTMLParser();
-    		List<String> prices = htmlParser.parsePrices(result, // html content to parse
-					0,   // row offset
-					new int[]{5} // price column indices
-    		);
-    		daPriceResource.saveDAPrices(prices, "Helsinki");
-    	}
-    }
-    
-    private void importSwedenMarketData(Integer year) {
-    	String result = null;
-    	if(year == 2012) {
-    	    String path = getResourcePath("energydata", "/NPS/Elspot_Prices_2012_Hourly_EUR.xls");
-    	    try {
-    	    	result = new String(Files.readAllBytes(Paths.get(path)));
-			} catch (IOException e) {
-				System.err.println("Could not read resource file: "+path);
-			}
-    	}
-    	else {
-    		String url = "http://www.nordpoolspot.com/globalassets/marketdata-excel-files/elspot-prices_"+year.toString()+"_hourly_eur.xls";
-    		result = RESTClient.fetchDataString(url);
-    	}
-		
-    	if(result != null) {
-    		HTMLParser htmlParser = new NordPoolHTMLParser();
-    		List<String> prices = htmlParser.parsePrices(result, // html content to parse
-					0,   // row offset
-					new int[]{1} // price column indices
-    		);
-    		daPriceResource.saveDAPrices(prices, "Stockholm");
-    	}
-    		
-    }
-    
-    private void importMaineMarketData(Integer year) {
-    	String url = "";
-    	if(year == 2014) {
-    		url = "http://www.iso-ne.com/static-assets/documents/2015/05/2014_smd_hourly.xls";
-    	}
-    	else {
-    		url = "http://www.iso-ne.com/static-assets/documents/markets/hstdata/znl_info/hourly/"+year+"_smd_hourly.xls";
-    	}
-		int[] colIdx = {0,1,4};
-		
-		List<String> priceList = RESTClient.fetchAndParseXLS(url, // fetch URL
-																2, // sheet number
-																1, // row Offset
-																colIdx // column indices array
-															);
-		
-		List<String> newList = new ArrayList<String>();
-		for(String price : priceList) {
-			String[] split = price.split(";");
-			int hour = (int)Double.parseDouble(split[1]); // parse hour
-			hour --; // reduce hour by one to get hours from 0-23 instead of 1-24
-			String result = split[0] + ";" + String.valueOf(hour) + ";" + split[2];
-			newList.add(result);
-		}
-		
-		System.out.println("newList (1-10) : ");
-		for(int i = 0; i < 10; i++) {
-			System.out.println(newList.get(i));
-		}
-		
-		daPriceResource.saveDAPrices(newList, "Portland");
-    }
-    
-    private void importMassachusettsMarketData(Integer year) {
-    	String url = "";
-    	if(year == 2014) {
-    		url = "http://www.iso-ne.com/static-assets/documents/2015/05/2014_smd_hourly.xls";
-    	}
-    	else {
-    		url = "http://www.iso-ne.com/static-assets/documents/markets/hstdata/znl_info/hourly/"+year+"_smd_hourly.xls";
-    	}
-		int[] colIdx = {0,1,4};
-		
-		List<String> priceList = RESTClient.fetchAndParseXLS(url, // fetch URL
-																9, // sheet number
-																1, // row Offset
-																colIdx // column indices array
-															);
-		List<String> newList = new ArrayList<String>();
-		for(String price : priceList) {
-			String[] split = price.split(";");
-			int hour = (int)Double.parseDouble(split[1]); // parse hour
-			hour --; // reduce hour by one to get hours from 0-23 instead of 1-24
-			String result = split[0] + ";" + String.valueOf(hour) + ";" + split[2];
-			newList.add(result);
-		}
-		
-		System.out.println("newList (1-10) : ");
-		for(int i = 0; i < 10; i++) {
-			System.out.println(newList.get(i));
-		}
-		
-		daPriceResource.saveDAPrices(newList, "Boston");
-    }
-    
-    private void importBelgiumMarketData(Integer year) {
-    	String path = getResourcePath("energydata","/BELPEX/spotmarket_data_"+year+".xls");
-		int[] colIdx = new int[26];
-		for(int i = 0; i < 26; i++) {
-			colIdx[i] = i;
-		}
-		List<String> priceList = RESTClient.fileFetchAndParseXLS(path, // fetch URL
-																1, // sheet number
-																1, // row Offset
-																colIdx // column indices array
-															);
-		System.out.println("priceList (1-10) : ");
-		for(int i = 0; i < 10; i++) {
-			System.out.println(priceList.get(i));
-		}
-		
-		List<String> transformedPrices = new ArrayList<String>();
-		int count = 0;
-		for(String prices: priceList) {
-			String[] split = prices.split(";");
-			
-			for(int i = 1; i < split.length; i++) {
-				String result = split[0] + ";"; // date
-				String price = split[i].trim();
-				if(i == 25 && !price.isEmpty()) {
-					result += 1 + ";" + price;
-				}
-				else {
-					result += (i-1) + ";" + price;
-				}
-				transformedPrices.add(result);
-			}
-			
-			if(count < 10) {
-				System.out.println("price: "+transformedPrices.get(count));
-				count++;
-			}
-		}
-		
-		daPriceResource.saveDAPrices(transformedPrices, "Brussels");
-    }
-
-    
-    /**
-     * Retrieve day ahead prices from the location with the given id
-     * and within a start- and enddate, based on the local timezone
-     * @param locationId the id of the location where the query should be executed
-     * @param startDate the startdate of the query (Dateformat: yyyy-MM-dd or yyyy-MM-dd HH:mm:ss)
-     * @param endDate the enddate of the query (Dateformat: yyyy-MM-dd or yyyy-MM-dd HH:mm:ss)
-     * @return Response to indicate whether or not the query was successful
-     */
-    @GET
-    @Path("/daprice/{loc_id}/{startDate}/{endDate}/localTZ")
-    @Produces(MediaType.APPLICATION_JSON)
-    public Response retrieveDAPricesLocalTZ(@PathParam("loc_id") Long locationId, @PathParam("startDate") String startDate, @PathParam("endDate") String endDate) {
-    	Location location = locationRepository.findById(locationId);
-    	if(location == null) 
-    		return Response.status(Response.Status.BAD_REQUEST).entity("DA Price save: Invalid location").build();
-
-    	System.out.println("Location = "+location.toString());
-    	System.out.println("startDate = "+startDate.toString());
-    	System.out.println("endDate = "+endDate.toString());
-    	
-    	Calendar start = Calendar.getInstance(TimeZone.getTimeZone(location.getTimeZone()));
-    	Calendar end = Calendar.getInstance(TimeZone.getTimeZone(location.getTimeZone()));
-    	
-    	// Check date formats
-    	String format = "";
-    	if(startDate.length() == 10) {
-    		format = "yyyy-MM-dd";
-    	} else if(startDate.length() == 19) {
-    		format = "yyyy-MM-dd HH:mm:ss";
-    	}
-    	SimpleDateFormat sdfStart = new SimpleDateFormat(format);
-    	
-    	if(endDate.length() == 10) {
-    		format = "yyyy-MM-dd";
-    	} else if(endDate.length() == 19) {
-    		format = "yyyy-MM-dd HH:mm:ss";
-    	}
-    	SimpleDateFormat sdfEnd = new SimpleDateFormat(format);
-    	try {
-    		// Parse dates
-    		sdfStart.parse(startDate);
-    		sdfEnd.parse(endDate);
-			
-			Calendar s = sdfStart.getCalendar();
-			Calendar e = sdfEnd.getCalendar();
-			System.out.println("S DATE = "+s.getTime());
-			
-			start.set(s.get(Calendar.YEAR), s.get(Calendar.MONTH), s.get(Calendar.DAY_OF_MONTH), 
-					s.get(Calendar.HOUR_OF_DAY), s.get(Calendar.MINUTE), s.get(Calendar.SECOND));
-	    	start.set(Calendar.MILLISECOND, 0);
-	    	
-	    	end.set(e.get(Calendar.YEAR), e.get(Calendar.MONTH), e.get(Calendar.DAY_OF_MONTH), 
-					e.get(Calendar.HOUR_OF_DAY), e.get(Calendar.MINUTE), e.get(Calendar.SECOND));
-	    	end.set(Calendar.MILLISECOND, 0);
-	    	
-	    	System.out.println("START DATE = "+start.getTime());
-		} catch (ParseException e) {
-			System.err.println("Error parsing date: "+e.getLocalizedMessage());
-			return Response.status(Response.Status.CONFLICT).entity("Error parsing date: "+e.getLocalizedMessage()).build();
-		}
-    	
-    	System.out.println("start time = "+start.getTime());
-    	System.out.println("end time = "+end.getTime());
-    	
-    	List<DAPrice> prices = daPriceRepository.findByDate(start.getTime(), end.getTime());
-    	
-		return Response.status(200).entity("Retrieved da prices from location id "+locationId+" "
-				+ "from "+startDate+" to "+endDate).build();
-    }
-    
-    
-    /**
-     * Retrieve day ahead prices from the location with the given id
-     * and within a start- and enddate, based on current local time
-     * @param locationId the id of the location where the query should be executed
-     * 					if -1 then all stored locations are queried
-     * @param startDate the startdate of the query (Dateformat: yyyy-MM-dd or yyyy-MM-dd HH:mm:ss)
-     * @param endDate the enddate of the query (Dateformat: yyyy-MM-dd or yyyy-MM-dd HH:mm:ss)
-     * @return Response to indicate whether or not the query was successful
-     */
-    @GET
-    @Path("/daprice/{loc_id}/{startDate}/{endDate}")
-    @Produces(MediaType.APPLICATION_JSON)
-    public Response retrieveDAPrices(@PathParam("loc_id") Long locationId, @PathParam("startDate") String startDate, @PathParam("endDate") String endDate) {
-    	Location location = null;
-    	if(locationId != -1) {
-    		location = locationRepository.findById(locationId);
-        	if(location == null) 
-        		return Response.status(Response.Status.BAD_REQUEST).entity("DA Price save: Invalid location").build();
-
-        	System.out.println("Location = "+location.toString());
-    	}
-    	
-    	System.out.println("startDate = "+startDate.toString());
-    	System.out.println("endDate = "+endDate.toString());
-    	
-    	Calendar start = Calendar.getInstance();
-    	Calendar end = Calendar.getInstance();
-    	
-    	// Check date formats
-    	String format = "";
-    	if(startDate.length() == 10) {
-    		format = "yyyy-MM-dd";
-    	} else if(startDate.length() == 19) {
-    		format = "yyyy-MM-dd HH:mm:ss";
-    	}
-    	SimpleDateFormat sdfStart = new SimpleDateFormat(format);
-    	
-    	if(endDate.length() == 10) {
-    		format = "yyyy-MM-dd";
-    	} else if(endDate.length() == 19) {
-    		format = "yyyy-MM-dd HH:mm:ss";
-    	}
-    	SimpleDateFormat sdfEnd = new SimpleDateFormat(format);
-    	try {
-    		// Parse dates
-    		sdfStart.parse(startDate);
-    		sdfEnd.parse(endDate);
-			
-			Calendar s = sdfStart.getCalendar();
-			Calendar e = sdfEnd.getCalendar();
-			
-			start.set(s.get(Calendar.YEAR), s.get(Calendar.MONTH), s.get(Calendar.DAY_OF_MONTH), 
-					s.get(Calendar.HOUR_OF_DAY), s.get(Calendar.MINUTE), s.get(Calendar.SECOND));
-	    	start.set(Calendar.MILLISECOND, 0);
-	    	
-	    	end.set(e.get(Calendar.YEAR), e.get(Calendar.MONTH), e.get(Calendar.DAY_OF_MONTH), 
-					e.get(Calendar.HOUR_OF_DAY), e.get(Calendar.MINUTE), e.get(Calendar.SECOND));
-	    	end.set(Calendar.MILLISECOND, 0);
-	    	
-	    	System.out.println("START DATE = "+start.getTime());
-		} catch (ParseException e) {
-			System.err.println("Error parsing date: "+e.getLocalizedMessage());
-			return Response.status(Response.Status.CONFLICT).entity("Error parsing date: "+e.getLocalizedMessage()).build();
-		}
-    	
-    	System.out.println("start time = "+start.getTime());
-    	System.out.println("end time = "+end.getTime());
-    	
-    	List<DAPrice> prices = null;
-    	
-    	if(locationId == -1) {
-    		prices = daPriceRepository.findByDate(start.getTime(), end.getTime());
-    	}
-    	else {
-    		prices = daPriceRepository.findByDateAndLocation(start.getTime(), end.getTime(), locationId);
-    	}
-    	
-		return Response.status(200).entity("Retrieved da prices from location id "+locationId+" "
-				+ "from "+startDate+" to "+endDate+": "+prices.size()).build();
-    }
-    
-    
-    @GET
-    @Path("/daprice/save")
-    @Produces(MediaType.APPLICATION_JSON)
-    public Response testDAPriceSave() {
-    	Location location = locationRepository.findById(1L);
-    	if(location == null) 
-    		return Response.status(Response.Status.BAD_REQUEST).entity("DA Price save: Invalid location").build();
-
-    	System.out.println("Location = "+location.toString());
-    	
-    	Calendar c = Calendar.getInstance(TimeZone.getTimeZone("America/New_York"));
-    	c.set(2015, 06, 11, 10, 00, 00);
-    	c.set(Calendar.MILLISECOND, 0);
-    	
-    	DAPrice daPrice = new DAPrice();
-    	daPrice.setBiddingDate(c.getTime());
-    	daPrice.setInterval(new Integer(1));
-    	daPrice.setIntervalUnit("hour");
-    	daPrice.setLocation(location);
-    	daPrice.setPrice(new Integer(3600));
-    	daPrice.setTimelag(new Integer(0));
-    	System.out.println("DAPrice = "+daPrice.toString());
-    	
-    	daPriceResource.saveDAPrice(daPrice);
-    	
-    	String output = "Saved DA Price: "+daPrice.toString()+"\n for location "+location.toString();
-    	return Response.status(200).entity(output).build();
-    }
-    
-    
-    @GET
-    @Path("/tz")
-    @Produces(MediaType.APPLICATION_JSON)
-    public Response testTZ() {
-    	
-    	
-    	TimeZone UTC = TimeZone.getTimeZone("UTC");
-    	TimeZone HLS = TimeZone.getTimeZone("Europe/Helsinki");
-    	
-    	Calendar c0 = Calendar.getInstance(TimeZone.getTimeZone("Europe/Helsinki"));
-    	c0.set(2012, 02, 25, 00, 00, 00);
-    	c0.set(Calendar.MILLISECOND, 0);
-    	System.out.println("HELSINKI TIME: "+c0.getTimeInMillis()+", "+c0.getTime()+", "+HLS.getOffset(c0.getTimeInMillis()));
-    	c0.set(2012, 02, 25, 01, 00, 00);
-    	System.out.println("HELSINKI TIME: "+c0.getTimeInMillis()+", "+c0.getTime()+", "+HLS.getOffset(c0.getTimeInMillis()));
-    	c0.set(2012, 02, 25, 02, 00, 00);
-    	System.out.println("HELSINKI TIME: "+c0.getTimeInMillis()+", "+c0.getTime()+", "+HLS.getOffset(c0.getTimeInMillis()));
-    	System.out.println("THIS TIME DOES NOT EXIST !!!!");
-    	c0.set(2012, 02, 25, 03, 00, 00);
-    	System.out.println("HELSINKI TIME: "+c0.getTimeInMillis()+", "+c0.getTime()+", "+HLS.getOffset(c0.getTimeInMillis()));
-    	c0.set(2012, 02, 25, 04, 00, 00);
-    	System.out.println("HELSINKI TIME: "+c0.getTimeInMillis()+", "+c0.getTime()+", "+HLS.getOffset(c0.getTimeInMillis()));
-    	c0.set(2012, 02, 25, 05, 00, 00);
-    	System.out.println("HELSINKI TIME: "+c0.getTimeInMillis()+", "+c0.getTime()+", "+HLS.getOffset(c0.getTimeInMillis()));
-    	c0.set(2012, 02, 25, 06, 00, 00);
-    	System.out.println("HELSINKI TIME: "+c0.getTimeInMillis()+", "+c0.getTime()+", "+HLS.getOffset(c0.getTimeInMillis()));
-
-    	
-    	Calendar c1 = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-    	c1.set(2012, 02, 25, 00, 00, 00);
-    	c1.set(Calendar.MILLISECOND, 0);
-    	System.out.println("UTC TIME: "+c1.getTimeInMillis()+", "+c1.getTime()+", "+HLS.getOffset(c1.getTimeInMillis()));
-    	c1.set(2012, 02, 25, 01, 00, 00);
-    	System.out.println("UTC TIME: "+c1.getTimeInMillis()+", "+c1.getTime()+", "+HLS.getOffset(c1.getTimeInMillis()));
-    	c1.set(2012, 02, 25, 02, 00, 00);
-    	System.out.println("UTC TIME: "+c1.getTimeInMillis()+", "+c1.getTime()+", "+HLS.getOffset(c1.getTimeInMillis()));
-    	c1.set(2012, 02, 25, 03, 00, 00);
-    	System.out.println("UTC TIME: "+c1.getTimeInMillis()+", "+c1.getTime()+", "+HLS.getOffset(c1.getTimeInMillis()));
-    	c1.set(2012, 02, 25, 04, 00, 00);
-    	System.out.println("UTC TIME: "+c1.getTimeInMillis()+", "+c1.getTime()+", "+HLS.getOffset(c1.getTimeInMillis()));
-
-    	
-    	String output = "Finished";
+    	String csv = builder.toString();
+//    	try {
+//    		result = rManager.rTestReadData(csv);
+//		} catch (RserveException e) {
+//			e.printStackTrace();
+//			result = e.getMessage();
+//		} catch (REXPMismatchException e) {
+//			e.printStackTrace();
+//			result = e.getMessage();
+//		}
+    	String output = "R result: "+result;
+    	output = csv;
     	return Response.status(200).entity(output).build();
     }
     
@@ -612,35 +206,6 @@ public class EnergyMarketResourceRESTService {
     	}
     	return builder.build();
     }
-    
-    
-    @GET
-    @Path("/findlocation")
-    @Produces(MediaType.APPLICATION_JSON)
-    public Response registerEnergyMarket(@QueryParam("market") String market, @QueryParam("location") String location) {
-    	Response.ResponseBuilder builder = null;
-    	Location loc = locationRepository.findByMarketandName(market, location);
-    	if(loc == null) 
-    		builder = Response.status(200).entity("market exists, location = "+loc);
-    	else 
-    		builder = Response.status(200).entity("market exists, location = "+loc.getName());
-    	
-    	return builder.build();
-    }
-    
-    
-    /**
-     * Returns the path for a given resource at a resource root
-     * @param resourceRoot the root folder of the resource
-     * @param resourcePath the path relative to the root folder
-     * @return the complete real resource path
-     */
-    private String getResourcePath(String resourceRoot, String resourcePath) {
-    	String path = getClass().getClassLoader().getResource(resourceRoot).getPath();
-		path = path + resourcePath;
-	    path = path.substring(1); // remove leading slash
-	    return path;
-	}
     
     
     /**

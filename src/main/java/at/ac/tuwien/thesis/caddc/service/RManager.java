@@ -65,4 +65,28 @@ public class RManager {
 	    		"\n palindrome 2 : "+is_abc_palindrome.asString()+
 	    		"\n running @ " + server_str;
 	}
+	
+	public String rTestReadData(String csvData) throws RserveException, REXPMismatchException {
+		RConnection c = new RConnection(server, port);
+
+	    String path = getClass().getClassLoader().getResource("rscripts").getPath(); // folder "rscripts" in resource directory
+	    path = path.substring(1); // remove leading slash
+	    
+	    c.eval("setwd(\""+path+"\")");
+	    
+	    REXP wd = c.eval("getwd()");
+	    c.eval("source(\"NPSForecast.R\")");
+	    
+	    path = getClass().getClassLoader().getResource("energydata").getPath(); // folder "energydata" in resource directory
+	    path = path.substring(1); // remove leading slash
+	    
+	    c.eval("setwd(\""+path+"\")");
+	    
+	    c.eval("prices <- read.csv(\"US/prices.csv\")"); // \"~/R DA/energy data/US States (Drazen)/prices.csv\"
+	    
+	    c.eval("all_prices <- ts(prices[,-1], start=c(2010, 48), frequency=365*24)"); 
+	    
+	    c.close();
+	    return "";
+	}
 }

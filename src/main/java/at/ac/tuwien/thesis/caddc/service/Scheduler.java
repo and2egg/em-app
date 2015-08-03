@@ -8,7 +8,6 @@ import javax.ejb.Stateless;
 
 import at.ac.tuwien.thesis.caddc.data.IDataFetch;
 import at.ac.tuwien.thesis.caddc.data.XMLDataFetch;
-import at.ac.tuwien.thesis.caddc.data.parse.NordPoolHelsinkiParser;
 import at.ac.tuwien.thesis.caddc.rest.client.HttpsClient;
 import at.ac.tuwien.thesis.caddc.rest.client.RESTClient;
 
@@ -34,13 +33,13 @@ public class Scheduler {
 //		client.fetchURL(urlIsoNe);
 //	}
 	
-	@Schedule(second="0", minute="0", hour="3")
-	public void importNordPoolData() {
-		System.out.println("Scheduler NordPool active on "+new Date());
-		String url = "http://www.nordpoolspot.com/globalassets/marketdata-excel-files/elspot-prices_2014_hourly_eur.xls";
-		String result = RESTClient.fetchDataString(url);
-		System.out.println("DATA FETCH\n"+NordPoolHelsinkiParser.parsePrices(result));
-	}
+//	@Schedule(second="0", minute="0", hour="3")
+//	public void importNordPoolData() {
+//		System.out.println("Scheduler NordPool active on "+new Date());
+//		String url = "http://www.nordpoolspot.com/globalassets/marketdata-excel-files/elspot-prices_2014_hourly_eur.xls";
+//		String result = RESTClient.fetchDataString(url);
+////		System.out.println("DATA FETCH\n"+NordPoolHelsinkiParser.parsePrices(result));
+//	}
 	
 //	@Schedule(second="0", minute="0", hour="*")
 //	public void importNordPoolFinlandData() {

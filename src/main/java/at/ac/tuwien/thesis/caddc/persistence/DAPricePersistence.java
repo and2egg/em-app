@@ -44,14 +44,22 @@ public class DAPricePersistence {
      * 			The encoding for a single price needs to have the following form: 
      * 			datestring;timestring;price
      * 			Example: 2015-07-11;02;44,23
+     * @param location a location String of one of the locations stored in the 
+     * 			database
      */
     public void saveDAPrices(List<String> priceData, String location) {
-    	
-    	TimeZone timeZone = getTimeZone(location);
     	Location loc = locationRepository.findByName(location);
 		if(loc == null) {
-			System.err.println("Please provide a valid location");
+			System.err.println("Please provide a registered location");
 			return;
+		}
+		String tz = loc.getTimeZone();
+		TimeZone timeZone;
+		if(!tz.isEmpty()) {
+			timeZone = TimeZone.getTimeZone(tz);
+		}
+		else {
+			timeZone = TimeZone.getDefault();
 		}
 		Calendar cal = Calendar.getInstance(timeZone);
 		Calendar temp = Calendar.getInstance();
@@ -66,12 +74,11 @@ public class DAPricePersistence {
     		String timeString = split[1];
     		String price = split[2];
     		
-    		if(i < 10) {
-    			
-    			System.out.println("price: "+dateString+", "+timeString+", "+price);
+    		int finalPrice;
+    		boolean negative = false;
+    		if(price.contains("-")) {
+    			negative = true;
     		}
-    		
-    		int finalPrice;    		
     		if(!price.contains(".") && !price.contains(",")) {
     			finalPrice = Integer.parseInt(price) * 100;
     		}
@@ -82,12 +89,19 @@ public class DAPricePersistence {
         		if(price.contains("."))
         			priceParts = price.split("\\.");
         		
+        		if(priceParts[1].length() == 1) {
+        			priceParts[1] = priceParts[1] + "0";
+        		}
+        		
         		int priceBeforeComma = Integer.parseInt(priceParts[0])*100;
         		int priceAfterComma = Integer.parseInt(priceParts[1]);
         		finalPrice = priceBeforeComma + priceAfterComma; // price in integer, multiplied by 100
+        		if(negative)
+        			finalPrice *= -1;
     		}
     		if(i < 25) {
-    			System.out.println("price: "+dateString+", "+timeString+", "+finalPrice);
+    			System.out.println("price for location "+loc.getId()+": "+dateString+", "+timeString+", "+price);
+    			System.out.println("price for location "+loc.getId()+": "+dateString+", "+timeString+", "+finalPrice);
     		}
     		
     		Date d = DateParser.parseDate(dateString);
@@ -95,7 +109,7 @@ public class DAPricePersistence {
     		cal.set(temp.get(Calendar.YEAR), temp.get(Calendar.MONTH), temp.get(Calendar.DATE));
     		
     		Integer hour = (int)Double.parseDouble(timeString);
-    		cal.set(Calendar.HOUR_OF_DAY, hour);
+    		cal.set(Calendar.HOUR_OF_DAY, hour); // hour is set on the calendar with local timezone
     		cal.set(Calendar.MINUTE, 0);
     		cal.set(Calendar.SECOND, 0);
     		cal.set(Calendar.MILLISECOND, 0);
@@ -113,32 +127,5 @@ public class DAPricePersistence {
         	
         	saveDAPrice(daPrice);
     	}
-    }
-    
-    private Date parseDate(String dateString, String format) {
-    	Date date = null;
-    	SimpleDateFormat sdf = new SimpleDateFormat(format);
-		try {
-			date = sdf.parse(dateString);
-			return date;
-		} catch (ParseException e) {
-			System.err.println("DAPricePersistence: Could not parse date string: "+e.getMessage());
-			return null;
-		}
-    }
-    
-    private TimeZone getTimeZone(String location) {
-    	if(location.equals("Helsinki")) {
-    		return TimeZone.getTimeZone("Europe/Helsinki");
-    	} else if(location.equals("Stockholm")) {
-    		return TimeZone.getTimeZone("Europe/Stockholm");
-    	} else if(location.equals("Brussels")) {
-        	return TimeZone.getTimeZone("Europe/Brussels");
-    	} else if(location.equals("Portland")) {
-    		return TimeZone.getTimeZone("America/New_York");
-    	} else if(location.equals("Boston")) {
-    		return TimeZone.getTimeZone("America/New_York");
-    	} 
-    	return TimeZone.getDefault();
     }
 }
