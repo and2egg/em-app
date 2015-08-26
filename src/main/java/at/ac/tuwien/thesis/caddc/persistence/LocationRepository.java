@@ -12,7 +12,6 @@ import javax.persistence.criteria.Root;
 
 import java.util.List;
 
-import at.ac.tuwien.thesis.caddc.model.EnergyMarket;
 import at.ac.tuwien.thesis.caddc.model.Location;
 
 /**

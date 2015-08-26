@@ -5,17 +5,11 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.persistence.EntityManager;
 import javax.persistence.NoResultException;
-import javax.persistence.Query;
 import javax.persistence.TypedQuery;
-import javax.persistence.criteria.CriteriaBuilder;
-import javax.persistence.criteria.CriteriaQuery;
-import javax.persistence.criteria.Root;
-
 import java.util.List;
 
 import at.ac.tuwien.thesis.caddc.model.EnergyMarket;
 import at.ac.tuwien.thesis.caddc.model.Location;
-import at.ac.tuwien.thesis.caddc.model.Member;
 
 /**
  * <p>

@@ -1,20 +1,12 @@
 package at.ac.tuwien.thesis.caddc.service;
 
-import java.io.InputStream;
-import java.net.URL;
-
 import javax.annotation.PostConstruct;
-import javax.ejb.Stateful;
 import javax.ejb.Stateless;
 
 import org.rosuda.REngine.REXP;
-import org.rosuda.REngine.REXPGenericVector;
 import org.rosuda.REngine.REXPMismatchException;
 import org.rosuda.REngine.Rserve.RConnection;
 import org.rosuda.REngine.Rserve.RserveException;
-
-import at.ac.tuwien.thesis.caddc.util.FileResources;
-import at.ac.tuwien.thesis.caddc.util.RUtils;
 
 /**
  * Bean to handle calls to and from R
@@ -65,6 +57,12 @@ public class RManager {
 	    		"\n palindrome 2 : "+is_abc_palindrome.asString()+
 	    		"\n running @ " + server_str;
 	}
+	
+	
+	public String generateModel() {
+		return null;
+	}
+	
 	
 	public String rTestReadData(String csvData) throws RserveException, REXPMismatchException {
 		RConnection c = new RConnection(server, port);

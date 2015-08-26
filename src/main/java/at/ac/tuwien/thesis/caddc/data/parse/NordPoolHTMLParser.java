@@ -1,6 +1,5 @@
 package at.ac.tuwien.thesis.caddc.data.parse;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 

@@ -16,59 +16,23 @@
  */
 package at.ac.tuwien.thesis.caddc.rest.service;
 
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.logging.Logger;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
-import javax.persistence.NoResultException;
 import javax.validation.ConstraintViolation;
-import javax.validation.ConstraintViolationException;
-import javax.validation.ValidationException;
-import javax.validation.Validator;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.Encoded;
 import javax.ws.rs.GET;
-import javax.ws.rs.POST;
 import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
-import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.ResponseBuilder;
-
-import org.rosuda.REngine.REXPMismatchException;
-import org.rosuda.REngine.Rserve.RserveException;
-
-import at.ac.tuwien.thesis.caddc.data.parse.NordPoolHTMLParser;
-import at.ac.tuwien.thesis.caddc.data.parse.HTMLParser;
-import at.ac.tuwien.thesis.caddc.model.DAPrice;
-import at.ac.tuwien.thesis.caddc.model.EnergyMarket;
 import at.ac.tuwien.thesis.caddc.model.Location;
-import at.ac.tuwien.thesis.caddc.persistence.DAPricePersistence;
-import at.ac.tuwien.thesis.caddc.persistence.DAPriceRepository;
-import at.ac.tuwien.thesis.caddc.persistence.EnergyMarketPersistence;
-import at.ac.tuwien.thesis.caddc.persistence.EnergyMarketRepository;
 import at.ac.tuwien.thesis.caddc.persistence.LocationRepository;
-import at.ac.tuwien.thesis.caddc.rest.client.RESTClient;
-import at.ac.tuwien.thesis.caddc.service.RManager;
 
 /**
  * Energy Market REST Service

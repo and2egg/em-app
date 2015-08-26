@@ -22,7 +22,7 @@ plotFcErrorHist <- function(forecasterrors, heading)
        main=heading, 
        xlab="Forecast error distribution", 
        ylab="Density", 
-       col="red", 
+       col="grey", 
        freq=FALSE, 
        breaks=mybins)
   # freq=FALSE ensures the area under the histogram = 1
@@ -36,7 +36,7 @@ plotFcErrorHist <- function(forecasterrors, heading)
                  breaks=mybins)
   
   # plot the normal curve as a blue line on top of the histogram of forecast errors:
-  points(myhist$mids, myhist$density, type="l", col="orange", lwd=2)
+  points(myhist$mids, myhist$density, type="l", col="black", lwd=1)
 }
 
 
@@ -56,6 +56,16 @@ RMSE <- function(errors)
   sqrt(mean((errors)^2))
 }
 
+getAccuracyVector <- function(matrices, set, acc_measure)
+{
+#   for matrix in matrices {
+#     
+#   }
+  
+  # example
+  acc_rmse <- c(acc_rwf['Training set', 'RMSE'])
+}
+
 
 plotModelAgainstErrors <- function(model, title, xlab, ylab) {
   # plot the result
@@ -73,8 +83,206 @@ acf_ci <- function(series, main="Acf Series", type="correlation", ci=0.95, lag.m
 {
   corr <- acf(series,main=main,lag.max=lag.max,type=type,plot=plot,na.action=na.action)
   significance_level <- qnorm((1 + ci)/2)/sqrt(sum(!is.na(series)))
-  print("Significance level")
-  return(significance_level)
+  corr <- c(corr, sig.level=significance_level)
+  return(corr)
+}
+
+# Add significance level to ACF function
+
+acf_sig <- function(series, main="ACF Series", type="correlation", ci=0.95, lag.max=28, plot=TRUE, na.action=na.pass)
+{
+  corr <- acf(series,main=main,lag.max=lag.max,type=type,plot=plot,na.action=na.action)
+  significance_level <- qnorm((1 + ci)/2)/sqrt(sum(!is.na(series)))
+  corr <- c(corr, sig.level=significance_level)
+  return(corr)
+}
+
+# Add significance level to PACF function
+
+pacf_sig <- function(series, main="PACF Series", ci=0.95, lag.max=28, plot=TRUE, na.action=na.pass)
+{
+  corr <- pacf(series,main=main,lag.max=lag.max,plot=plot,na.action=na.action)
+  significance_level <- qnorm((1 + ci)/2)/sqrt(sum(!is.na(series)))
+  corr <- c(corr, sig.level=significance_level)
+  return(corr)
+}
+
+
+# function to compute the frequency of seasonality
+# in the dataset, if it exists. In case no seasonality
+# exists the period is 1. 
+# Uses the highest frequency visible in the periodogram
+# of the data to retrieve the periodicity
+getPeriods <- function(data, output=FALSE)
+{
+  # create a periodogram of the data
+  perdgram <- periodogram(data, plot=output)
+  # get the position of the maximum spec value
+  pos <- match(max(perdgram$spec),perdgram$spec)
+  # access the frequency that occured most often
+  freq <- perdgram$freq[pos]
+  # transform the frequency into the period length
+  period <- 1 / freq
+  if(output)
+  {
+    print(paste("Estimated period:",period))
+  }
+  return(period)
+}
+
+
+# Function to compute the Ljung box test to test the given models
+# residuals for white noise
+# All needed parameters are chosen based on the values in the provided model
+#
+# rule of thumb for choosing lag -> http://www.r-bloggers.com/thoughts-on-the-ljung-box-test/
+# or http://robjhyndman.com/hyndsight/ljung-box-test/
+# or http://stats.stackexchange.com/questions/6455/how-many-lags-to-use-in-the-ljung-box-test-of-a-time-series
+# For non-seasonal time series, use h = min(10, T/5).
+# For seasonal time series, use h = min(2m, T/5).
+# where T is the sample size and m denotes the seasonal period
+# In this case T = 336, 2m = 48, T/5 = 67
+automatedBoxTest <- function(model, lag=NULL, fitdf=NULL, nonseasonal.lag=TRUE, 
+                             type = c("Box-Pierce", "Ljung-Box"), output=FALSE)
+{
+  if(type == "Box-Pierce")
+  {
+    print("The Box-Pierce test is not supported yet")
+    return()
+  }
+  t_val <- length(model$x)
+  periods <- frequency(model$x)
+  
+  if(is.null(lag))
+  {
+    if(nonseasonal.lag==FALSE)
+    {
+      h <- t_val/5
+    }
+    # no seasonality in data
+    if(periods == 1)
+    {
+      h <- min(10, t_val/5)
+    }
+    else
+    {
+      h <- min(2*periods, t_val/5)
+    }
+  }
+  else
+  {
+    h <- lag
+  }
+  
+  if(is.null(fitdf))
+  {
+    # get number of model params
+    params <- length(model$coef)
+    if("intercept" %in% names(model$coef))
+    {
+      params <- params - 1
+    }
+  }
+  else
+  {
+    params <- fitdf
+  }
+  
+  if(output) 
+  {
+    print(paste("model fit with lag",h,"and fitdf of",params))
+  }
+  
+  # do actual box test
+  box_t <- Box.test(residuals(model), lag=h, fitdf=params, type="Ljung")
+  box_t <- c(box_t, lag=h)
+  return(box_t)
+}
+
+
+# function for automatic model generation based on given data values
+# estimates the occurring frequency in the data, builds and evaluates
+# the model and does a boxcox transformation if necessary 
+# (when data does not appear to have stationary variance)
+generate_model <- function(data, same.lag=TRUE, approximation=TRUE, stepwise=TRUE, output=FALSE)
+{
+  series <- data
+  
+  series_ts <- ts(series, frequency=getPeriods(series, output=output))
+  series_ts_no.freq <- ts(series)
+  
+  lambda_ts <- BoxCox.lambda(series_ts)
+  lambda_ts_no.freq <- BoxCox.lambda(series_ts_no.freq)
+  
+  print("Create model 1")
+  auto.fit <- auto.arima(series_ts, approximation=approximation, stepwise=stepwise)
+  print("Create model 2")
+  auto.fit.lambda <- auto.arima(series_ts, lambda=lambda_ts, approximation=approximation, stepwise=stepwise)
+  print("Create model 3")
+  auto.fit.no_period <- auto.arima(series_ts_no.freq, approximation=approximation, stepwise=stepwise)
+  print("Create model 4")
+  auto.fit.no_period.lambda <- auto.arima(series_ts_no.freq, lambda=lambda_ts_no.freq, approximation=approximation, stepwise=stepwise)
+  
+  box_t <- automatedBoxTest(auto.fit, type="Ljung", output=output)
+  box_t.lambda <- automatedBoxTest(auto.fit.lambda, type="Ljung", output=output)
+  
+  if(same.lag==TRUE)
+  {
+    box_t.no_period <- automatedBoxTest(auto.fit.no_period, lag=box_t$lag, type="Ljung", output=output)
+    box_t.no_period.lambda <- automatedBoxTest(auto.fit.no_period.lambda, lag=box_t$lag, type="Ljung", output=output)
+  }
+  else
+  {
+    box_t.no_period <- automatedBoxTest(auto.fit.no_period, type="Ljung", output=output)
+    box_t.no_period.lambda <- automatedBoxTest(auto.fit.no_period.lambda, type="Ljung", output=output)
+  }
+  
+  models <- list(m1=auto.fit, m2=auto.fit.lambda, m3=auto.fit.no_period, m4=auto.fit.no_period.lambda)
+  boxtests <- list(b1=box_t, b2=box_t.lambda, b3=box_t.no_period, b4=box_t.no_period.lambda)
+  p.values <- c(boxtests[[1]]$p.value, boxtests[[2]]$p.value, boxtests[[3]]$p.value, boxtests[[4]]$p.value)
+  
+  print("p.values: ")
+  print(p.values)
+  
+  # compare output of the Ljung box test to determine
+  # which model exhibits a more advantageous distribution
+  # within the residuals
+  pos <- match(max(p.values), p.values)
+  resultModel <- models[[pos]]
+  resultTest <- boxtests[[pos]]
+
+  if(output)
+  {
+    print("Resulting model:")
+    print(resultModel$coef)
+    print(paste("model parameters (aic,aicc,bic):",resultModel$aic,resultModel$aicc,resultModel$bic))
+    print(paste("test p-value:",resultTest$p.value))
+  }
+  
+  return (list("model"=resultModel, "test"=resultTest))
+}
+
+
+
+# not really useful, only one specific lag is examined
+# see function automatedBoxTest
+avgBoxTest <- function(x, lag.min=10, lag.max=80, type = c("Box-Pierce", "Ljung-Box"), fitdf=0)
+{
+  lag_vec <- lag.min:lag.max
+  len <- length(lag_vec)
+  results <- vector("list", len)
+  max.p.value <- 0
+  max.i.pos <- 0
+  for (i in 1:len)
+  {
+    results[[i]] <- Box.test(x, lag=lag_vec[i], fitdf=fitdf, type=type)
+    if(results[[i]]$p.value > max.p.value)
+    {
+      max.p.value <- results[[i]]$p.value
+      max.i.pos <- i
+    }
+  }
+  return(results[[max.i.pos]])
 }
 
 

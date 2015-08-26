@@ -11,12 +11,7 @@ import javax.xml.parsers.ParserConfigurationException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
-import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
-import org.xml.sax.XMLReader;
-import org.xml.sax.helpers.XMLReaderFactory;
-
-import at.ac.tuwien.thesis.caddc.data.format.Format;
 import at.ac.tuwien.thesis.caddc.data.format.XMLFormat;
 
 /**
