@@ -6,3 +6,5 @@
 /doc/
 javadoc.xml
 
+# R
+**/*.RData

@@ -49,14 +49,14 @@ import at.ac.tuwien.thesis.caddc.persistence.LocationRepository;
 import at.ac.tuwien.thesis.caddc.rest.client.RESTClient;
 
 /**
- * Energy Market REST Service
+ * Price Resource REST Service
  * <p/>
- * REST Service specifications for registering and retrieving energy markets
+ * REST Service specifications for the import and retrieval of day ahead energy prices
  * @author Andreas Egger
  */
-@Path("/prices")
+@Path("/daprices")
 @RequestScoped
-public class PricesResourceRESTService {
+public class DAPricesResourceRESTService {
 
     @Inject
     private Logger log;
@@ -286,7 +286,7 @@ public class PricesResourceRESTService {
     /**
      * Retrieve day ahead prices from the location with the given id
      * and within a start- and enddate, based on the local timezone
-     * example: http://localhost:8081/em-app/rest/prices/daprice/1/2014-07-11/2014-07-12/localTZ
+     * example: http://localhost:8081/em-app/rest/daprices/price/1/2014-07-11/2014-07-12/localTZ
      * @param locationId the id of the location where the query should be executed
      * 					if -1 then all stored locations are queried
      * @param startDate the startdate of the query (Dateformat: yyyy-MM-dd or yyyy-MM-dd HH:mm:ss)
@@ -294,7 +294,7 @@ public class PricesResourceRESTService {
      * @return Response to indicate whether or not the query was successful
      */
     @GET
-    @Path("/daprice/{loc_id}/{startDate}/{endDate}/localTZ")
+    @Path("/price/{loc_id}/{startDate}/{endDate}/localTZ")
     @Produces(MediaType.APPLICATION_JSON)
     public Response retrieveDAPricesLocalTZ(@PathParam("loc_id") Long locationId, @PathParam("startDate") String startDate, @PathParam("endDate") String endDate) {
     	Location location = locationRepository.findById(locationId);
@@ -370,17 +370,17 @@ public class PricesResourceRESTService {
     /**
      * Retrieve day ahead prices from the location with the given id
      * and within a start- and enddate, based on current local time
-     * example: http://localhost:8081/em-app/rest/prices/daprice/1/2014-07-11/2014-07-12
+     * example: http://localhost:8081/em-app/rest/daprices/price/1/2014-07-11/2014-07-12
      * @param locationId the id of the location where the query should be executed
      * 					if -1 then all stored locations are queried
-     * @param startDate the startdate of the query (Dateformat: yyyy-MM-dd or yyyy-MM-dd HH:mm:ss)
-     * @param endDate the enddate of the query (Dateformat: yyyy-MM-dd or yyyy-MM-dd HH:mm:ss)
+     * @param startDateString the startdate of the query (Dateformat: yyyy-MM-dd or yyyy-MM-dd HH:mm:ss)
+     * @param endDateString the enddate of the query (Dateformat: yyyy-MM-dd or yyyy-MM-dd HH:mm:ss)
      * @return Response to indicate whether or not the query was successful
      */
     @GET
-    @Path("/daprice/{loc_id}/{startDate}/{endDate}")
+    @Path("/price/{loc_id}/{startDate}/{endDate}")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response retrieveDAPrices(@PathParam("loc_id") Long locationId, @PathParam("startDate") String startDate, @PathParam("endDate") String endDate) {
+    public Response retrieveDAPrices(@PathParam("loc_id") Long locationId, @PathParam("startDate") String startDateString, @PathParam("endDate") String endDateString) {
     	Location location = null;
     	if(locationId != -1) {
     		location = locationRepository.findById(locationId);
@@ -395,23 +395,23 @@ public class PricesResourceRESTService {
     	
     	// Check date formats
     	String format = "";
-    	if(startDate.length() == 10) {
+    	if(startDateString.length() == 10) {
     		format = "yyyy-MM-dd";
-    	} else if(startDate.length() == 19) {
+    	} else if(startDateString.length() == 19) {
     		format = "yyyy-MM-dd HH:mm:ss";
     	}
     	SimpleDateFormat sdfStart = new SimpleDateFormat(format);
     	
-    	if(endDate.length() == 10) {
+    	if(endDateString.length() == 10) {
     		format = "yyyy-MM-dd";
-    	} else if(endDate.length() == 19) {
+    	} else if(endDateString.length() == 19) {
     		format = "yyyy-MM-dd HH:mm:ss";
     	}
     	SimpleDateFormat sdfEnd = new SimpleDateFormat(format);
     	try {
     		// Parse dates
-    		sdfStart.parse(startDate);
-    		sdfEnd.parse(endDate);
+    		sdfStart.parse(startDateString);
+    		sdfEnd.parse(endDateString);
 			
 			Calendar s = sdfStart.getCalendar();
 			Calendar e = sdfEnd.getCalendar();
@@ -437,12 +437,12 @@ public class PricesResourceRESTService {
     	if(locationId == -1) {
     		prices = daPriceRepository.findByDate(start.getTime(), end.getTime());
     		output = "Retrieved da prices from all locations "
-    				+ "from "+startDate+" to "+endDate+", dataset length: "+prices.size();
+    				+ "from "+startDateString+" to "+endDateString+", dataset length: "+prices.size();
     	}
     	else {
     		prices = daPriceRepository.findByDateAndLocation(start.getTime(), end.getTime(), locationId);
     		output = "Retrieved da prices from location id "+locationId+" "
-    				+ "from "+startDate+" to "+endDate+", dataset length: "+prices.size();
+    				+ "from "+startDateString+" to "+endDateString+", dataset length: "+prices.size();
     	}
     	System.out.println(output);
 		return Response.status(200).entity(prices).build();
@@ -452,7 +452,7 @@ public class PricesResourceRESTService {
     /**
      * Retrieve day ahead prices in csv format from the location with the given id
      * and within a start- and enddate, based on the local timezone
-     * example: http://localhost:8081/em-app/rest/prices/daprice/csv/1/2014-07-11/2014-07-12/localTZ
+     * example: http://localhost:8081/em-app/rest/daprices/price/csv/1/2014-07-11/2014-07-12/localTZ
      * @param locationId the id of the location where the query should be executed
      * 					if -1 then all stored locations are queried
      * @param startDate the startdate of the query (Dateformat: yyyy-MM-dd or yyyy-MM-dd HH:mm:ss)
@@ -460,7 +460,7 @@ public class PricesResourceRESTService {
      * @return Response to indicate whether or not the query was successful
      */
     @GET
-    @Path("/daprice/csv/{loc_id}/{startDate}/{endDate}/localTZ")
+    @Path("/price/csv/{loc_id}/{startDate}/{endDate}/localTZ")
     @Produces(MediaType.APPLICATION_JSON)
     public Response retrieveDAPricesCSVLocalTZ(@PathParam("loc_id") Long locationId, @PathParam("startDate") String startDate, @PathParam("endDate") String endDate) {
     	Response response = retrieveDAPricesLocalTZ(locationId, startDate, endDate);
@@ -480,7 +480,7 @@ public class PricesResourceRESTService {
     /**
      * Retrieve day ahead prices in csv format from the location with the given id
      * and within a start- and enddate, based on current local time
-     * example: http://localhost:8081/em-app/rest/prices/daprice/csv/1/2014-07-07 00:00:00/2014-07-20 23:00:00
+     * example: http://localhost:8081/em-app/rest/daprices/price/csv/1/2014-07-07 00:00:00/2014-07-20 23:00:00
      * @param locationId the id of the location where the query should be executed
      * 					if -1 then all stored locations are queried
      * @param startDate the startdate of the query (Dateformat: yyyy-MM-dd or yyyy-MM-dd HH:mm:ss)
@@ -488,7 +488,7 @@ public class PricesResourceRESTService {
      * @return Response to indicate whether or not the query was successful
      */
     @GET
-    @Path("/daprice/csv/{loc_id}/{startDate}/{endDate}")
+    @Path("/price/csv/{loc_id}/{startDate}/{endDate}")
     @Produces(MediaType.APPLICATION_JSON)
     public Response retrieveDAPricesCSV(@PathParam("loc_id") Long locationId, @PathParam("startDate") String startDate, @PathParam("endDate") String endDate) {
     	Response response = retrieveDAPrices(locationId, startDate, endDate);
@@ -506,7 +506,7 @@ public class PricesResourceRESTService {
     
     
     @GET
-    @Path("/daprice/save")
+    @Path("/price/save")
     @Produces(MediaType.APPLICATION_JSON)
     public Response testDAPriceSave() {
     	Location location = locationRepository.findById(1L);

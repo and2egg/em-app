@@ -142,6 +142,13 @@
 			<artifactId>commons-io</artifactId>
 			<version>2.4</version>
 		</dependency>
+		
+		<!-- Apache Commons library to simplify Array operations (addAll...) -->
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-lang3</artifactId>
+			<version>3.0</version>
+		</dependency>
 				
 		<!-- Add dependency for parsing dates in strings automatically -->
 		<dependency>

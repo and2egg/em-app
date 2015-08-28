@@ -108,15 +108,27 @@ pacf_sig <- function(series, main="PACF Series", ci=0.95, lag.max=28, plot=TRUE,
 }
 
 
+# load all necessary libraries
+loadLibraries <- function()
+{
+  library(forecast) # import ARIMA etc. 
+  library(MASS)
+  library(TSA) # import periodogram etc. 
+  library(car) # import qqPlot
+  library(xts) # import periodicity and time functions
+}
+
+
+
 # function to compute the frequency of seasonality
 # in the dataset, if it exists. In case no seasonality
 # exists the period is 1. 
 # Uses the highest frequency visible in the periodogram
 # of the data to retrieve the periodicity
-getPeriods <- function(data, output=FALSE)
+getMaxPeriod <- function(data, output=FALSE, plot=FALSE)
 {
   # create a periodogram of the data
-  perdgram <- periodogram(data, plot=output)
+  perdgram <- periodogram(data, plot=plot)
   # get the position of the maximum spec value
   pos <- match(max(perdgram$spec),perdgram$spec)
   # access the frequency that occured most often
@@ -128,6 +140,69 @@ getPeriods <- function(data, output=FALSE)
     print(paste("Estimated period:",period))
   }
   return(period)
+}
+
+
+# function to compute the frequency of seasonality
+# in the dataset, if it exists. Retrieves the four most frequent
+# periods and thus different seasonal periods may be estimated
+getPeriods <- function(data, round=TRUE, output=FALSE, plot=FALSE)
+{
+  # create a periodogram of the data
+  perdgram <- periodogram(prices_sweden, plot=plot)
+  # get the occurrences of the most frequent periodicities
+  sorted_spec <- sort(perdgram$spec, decreasing=TRUE)
+  top_freq <- vector(length=4)
+  for (i in 1:4)
+  {
+    # get the position of the next spec value in the original vector
+    pos <- match(sorted_spec[i],perdgram$spec)
+    top_freq[i] <- perdgram$freq[pos]
+    top_freq[i] <- 1 / top_freq[i] # transform to period length
+    if(round)
+    {
+      top_freq[i] <- round(top_freq[i])
+    }
+  }
+  if(output)
+  {
+    print (top_freq)
+  }
+  return (top_freq)
+}
+
+
+# function to get the most significant period from the periodogram of the
+# given dataset. Given a target period the most frequent periods of the 
+# dataset are searched for this period, if it is contained, it is returned. 
+# Otherwise, the number 1 is returned, which is the standard frequency 
+# for any time series
+getPeriod <- function(data, target_period=24, output=FALSE, plot=FALSE)
+{
+  periods <- getPeriods(data, output=output, plot=plot)
+  if(checkPeriods(periods, target_period) == TRUE)
+  {
+    return(target_period)
+  }
+  else
+  {
+    return(1)
+  }
+}
+
+
+# function to check if the target_period is one of the four most
+# frequent periods in the dataset. Returns TRUE if it is, FALSE otherwise
+checkPeriods <- function(periods, target_period=24)
+{
+  if(target_period %in% periods) 
+  {
+    return(TRUE)
+  }
+  else
+  {
+    return(FALSE)
+  }
 }
 
 
@@ -204,45 +279,109 @@ automatedBoxTest <- function(model, lag=NULL, fitdf=NULL, nonseasonal.lag=TRUE,
 # estimates the occurring frequency in the data, builds and evaluates
 # the model and does a boxcox transformation if necessary 
 # (when data does not appear to have stationary variance)
-generate_model <- function(data, same.lag=TRUE, approximation=TRUE, stepwise=TRUE, output=FALSE)
+generate_model <- function(data, target_period=24, approximation=TRUE, stepwise=TRUE, output=FALSE, plot=FALSE)
+{
+  series <- data
+  # retrieves the target period if available, otherwise 1
+  period <- getPeriod(series, target_period=target_period, output=output, plot=plot)
+  series_ts <- ts(series, frequency=period)
+  
+  lambda_ts <- BoxCox.lambda(series_ts)
+  
+  if(output) {
+    print("Create model 1")
+  }
+  auto.fit <- auto.arima(series_ts, approximation=approximation, stepwise=stepwise)
+  if(output) {
+    print("Create model 2")
+  }
+  auto.fit.lambda <- auto.arima(series_ts, lambda=lambda_ts, approximation=approximation, stepwise=stepwise)
+
+  box_t <- automatedBoxTest(auto.fit, type="Ljung", output=output)
+  box_t.lambda <- automatedBoxTest(auto.fit.lambda, type="Ljung", output=output)
+  
+  models <- list(m1=auto.fit, m2=auto.fit.lambda) # , m3=auto.fit.no_period, m4=auto.fit.no_period.lambda
+  boxtests <- list(b1=box_t, b2=box_t.lambda) # , b3=box_t.no_period, b4=box_t.no_period.lambda
+  p.values <- c(boxtests[[1]]$p.value, boxtests[[2]]$p.value) #, boxtests[[3]]$p.value, boxtests[[4]]$p.value
+  
+  if(output) {
+    print("p.values: ")
+    print(p.values)
+  }
+  
+  # compare output of the Ljung box test to determine
+  # which model exhibits a more advantageous distribution
+  # within the residuals
+  pos <- match(max(p.values), p.values)
+  resultModel <- models[[pos]]
+  resultTest <- boxtests[[pos]]
+  boxcox <- FALSE
+  if(pos == 2)
+    boxcox = TRUE
+  
+  if(output)
+  {
+    print("Resulting model:")
+    print(paste("boxcox transformed =",boxcox,"Estimated period =",period))
+    print(resultModel$coef)
+    print(paste("model parameters (aic,aicc,bic):",resultModel$aic,resultModel$aicc,resultModel$bic))
+    print(paste("test p-value:",resultTest$p.value))
+  }
+  
+  return(resultModel)
+}
+
+
+
+# function for automatic model generation based on given data values
+# estimates the occurring frequency in the data, builds and evaluates
+# the model and does a boxcox transformation if necessary 
+# (when data does not appear to have stationary variance)
+generate_model_ <- function(data, same.lag=TRUE, approximation=TRUE, stepwise=TRUE, output=FALSE, plot=FALSE)
 {
   series <- data
   
-  series_ts <- ts(series, frequency=getPeriods(series, output=output))
-  series_ts_no.freq <- ts(series)
+  series_ts <- ts(series, frequency=getPeriod(series, target_period=24, output=output, plot=plot))
+#   series_ts_no.freq <- ts(series)
   
   lambda_ts <- BoxCox.lambda(series_ts)
-  lambda_ts_no.freq <- BoxCox.lambda(series_ts_no.freq)
+#   lambda_ts_no.freq <- BoxCox.lambda(series_ts_no.freq)
   
-  print("Create model 1")
+  if(output) {
+    print("Create model 1")
+  }
   auto.fit <- auto.arima(series_ts, approximation=approximation, stepwise=stepwise)
-  print("Create model 2")
+  if(output) {
+    print("Create model 2")
+  }
   auto.fit.lambda <- auto.arima(series_ts, lambda=lambda_ts, approximation=approximation, stepwise=stepwise)
-  print("Create model 3")
-  auto.fit.no_period <- auto.arima(series_ts_no.freq, approximation=approximation, stepwise=stepwise)
-  print("Create model 4")
-  auto.fit.no_period.lambda <- auto.arima(series_ts_no.freq, lambda=lambda_ts_no.freq, approximation=approximation, stepwise=stepwise)
+#   print("Create model 3")
+#   auto.fit.no_period <- auto.arima(series_ts_no.freq, approximation=approximation, stepwise=stepwise)
+#   print("Create model 4")
+#   auto.fit.no_period.lambda <- auto.arima(series_ts_no.freq, lambda=lambda_ts_no.freq, approximation=approximation, stepwise=stepwise)
   
   box_t <- automatedBoxTest(auto.fit, type="Ljung", output=output)
   box_t.lambda <- automatedBoxTest(auto.fit.lambda, type="Ljung", output=output)
   
-  if(same.lag==TRUE)
-  {
-    box_t.no_period <- automatedBoxTest(auto.fit.no_period, lag=box_t$lag, type="Ljung", output=output)
-    box_t.no_period.lambda <- automatedBoxTest(auto.fit.no_period.lambda, lag=box_t$lag, type="Ljung", output=output)
-  }
-  else
-  {
-    box_t.no_period <- automatedBoxTest(auto.fit.no_period, type="Ljung", output=output)
-    box_t.no_period.lambda <- automatedBoxTest(auto.fit.no_period.lambda, type="Ljung", output=output)
-  }
+#   if(same.lag==TRUE)
+#   {
+#     box_t.no_period <- automatedBoxTest(auto.fit.no_period, lag=box_t$lag, type="Ljung", output=output)
+#     box_t.no_period.lambda <- automatedBoxTest(auto.fit.no_period.lambda, lag=box_t$lag, type="Ljung", output=output)
+#   }
+#   else
+#   {
+#     box_t.no_period <- automatedBoxTest(auto.fit.no_period, type="Ljung", output=output)
+#     box_t.no_period.lambda <- automatedBoxTest(auto.fit.no_period.lambda, type="Ljung", output=output)
+#   }
   
-  models <- list(m1=auto.fit, m2=auto.fit.lambda, m3=auto.fit.no_period, m4=auto.fit.no_period.lambda)
-  boxtests <- list(b1=box_t, b2=box_t.lambda, b3=box_t.no_period, b4=box_t.no_period.lambda)
-  p.values <- c(boxtests[[1]]$p.value, boxtests[[2]]$p.value, boxtests[[3]]$p.value, boxtests[[4]]$p.value)
+  models <- list(m1=auto.fit, m2=auto.fit.lambda) # , m3=auto.fit.no_period, m4=auto.fit.no_period.lambda
+  boxtests <- list(b1=box_t, b2=box_t.lambda) # , b3=box_t.no_period, b4=box_t.no_period.lambda
+  p.values <- c(boxtests[[1]]$p.value, boxtests[[2]]$p.value) #, boxtests[[3]]$p.value, boxtests[[4]]$p.value
   
-  print("p.values: ")
-  print(p.values)
+  if(output) {
+    print("p.values: ")
+    print(p.values)
+  }
   
   # compare output of the Ljung box test to determine
   # which model exhibits a more advantageous distribution
@@ -259,7 +398,7 @@ generate_model <- function(data, same.lag=TRUE, approximation=TRUE, stepwise=TRU
     print(paste("test p-value:",resultTest$p.value))
   }
   
-  return (list("model"=resultModel, "test"=resultTest))
+  return(resultModel)
 }
 
 

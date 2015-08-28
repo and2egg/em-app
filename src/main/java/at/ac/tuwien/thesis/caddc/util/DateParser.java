@@ -20,12 +20,27 @@ public class DateParser {
 	    put("^\\d{8}$", "yyyyMMdd");
 	}};
 	
+	private static final HashMap<String, String> validDateTimeFormats = new HashMap<String, String>() {{
+	    put("^\\d{1,2}-.{3}-\\d{4}$", "dd-MMM-yyyy HH:mm:ss");
+	    put("^\\d{1,2}-\\d{1,2}-\\d{4}$", "dd-MM-yyyy HH:mm:ss");
+	    put("^\\d{4}-\\d{1,2}-\\d{1,2}$", "yyyy-MM-dd HH:mm:ss");
+	    put("^\\d{1,2}/\\d{1,2}/\\d{4}$", "MM/dd/yyyy HH:mm:ss");
+	    put("^\\d{8}$", "yyyyMMdd HHmmss");
+	}};
+	
 	public static String checkDatePattern(String dateString) {
-	    for (String regexp : validDateFormats.keySet()) {
-	        if (dateString.toLowerCase().matches(regexp)) {
-	            return validDateFormats.get(regexp);
-	        }
-	    }
+		if (dateString.length() > 10)
+			for (String regexp : validDateTimeFormats.keySet()) {
+		        if (dateString.toLowerCase().matches(regexp)) {
+		            return validDateTimeFormats.get(regexp);
+		        }
+		    }
+		else
+		    for (String regexp : validDateFormats.keySet()) {
+		        if (dateString.toLowerCase().matches(regexp)) {
+		            return validDateFormats.get(regexp);
+		        }
+		    }
 	    return null; // Unknown format.
 	}
 	
