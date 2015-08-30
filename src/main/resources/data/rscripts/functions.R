@@ -2,7 +2,7 @@
 
 ### Plot a histogram plus normal distribution of fc errors ###
 
-plotFcErrorHist <- function(forecasterrors, heading)
+plotFcErrorHist <- function(forecasterrors, heading="Forecast Error Histogram")
 {
   # make a histogram of the forecast errors:
   mybinsize <- IQR(forecasterrors)/4
@@ -149,7 +149,7 @@ getMaxPeriod <- function(data, output=FALSE, plot=FALSE)
 getPeriods <- function(data, round=TRUE, output=FALSE, plot=FALSE)
 {
   # create a periodogram of the data
-  perdgram <- periodogram(prices_sweden, plot=plot)
+  perdgram <- periodogram(data, plot=plot)
   # get the occurrences of the most frequent periodicities
   sorted_spec <- sort(perdgram$spec, decreasing=TRUE)
   top_freq <- vector(length=4)
@@ -166,6 +166,7 @@ getPeriods <- function(data, round=TRUE, output=FALSE, plot=FALSE)
   }
   if(output)
   {
+    print ("Most frequent periods:")
     print (top_freq)
   }
   return (top_freq)
@@ -265,7 +266,7 @@ automatedBoxTest <- function(model, lag=NULL, fitdf=NULL, nonseasonal.lag=TRUE,
   
   if(output) 
   {
-    print(paste("model fit with lag",h,"and fitdf of",params))
+    print(paste("Ljung box test with lag",h,"and fitdf of",params))
   }
   
   # do actual box test
@@ -293,7 +294,7 @@ generate_model <- function(data, target_period=24, approximation=TRUE, stepwise=
   }
   auto.fit <- auto.arima(series_ts, approximation=approximation, stepwise=stepwise)
   if(output) {
-    print("Create model 2")
+    print("Create model 2 (coxbox transformation)")
   }
   auto.fit.lambda <- auto.arima(series_ts, lambda=lambda_ts, approximation=approximation, stepwise=stepwise)
 
@@ -305,7 +306,7 @@ generate_model <- function(data, target_period=24, approximation=TRUE, stepwise=
   p.values <- c(boxtests[[1]]$p.value, boxtests[[2]]$p.value) #, boxtests[[3]]$p.value, boxtests[[4]]$p.value
   
   if(output) {
-    print("p.values: ")
+    print("Ljung box test p.values: ")
     print(p.values)
   }
   
@@ -322,10 +323,11 @@ generate_model <- function(data, target_period=24, approximation=TRUE, stepwise=
   if(output)
   {
     print("Resulting model:")
-    print(paste("boxcox transformed =",boxcox,"Estimated period =",period))
+    print(paste("BoxCox transformed = ",boxcox,", Estimated period = ",period, sep=""))
     print(resultModel$coef)
     print(paste("model parameters (aic,aicc,bic):",resultModel$aic,resultModel$aicc,resultModel$bic))
-    print(paste("test p-value:",resultTest$p.value))
+    print(paste("Ljung box test p-value:",resultTest$p.value))
+    print("-------------------")
   }
   
   return(resultModel)

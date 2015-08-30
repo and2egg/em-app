@@ -39,6 +39,7 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+
 import at.ac.tuwien.thesis.caddc.data.parse.NordPoolHTMLParser;
 import at.ac.tuwien.thesis.caddc.data.parse.HTMLParser;
 import at.ac.tuwien.thesis.caddc.model.DAPrice;
@@ -47,6 +48,7 @@ import at.ac.tuwien.thesis.caddc.persistence.DAPricePersistence;
 import at.ac.tuwien.thesis.caddc.persistence.DAPriceRepository;
 import at.ac.tuwien.thesis.caddc.persistence.LocationRepository;
 import at.ac.tuwien.thesis.caddc.rest.client.RESTClient;
+import at.ac.tuwien.thesis.caddc.util.Currency;
 
 /**
  * Price Resource REST Service
@@ -291,12 +293,15 @@ public class DAPricesResourceRESTService {
      * 					if -1 then all stored locations are queried
      * @param startDate the startdate of the query (Dateformat: yyyy-MM-dd or yyyy-MM-dd HH:mm:ss)
      * @param endDate the enddate of the query (Dateformat: yyyy-MM-dd or yyyy-MM-dd HH:mm:ss)
+     * @param transformPrice a boolean value to indicate whether the prices should be transformed
+     * 				(converted to a unified currency, e.g. dollars)
      * @return Response to indicate whether or not the query was successful
      */
     @GET
-    @Path("/price/{loc_id}/{startDate}/{endDate}/localTZ")
+    @Path("/price/{loc_id}/{startDate}/{endDate}/{transformPrice}/localTZ")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response retrieveDAPricesLocalTZ(@PathParam("loc_id") Long locationId, @PathParam("startDate") String startDate, @PathParam("endDate") String endDate) {
+    public Response retrieveDAPricesLocalTZ(@PathParam("loc_id") Long locationId, @PathParam("startDate") String startDate, 
+    										@PathParam("endDate") String endDate, @PathParam("transformPrice") String transformPrice) {
     	Location location = locationRepository.findById(locationId);
     	if(location == null) 
     		return Response.status(Response.Status.BAD_REQUEST).entity("DA Price save: Invalid location").build();
@@ -362,6 +367,11 @@ public class DAPricesResourceRESTService {
     		output = "Retrieved da prices in local TZ from location id "+locationId+" "
     				+ "from "+startDate+" to "+endDate+", dataset length: "+prices.size();
     	}
+    	if(!Currency.isInDollar(locationId) && Boolean.valueOf(transformPrice)) {
+    		for(DAPrice price: prices) {
+    			price.setPrice(Currency.convertToDollar(price.getPrice()));
+    		}
+    	}
     	System.out.println(output);
 		return Response.status(200).entity(prices).build();
     }
@@ -375,12 +385,15 @@ public class DAPricesResourceRESTService {
      * 					if -1 then all stored locations are queried
      * @param startDateString the startdate of the query (Dateformat: yyyy-MM-dd or yyyy-MM-dd HH:mm:ss)
      * @param endDateString the enddate of the query (Dateformat: yyyy-MM-dd or yyyy-MM-dd HH:mm:ss)
+     * @param transformPrice a boolean value to indicate whether the prices should be transformed
+     * 				(converted to a unified currency, e.g. dollars)
      * @return Response to indicate whether or not the query was successful
      */
     @GET
-    @Path("/price/{loc_id}/{startDate}/{endDate}")
+    @Path("/price/{loc_id}/{startDate}/{endDate}/{transformPrice}")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response retrieveDAPrices(@PathParam("loc_id") Long locationId, @PathParam("startDate") String startDateString, @PathParam("endDate") String endDateString) {
+    public Response retrieveDAPrices(@PathParam("loc_id") Long locationId, @PathParam("startDate") String startDateString, 
+    								@PathParam("endDate") String endDateString, @PathParam("transformPrice") String transformPrice) {
     	Location location = null;
     	if(locationId != -1) {
     		location = locationRepository.findById(locationId);
@@ -444,6 +457,11 @@ public class DAPricesResourceRESTService {
     		output = "Retrieved da prices from location id "+locationId+" "
     				+ "from "+startDateString+" to "+endDateString+", dataset length: "+prices.size();
     	}
+    	if(!Currency.isInDollar(locationId) && Boolean.valueOf(transformPrice)) {
+    		for(DAPrice price: prices) {
+    			price.setPrice(Currency.convertToDollar(price.getPrice()));
+    		}
+    	}
     	System.out.println(output);
 		return Response.status(200).entity(prices).build();
     }
@@ -452,18 +470,21 @@ public class DAPricesResourceRESTService {
     /**
      * Retrieve day ahead prices in csv format from the location with the given id
      * and within a start- and enddate, based on the local timezone
-     * example: http://localhost:8081/em-app/rest/daprices/price/csv/1/2014-07-11/2014-07-12/localTZ
+     * example: http://localhost:8081/em-app/rest/daprices/price/csv/1/2014-07-11/2014-07-12/true/localTZ
      * @param locationId the id of the location where the query should be executed
      * 					if -1 then all stored locations are queried
      * @param startDate the startdate of the query (Dateformat: yyyy-MM-dd or yyyy-MM-dd HH:mm:ss)
      * @param endDate the enddate of the query (Dateformat: yyyy-MM-dd or yyyy-MM-dd HH:mm:ss)
+     * @param transformPrice a boolean value to indicate whether the prices should be transformed
+     * 				(converted to a unified currency, e.g. dollars)
      * @return Response to indicate whether or not the query was successful
      */
     @GET
-    @Path("/price/csv/{loc_id}/{startDate}/{endDate}/localTZ")
+    @Path("/price/csv/{loc_id}/{startDate}/{endDate}/{transformPrice}/localTZ")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response retrieveDAPricesCSVLocalTZ(@PathParam("loc_id") Long locationId, @PathParam("startDate") String startDate, @PathParam("endDate") String endDate) {
-    	Response response = retrieveDAPricesLocalTZ(locationId, startDate, endDate);
+    public Response retrieveDAPricesCSVLocalTZ(@PathParam("loc_id") Long locationId, @PathParam("startDate") String startDate, 
+    										@PathParam("endDate") String endDate, @PathParam("transformPrice") String transformPrice) {
+    	Response response = retrieveDAPricesLocalTZ(locationId, startDate, endDate, transformPrice);
     	List<DAPrice> prices = (List<DAPrice>)response.getEntity();
     	StringBuilder builder = new StringBuilder();
     	for(DAPrice price : prices) {
@@ -480,18 +501,21 @@ public class DAPricesResourceRESTService {
     /**
      * Retrieve day ahead prices in csv format from the location with the given id
      * and within a start- and enddate, based on current local time
-     * example: http://localhost:8081/em-app/rest/daprices/price/csv/1/2014-07-07 00:00:00/2014-07-20 23:00:00
+     * example: http://localhost:8081/em-app/rest/daprices/price/csv/1/2014-07-07 00:00:00/2014-07-20 23:00:00/true
      * @param locationId the id of the location where the query should be executed
      * 					if -1 then all stored locations are queried
      * @param startDate the startdate of the query (Dateformat: yyyy-MM-dd or yyyy-MM-dd HH:mm:ss)
      * @param endDate the enddate of the query (Dateformat: yyyy-MM-dd or yyyy-MM-dd HH:mm:ss)
+     * @param transformPrice a boolean value to indicate whether the prices should be transformed
+     * 				(converted to a unified currency, e.g. dollars)
      * @return Response to indicate whether or not the query was successful
      */
     @GET
-    @Path("/price/csv/{loc_id}/{startDate}/{endDate}")
+    @Path("/price/csv/{loc_id}/{startDate}/{endDate}/{transformPrice}")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response retrieveDAPricesCSV(@PathParam("loc_id") Long locationId, @PathParam("startDate") String startDate, @PathParam("endDate") String endDate) {
-    	Response response = retrieveDAPrices(locationId, startDate, endDate);
+    public Response retrieveDAPricesCSV(@PathParam("loc_id") Long locationId, @PathParam("startDate") String startDate, 
+    									@PathParam("endDate") String endDate, @PathParam("transformPrice") String transformPrice) {
+    	Response response = retrieveDAPrices(locationId, startDate, endDate, transformPrice);
     	List<DAPrice> prices = (List<DAPrice>)response.getEntity();
     	StringBuilder builder = new StringBuilder();
     	for(DAPrice price : prices) {
@@ -502,36 +526,6 @@ public class DAPricesResourceRESTService {
     	}
     	String csv = builder.toString();
     	return Response.status(200).entity(csv).build();
-    }
-    
-    
-    @GET
-    @Path("/price/save")
-    @Produces(MediaType.APPLICATION_JSON)
-    public Response testDAPriceSave() {
-    	Location location = locationRepository.findById(1L);
-    	if(location == null) 
-    		return Response.status(Response.Status.BAD_REQUEST).entity("DA Price save: Invalid location").build();
-
-    	System.out.println("Location = "+location.toString());
-    	
-    	Calendar c = Calendar.getInstance(TimeZone.getTimeZone("America/New_York"));
-    	c.set(2015, 06, 11, 10, 00, 00);
-    	c.set(Calendar.MILLISECOND, 0);
-    	
-    	DAPrice daPrice = new DAPrice();
-    	daPrice.setBiddingDate(c.getTime());
-    	daPrice.setInterval(new Integer(1));
-    	daPrice.setIntervalUnit("hour");
-    	daPrice.setLocation(location);
-    	daPrice.setPrice(new Integer(3600));
-    	daPrice.setTimelag(new Integer(0));
-    	System.out.println("DAPrice = "+daPrice.toString());
-    	
-    	daPriceResource.saveDAPrice(daPrice);
-    	
-    	String output = "Saved DA Price: "+daPrice.toString()+"\n for location "+location.toString();
-    	return Response.status(200).entity(output).build();
     }
     
     
