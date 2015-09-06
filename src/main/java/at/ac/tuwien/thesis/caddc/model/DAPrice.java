@@ -45,7 +45,7 @@ public class DAPrice implements Serializable {
 	private Date biddingDate;
 	
 	@NotNull
-	@ManyToOne//(fetch=FetchType.LAZY)
+	@ManyToOne
 	private Location location;
 	
 	/**

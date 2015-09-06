@@ -39,25 +39,7 @@ import javax.validation.constraints.Size;
 		@NamedQuery(name="EnergyMarket.findAll", query="SELECT e FROM EnergyMarket e " +
 														"ORDER BY name ASC"),
 		@NamedQuery(name = "EnergyMarket.findByName", query = "SELECT e FROM EnergyMarket e " +
-																"WHERE e.name LIKE :name"),
-//		@NamedQuery(name = "EnergyMarket.findLocationsByName", query = "SELECT l " +
-//																"FROM EnergyMarket e JOIN e.locations l " +
-//																"WHERE l.name = :name"),
-//		@NamedQuery(name = "EnergyMarket.findLocationByMarketandName", query = "SELECT l " +
-//																"FROM EnergyMarket e JOIN e.locations l " +
-//																"WHERE e.name = :marketName "
-//																+ "AND l.name = :locationName")
-		
-//			    "FROM Organization o, User u " +
-//			    "JOIN o.roles oRole " +
-//			    "JOIN u.roles uRole " +
-//			    "WHERE oRole.id = uRole.id AND u.id = :uId")
-//		@NamedQuery(name = "Location.findLocationByMarketandName", 
-//		query = "SELECT l "
-//				+ "FROM EnergyMarket e JOIN Location l "
-//				+ "WHERE l.em.id = e.id "
-//				+ "AND e.name = :marketName "
-//				+ "AND l.name = :locationName")
+																"WHERE e.name LIKE :name")
 })
 
 public class EnergyMarket implements Serializable {
@@ -72,11 +54,7 @@ public class EnergyMarket implements Serializable {
     @Pattern(regexp = "[^0-9][\\s\\w]+", message = "Must not use number as first character")
     private String name;
 
-    private String description;
-    
-//    @OneToMany(fetch=FetchType.EAGER, mappedBy="em")
-//    private List<Location> locations;
-    
+    private String description;    
 
 	public EnergyMarket() {
     	
@@ -112,11 +90,4 @@ public class EnergyMarket implements Serializable {
         this.description = description;
     }
     
-//   	public List<Location> getLocations() {
-//   		return locations;
-//   	}
-//
-//   	public void setLocations(List<Location> locations) {
-//   		this.locations = locations;
-//   	}
 }

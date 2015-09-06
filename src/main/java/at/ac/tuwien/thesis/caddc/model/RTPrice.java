@@ -21,8 +21,6 @@ import javax.validation.constraints.Size;
 @Entity
 @Table(
 	name="RT_PRICES"
-//    uniqueConstraints=
-//        @UniqueConstraint(columnNames={"bid_date", "location_id"})
 )
 public class RTPrice implements Serializable {
 
