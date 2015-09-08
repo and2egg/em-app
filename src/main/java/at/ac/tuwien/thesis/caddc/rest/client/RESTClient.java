@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.StringWriter;
+import java.net.ConnectException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.SocketException;
@@ -15,6 +16,7 @@ import java.util.List;
 import javax.net.ssl.HttpsURLConnection;
 
 import org.apache.commons.io.IOUtils;
+
 import at.ac.tuwien.thesis.caddc.data.parse.XLSParser;
 import sun.misc.BASE64Encoder;
 
@@ -23,7 +25,7 @@ import sun.misc.BASE64Encoder;
  */
 public class RESTClient {
 
-	public static String fetchData(String urlString) {
+	public static String fetchData(String urlString) throws ConnectException {
 		URL url = null;
 		HttpURLConnection conn = null;
 		InputStream inputStream = null;
@@ -32,7 +34,7 @@ public class RESTClient {
 			url = new URL(urlString);
 			conn = (HttpURLConnection) url.openConnection();
 			if (conn.getResponseCode() != 200) {
-				throw new SocketException("Failed : HTTP error code : "
+				throw new ConnectException("Failed : HTTP error code : "
 						+ conn.getResponseCode());
 			}
 			inputStream = conn.getInputStream();
@@ -40,19 +42,17 @@ public class RESTClient {
 			return null;
 			
 		} catch (MalformedURLException e) {
-			System.err.println("MalformedURLException: "+e.getLocalizedMessage());
+			throw new ConnectException("MalformedURLException: "+e.getLocalizedMessage());
 		} catch (SocketException e) {
-			System.err.println("SocketException: "+e.getLocalizedMessage()+"\n"+e.getMessage());
-			e.printStackTrace();
+			throw new ConnectException("SocketException: "+e.getLocalizedMessage()+"\n"+e.getMessage());
 		} catch (IOException e) {
-			System.err.println("IOException: "+e.getLocalizedMessage());
+			throw new ConnectException("IOException: "+e.getLocalizedMessage());
 		} finally {
 			conn.disconnect();
 		}
-		return null;
 	}
 	
-	public static InputStream secureFetchData(String urlString) {
+	public static InputStream secureFetchData(String urlString) throws ConnectException {
 		URL url = null;
 		HttpsURLConnection conn = null;
 		InputStream inputStream = null;
@@ -61,7 +61,7 @@ public class RESTClient {
 			url = new URL(urlString);
 			conn = (HttpsURLConnection) url.openConnection();
 			if (conn.getResponseCode() != 200) {
-				throw new SocketException("Failed : HTTP error code : "
+				throw new ConnectException("Failed : HTTP error code : "
 						+ conn.getResponseCode());
 			}
 			inputStream = conn.getInputStream();
@@ -69,19 +69,17 @@ public class RESTClient {
 			return inputStream;
 			
 		} catch (MalformedURLException e) {
-			System.err.println("MalformedURLException: "+e.getLocalizedMessage());
+			throw new ConnectException("MalformedURLException: "+e.getLocalizedMessage());
 		} catch (SocketException e) {
-			System.err.println("SocketException: "+e.getLocalizedMessage()+"\n"+e.getMessage());
-			e.printStackTrace();
+			throw new ConnectException("SocketException: "+e.getLocalizedMessage()+"\n"+e.getMessage());
 		} catch (IOException e) {
-			System.err.println("IOException: "+e.getLocalizedMessage());
+			throw new ConnectException("IOException: "+e.getLocalizedMessage());
 		} finally {
 			conn.disconnect();
 		}
-		return inputStream;
 	}
 	
-	public static void fetchURL(String urlString) {
+	public static void fetchURL(String urlString) throws ConnectException {
 		try {
 			 
 			URL url = new URL(urlString);
@@ -114,14 +112,14 @@ public class RESTClient {
 			conn.disconnect();
 	 
 		  } catch (MalformedURLException e) {
-			  System.err.println("MalformedURLException: "+e.getLocalizedMessage());
+			  throw new ConnectException("MalformedURLException: "+e.getLocalizedMessage());
 		  } catch (IOException e) {
-			  System.err.println("IOException: "+e.getLocalizedMessage());
+			  throw new ConnectException("IOException: "+e.getLocalizedMessage());
 		  }
 	}
 	
 	
-	public static String fetchDataString(String urlString) {
+	public static String fetchDataString(String urlString) throws ConnectException {
 		URL url = null;
 		HttpURLConnection conn = null;
 		InputStream in = null;
@@ -132,8 +130,7 @@ public class RESTClient {
 			url = new URL(urlString);
 			conn = (HttpURLConnection) url.openConnection();
 			if (conn.getResponseCode() != 200) {
-				System.err.println("OTHER RESPONSE CODE: "+conn.getResponseCode());
-				throw new RuntimeException("Failed : HTTP error code : "
+				throw new ConnectException("Failed : HTTP error code : "
 						+ conn.getResponseCode());
 			}
 			in = conn.getInputStream();
@@ -141,12 +138,11 @@ public class RESTClient {
 			IOUtils.copy(in, writer, "UTF-8");
 			result = writer.toString();
 		} catch (MalformedURLException e) {
-			System.err.println("MalformedURLException: "+e.getLocalizedMessage());
+			throw new ConnectException("MalformedURLException: "+e.getLocalizedMessage());
 		} catch (SocketException e) {
-			System.err.println("SocketException: "+e.getLocalizedMessage()+"\n"+e.getMessage());
-			e.printStackTrace();
+			throw new ConnectException("SocketException: "+e.getLocalizedMessage()+"\n"+e.getMessage());
 		} catch (IOException e) {
-			System.err.println("IOException: "+e.getLocalizedMessage());
+			throw new ConnectException("IOException: "+e.getLocalizedMessage());
 		} finally {
 			conn.disconnect();
 		}
@@ -154,12 +150,12 @@ public class RESTClient {
 	}
 	
 	
-	public static List<String> fetchAndParseXLS(String urlString, Integer sheetNumber, int rowOffset, int[] colIndices) {
+	public static List<String> fetchAndParseXLS(String urlString, Integer sheetNumber, int rowOffset, int[] colIndices) throws ConnectException {
 		try {
 			URL url = new URL(urlString);
 			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
 			if (conn.getResponseCode() != 200) {
-				throw new RuntimeException("Failed : HTTP error code : "
+				throw new ConnectException("Failed : HTTP error code : "
 						+ conn.getResponseCode());
 			}
 			List<String> result;
@@ -170,14 +166,13 @@ public class RESTClient {
 			return result;
 	 
 		} catch (MalformedURLException e) {
-			System.err.println("MalformedURLException: "+e.getLocalizedMessage());
+			throw new ConnectException("MalformedURLException: "+e.getLocalizedMessage());
 		} catch (IOException e) {
-			System.err.println("IOException: "+e.getLocalizedMessage());
+			throw new ConnectException("IOException: "+e.getLocalizedMessage());
 		}
-		return null;
 	}
 	
-	public static List<String> fileFetchAndParseXLS(String path, Integer sheetNumber, int rowOffset, int[] colIndices) {
+	public static List<String> fileFetchAndParseXLS(String path, Integer sheetNumber, int rowOffset, int[] colIndices) throws ConnectException {
 		try {
 			InputStream in = new FileInputStream(path);
 			List<String> result;
@@ -185,8 +180,7 @@ public class RESTClient {
 			result = parser.parse(in,sheetNumber,rowOffset,colIndices);
 			return result;
 		} catch (IOException e) {
-			System.err.println("IOException: "+e.getLocalizedMessage());
+			throw new ConnectException("IOException: "+e.getLocalizedMessage());
 		}
-		return null;
 	}
 }

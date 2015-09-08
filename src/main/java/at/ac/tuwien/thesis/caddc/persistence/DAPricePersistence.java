@@ -44,12 +44,12 @@ public class DAPricePersistence {
      * 			Example: 2015-07-11;02;44,23
      * @param location a location String of one of the locations stored in the 
      * 			database
+     * @throws LocationNotFoundException is thrown when the given location is not registered
      */
-    public void saveDAPrices(List<String> priceData, String location) {
+    public void saveDAPrices(List<String> priceData, String location) throws LocationNotFoundException {
     	Location loc = locationRepository.findByName(location);
 		if(loc == null) {
-			System.err.println("Please provide a registered location");
-			return;
+			throw new LocationNotFoundException("Please provide a registered location");
 		}
 		String tz = loc.getTimeZone();
 		TimeZone timeZone;

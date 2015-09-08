@@ -9,7 +9,10 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 /**
- * 
+ * Specialized parser for retrieval of prices from aggregated data sheets
+ * provided in an HTML table format. 
+ * This parser implementation is used to get energy prices from the 
+ * Nord Pool Spot market
  */
 public class NordPoolHTMLParser implements HTMLParser {
 

@@ -16,7 +16,6 @@
  */
 package at.ac.tuwien.thesis.caddc.rest.service;
 
-import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -27,9 +26,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.logging.Logger;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 
+import javax.annotation.PostConstruct;
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
 import javax.validation.ConstraintViolation;
@@ -40,14 +38,17 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import at.ac.tuwien.thesis.caddc.data.parse.NordPoolHTMLParser;
-import at.ac.tuwien.thesis.caddc.data.parse.HTMLParser;
+import at.ac.tuwien.thesis.caddc.data.fetch.MarketData;
+import at.ac.tuwien.thesis.caddc.data.fetch.MarketDataBelgium;
+import at.ac.tuwien.thesis.caddc.data.fetch.MarketDataFinland;
+import at.ac.tuwien.thesis.caddc.data.fetch.MarketDataMaine;
+import at.ac.tuwien.thesis.caddc.data.fetch.MarketDataMassachussetts;
+import at.ac.tuwien.thesis.caddc.data.fetch.MarketDataSweden;
 import at.ac.tuwien.thesis.caddc.model.DAPrice;
 import at.ac.tuwien.thesis.caddc.model.Location;
-import at.ac.tuwien.thesis.caddc.persistence.DAPricePersistence;
 import at.ac.tuwien.thesis.caddc.persistence.DAPriceRepository;
+import at.ac.tuwien.thesis.caddc.persistence.ImportDataException;
 import at.ac.tuwien.thesis.caddc.persistence.LocationRepository;
-import at.ac.tuwien.thesis.caddc.rest.client.RESTClient;
 import at.ac.tuwien.thesis.caddc.util.Currency;
 
 /**
@@ -69,221 +70,92 @@ public class DAPricesResourceRESTService {
     @Inject
     private DAPriceRepository daPriceRepository;
     
-    @Inject
-    private DAPricePersistence daPriceResource;
+    
+    private List<MarketData> marketList;
     
     
-    @GET
-    @Path("/data")
-    @Produces(MediaType.APPLICATION_JSON)
-    public Response testDataFetch() {
-    	String url = "http://www.nordpoolspot.com/globalassets/marketdata-excel-files/elspot-prices_2014_hourly_eur.xls";
-		String result = RESTClient.fetchDataString(url);
-		String output = "DATA FETCH\n"+new NordPoolHTMLParser().parsePrices(result, 0, new int[]{5});
-		return Response.status(200).entity(output).build();
+    /**
+     * Add all currently available market data locations to the list
+     */
+    @PostConstruct
+    public void init() {
+    	marketList.add(new MarketDataFinland(locationRepository.findByName("Helsinki")));
+    	marketList.add(new MarketDataSweden(locationRepository.findByName("Stockholm")));
+    	marketList.add(new MarketDataMaine(locationRepository.findByName("Portland")));
+    	marketList.add(new MarketDataMassachussetts(locationRepository.findByName("Boston")));
+    	marketList.add(new MarketDataBelgium(locationRepository.findByName("Brussels")));
     }
     
     
+    /**
+     * Import prices for all locations for the given time range in years
+     * @param yearFrom the year from which to import energy prices
+     * @param yearTo the year up to which to import energy prices
+     * @return a Response object indicating if the request has been successful
+     */
     @GET
     @Path("/importall/{yearfrom}/{yearto}")
     @Produces(MediaType.APPLICATION_JSON)
     public Response importAllLocationsForYears(@PathParam("yearfrom") Integer yearFrom, @PathParam("yearto") Integer yearTo) {
-    	for(int year = yearFrom; year <= yearTo; year++) {
-    		importFinlandMarketData(year);
-    		importSwedenMarketData(year);
-    		importMaineMarketData(year);
-    		importMassachusettsMarketData(year);
-    		importBelgiumMarketData(year);
-    	}
+    	try {
+	    	for(int year = yearFrom; year <= yearTo; year++) {
+	    		for(MarketData market : marketList) {
+					market.importPrices(year);
+	    		}
+	    	}
+    	} catch (ImportDataException e) {
+    		return Response.status(503).entity("Request failed: Retrieving data for all locations for years "+yearFrom+" to "+yearTo).build();
+		}
     	return Response.status(200).entity("Successfully imported data for all locations for years "+yearFrom+" to "+yearTo).build();
     }
     
     
+    /**
+     * Import energy market data per location and time range
+     * @param locationId the location Id for which to retrieve energy prices
+     * @param yearFrom the year from which to import energy prices
+     * @param yearTo the year up to which to import energy prices
+     * @return a Response object indicating if the request has been successful
+     */
     @GET
     @Path("/import/{id:[0-9]+}/{yearfrom}/{yearto}")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response importMarketDataPerLocation(@PathParam("id") Integer locationId, @PathParam("yearfrom") Integer yearFrom, @PathParam("yearto") Integer yearTo) {
-    	for(int year = yearFrom; year <= yearTo; year++) {
-    		if(locationId == 1) {
-        		importFinlandMarketData(year);
-        	} else if(locationId == 2) {
-        		importSwedenMarketData(year);
-        	} else if(locationId == 3) {
-        		importMaineMarketData(year);
-        	} else if(locationId == 4) {
-        		importMassachusettsMarketData(year);
-        	} else if(locationId == 5) {
-        		importBelgiumMarketData(year);
-        	} else if(locationId == -1) {
-        		importFinlandMarketData(year);
-        		importSwedenMarketData(year);
-        		importMaineMarketData(year);
-        		importMassachusettsMarketData(year);
-        		importBelgiumMarketData(year);
-        	}
-    	}
-    	return Response.status(200).entity("Successfully imported data for years "+yearFrom+" to "+yearTo+" for location with ID "+locationId).build();
-    }
-    
-    
-    private void importFinlandMarketData(Integer year) {
-    	String result = null;
-    	if(year == 2012) {
-    	    String path = getResourcePath("energydata", "/NPS/Elspot_Prices_2012_Hourly_EUR.xls");
-    	    try {
-    	    	result = new String(Files.readAllBytes(Paths.get(path)));
-			} catch (IOException e) {
-				System.err.println("Could not read resource file: "+path);
-			}
+    public Response importMarketDataPerLocation(@PathParam("id") Long locationId, @PathParam("yearfrom") Integer yearFrom, @PathParam("yearto") Integer yearTo) {
+    	List<MarketData> list = new ArrayList<MarketData>();
+    	// if all locations should be queried, assign whole list
+    	if(locationId.equals(Long.valueOf(-1L))) {
+    		list = marketList;
     	}
     	else {
-    		String url = "http://www.nordpoolspot.com/globalassets/marketdata-excel-files/elspot-prices_"+year.toString()+"_hourly_eur.xls";
-    		result = RESTClient.fetchDataString(url);
+    		for(MarketData m : marketList) {
+    			if(m.getLocation().getId().equals(locationId)) {
+    				list.add(m);
+    			}
+    		}
     	}
     	
-    	if(result != null) {
-    		HTMLParser htmlParser = new NordPoolHTMLParser();
-    		List<String> prices = htmlParser.parsePrices(result, // html content to parse
-					0,   // row offset
-					new int[]{5} // price column indices
-    		);
-    		daPriceResource.saveDAPrices(prices, "Helsinki");
-    	}
-    }
-    
-    private void importSwedenMarketData(Integer year) {
-    	String result = null;
-    	if(year == 2012) {
-    	    String path = getResourcePath("energydata", "/NPS/Elspot_Prices_2012_Hourly_EUR.xls");
-    	    try {
-    	    	result = new String(Files.readAllBytes(Paths.get(path)));
-			} catch (IOException e) {
-				System.err.println("Could not read resource file: "+path);
-			}
+    	try {
+	    	for(int year = yearFrom; year <= yearTo; year++) {
+	    		for(MarketData market : list) {
+					market.importPrices(year);
+	    		}
+	    	}
+    	} catch (ImportDataException e) {
+    		if(locationId.equals(Long.valueOf(-1L))) {
+    			return Response.status(503).entity("Request failed: Retrieving data for all locations for years "+yearFrom+" to "+yearTo).build();
+    		}
+    		else {
+    			return Response.status(503).entity("Request failed: Retrieving data for years "+yearFrom+" to "+yearTo+" for location with ID "+locationId).build();
+    		}
+		}
+    	if(locationId.equals(Long.valueOf(-1L))) {
+    		return Response.status(200).entity("Successfully imported data for all locations for years "+yearFrom+" to "+yearTo).build();
     	}
     	else {
-    		String url = "http://www.nordpoolspot.com/globalassets/marketdata-excel-files/elspot-prices_"+year.toString()+"_hourly_eur.xls";
-    		result = RESTClient.fetchDataString(url);
+    		return Response.status(200).entity("Successfully imported data for years "+yearFrom+" to "+yearTo+" for location with ID "+locationId).build();
     	}
-		
-    	if(result != null) {
-    		HTMLParser htmlParser = new NordPoolHTMLParser();
-    		List<String> prices = htmlParser.parsePrices(result, // html content to parse
-					0,   // row offset
-					new int[]{1} // price column indices
-    		);
-    		daPriceResource.saveDAPrices(prices, "Stockholm");
-    	}
-    		
     }
-    
-    private void importMaineMarketData(Integer year) {
-    	String url = "";
-    	if(year == 2014) {
-    		url = "http://www.iso-ne.com/static-assets/documents/2015/05/2014_smd_hourly.xls";
-    	}
-    	else {
-    		url = "http://www.iso-ne.com/static-assets/documents/markets/hstdata/znl_info/hourly/"+year+"_smd_hourly.xls";
-    	}
-		int[] colIdx = {0,1,4};  // Date, Hour, DA_LMP
-		
-		List<String> priceList = RESTClient.fetchAndParseXLS(url, // fetch URL
-																2, // sheet number
-																1, // row Offset
-																colIdx // column indices array
-															);
-		
-		List<String> newList = new ArrayList<String>();
-		for(String price : priceList) {
-			String[] split = price.split(";");
-			int hour = (int)Double.parseDouble(split[1]); // parse hour
-			hour --; // reduce hour by one to get hours from 0-23 instead of 1-24
-			String result = split[0] + ";" + String.valueOf(hour) + ";" + split[2];
-			newList.add(result);
-		}
-		
-		System.out.println("newList (1-10) : ");
-		for(int i = 0; i < 10; i++) {
-			System.out.println(newList.get(i));
-		}
-		
-		daPriceResource.saveDAPrices(newList, "Portland");
-    }
-    
-    private void importMassachusettsMarketData(Integer year) {
-    	String url = "";
-    	if(year == 2014) {
-    		url = "http://www.iso-ne.com/static-assets/documents/2015/05/2014_smd_hourly.xls";
-    	}
-    	else {
-    		url = "http://www.iso-ne.com/static-assets/documents/markets/hstdata/znl_info/hourly/"+year+"_smd_hourly.xls";
-    	}
-		int[] colIdx = {0,1,4};
-		
-		List<String> priceList = RESTClient.fetchAndParseXLS(url, // fetch URL
-																9, // sheet number
-																1, // row Offset
-																colIdx // column indices array
-															);
-		List<String> newList = new ArrayList<String>();
-		for(String price : priceList) {
-			String[] split = price.split(";");
-			int hour = (int)Double.parseDouble(split[1]); // parse hour
-			hour --; // reduce hour by one to get hours from 0-23 instead of 1-24
-			String result = split[0] + ";" + String.valueOf(hour) + ";" + split[2];
-			newList.add(result);
-		}
-		
-		System.out.println("newList (1-10) : ");
-		for(int i = 0; i < 10; i++) {
-			System.out.println(newList.get(i));
-		}
-		
-		daPriceResource.saveDAPrices(newList, "Boston");
-    }
-    
-    private void importBelgiumMarketData(Integer year) {
-    	String path = getResourcePath("energydata","/BELPEX/spotmarket_data_"+year+".xls");
-		int[] colIdx = new int[26];
-		for(int i = 0; i < 26; i++) {
-			colIdx[i] = i;
-		}
-		List<String> priceList = RESTClient.fileFetchAndParseXLS(path, // fetch URL
-																1, // sheet number
-																1, // row Offset
-																colIdx // column indices array
-															);
-		System.out.println("priceList (1-10) : ");
-		for(int i = 0; i < 10; i++) {
-			System.out.println(priceList.get(i));
-		}
-		
-		List<String> transformedPrices = new ArrayList<String>();
-		int count = 0;
-		for(String prices: priceList) {
-			String[] split = prices.split(";");
-			
-			for(int i = 1; i < split.length; i++) {
-				String result = split[0] + ";"; // date
-				String price = split[i].trim();
-				if(i == 25 && !price.isEmpty()) {
-					result += 1 + ";" + price;
-				}
-				else {
-					result += (i-1) + ";" + price;
-				}
-				transformedPrices.add(result);
-			}
-			
-			if(count < 10) {
-				System.out.println("price: "+transformedPrices.get(count));
-				count++;
-			}
-		}
-		
-		daPriceResource.saveDAPrices(transformedPrices, "Brussels");
-    }
-
+  
     
     /**
      * Retrieve day ahead prices from the location with the given id
@@ -479,7 +351,8 @@ public class DAPricesResourceRESTService {
      * 				(converted to a unified currency, e.g. dollars)
      * @return Response to indicate whether or not the query was successful
      */
-    @GET
+    @SuppressWarnings("unchecked")
+	@GET
     @Path("/price/csv/{loc_id}/{startDate}/{endDate}/{transformPrice}/localTZ")
     @Produces(MediaType.APPLICATION_JSON)
     public Response retrieveDAPricesCSVLocalTZ(@PathParam("loc_id") Long locationId, @PathParam("startDate") String startDate, 
@@ -510,7 +383,8 @@ public class DAPricesResourceRESTService {
      * 				(converted to a unified currency, e.g. dollars)
      * @return Response to indicate whether or not the query was successful
      */
-    @GET
+    @SuppressWarnings("unchecked")
+	@GET
     @Path("/price/csv/{loc_id}/{startDate}/{endDate}/{transformPrice}")
     @Produces(MediaType.APPLICATION_JSON)
     public Response retrieveDAPricesCSV(@PathParam("loc_id") Long locationId, @PathParam("startDate") String startDate, 
@@ -529,20 +403,6 @@ public class DAPricesResourceRESTService {
     }
     
     
-    /**
-     * Returns the path for a given resource at a resource root
-     * @param resourceRoot the root folder of the resource
-     * @param resourcePath the path relative to the root folder
-     * @return the complete real resource path
-     */
-    private String getResourcePath(String resourceRoot, String resourcePath) {
-    	String path = getClass().getClassLoader().getResource(resourceRoot).getPath();
-		path = path + resourcePath;
-	    path = path.substring(1); // remove leading slash
-	    return path;
-	}
-
-
     /**
      * Creates a JAX-RS "Bad Request" response including a map of all violation fields, and their message. This can then be used
      * by clients to show violations.
