@@ -1,4 +1,4 @@
-package at.ac.tuwien.thesis.caddc.data;
+package at.ac.tuwien.thesis.caddc.data.fetch;
 
 import at.ac.tuwien.thesis.caddc.data.format.Format;
 

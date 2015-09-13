@@ -38,12 +38,12 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import at.ac.tuwien.thesis.caddc.data.fetch.MarketData;
-import at.ac.tuwien.thesis.caddc.data.fetch.MarketDataBelgium;
-import at.ac.tuwien.thesis.caddc.data.fetch.MarketDataFinland;
-import at.ac.tuwien.thesis.caddc.data.fetch.MarketDataMaine;
-import at.ac.tuwien.thesis.caddc.data.fetch.MarketDataMassachussetts;
-import at.ac.tuwien.thesis.caddc.data.fetch.MarketDataSweden;
+import at.ac.tuwien.thesis.caddc.data.market.MarketData;
+import at.ac.tuwien.thesis.caddc.data.market.MarketDataBelgium;
+import at.ac.tuwien.thesis.caddc.data.market.MarketDataFinland;
+import at.ac.tuwien.thesis.caddc.data.market.MarketDataMaine;
+import at.ac.tuwien.thesis.caddc.data.market.MarketDataMassachussetts;
+import at.ac.tuwien.thesis.caddc.data.market.MarketDataSweden;
 import at.ac.tuwien.thesis.caddc.model.DAPrice;
 import at.ac.tuwien.thesis.caddc.model.Location;
 import at.ac.tuwien.thesis.caddc.persistence.DAPriceRepository;

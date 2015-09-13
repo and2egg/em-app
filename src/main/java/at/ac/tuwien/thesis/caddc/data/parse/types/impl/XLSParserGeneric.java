@@ -1,5 +1,9 @@
-package at.ac.tuwien.thesis.caddc.data.parse;
+package at.ac.tuwien.thesis.caddc.data.parse.types.impl;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
@@ -10,16 +14,31 @@ import org.apache.poi.hssf.usermodel.HSSFSheet;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.poifs.filesystem.POIFSFileSystem;
 
+import at.ac.tuwien.thesis.caddc.data.parse.ParseException;
+import at.ac.tuwien.thesis.caddc.data.parse.types.XLSParser;
+
 /**
  * 
  */
-public class XLSParser {
+public class XLSParserGeneric implements XLSParser {
 
 	
-	public List<String> parse(InputStream in, int sheetNumber, int rowOffset, int[] colIndices) {
+	public List<String> parse(File file, int sheetNumber, int rowOffset, int[] colIndices) throws ParseException {
 		try {
-		    POIFSFileSystem fs = new POIFSFileSystem(in);
-		    HSSFWorkbook wb = new HSSFWorkbook(fs);
+			return parse(new FileInputStream(file), sheetNumber, rowOffset, colIndices);
+		} catch (FileNotFoundException e) {
+			throw new ParseException("FileNotFoundException: "+e.getLocalizedMessage());
+		}
+	}
+	
+	
+	public List<String> parse(InputStream in, int sheetNumber, int rowOffset, int[] colIndices) throws ParseException {
+		
+		POIFSFileSystem fs = null;
+	    HSSFWorkbook wb = null;
+		try {
+			fs = new POIFSFileSystem(in);
+		    wb = new HSSFWorkbook(fs);
 		    HSSFSheet sheet = wb.getSheetAt(sheetNumber);
 		    HSSFRow row;
 		    HSSFCell cell;
@@ -59,10 +78,16 @@ public class XLSParser {
 		        }
 		        priceList.add(rowData.toString());
 		    }
+		    wb.close();
 		    return priceList;
 		} catch(Exception ioe) {
-		    ioe.printStackTrace();
+		    throw new ParseException("ParseException: "+ioe.getLocalizedMessage());
+		} finally {
+			try {
+				wb.close();
+			} catch (IOException e) {
+				System.err.println("XLSParserGeneric: Could not close workbook");
+			}
 		}
-		return null;
 	}
 }

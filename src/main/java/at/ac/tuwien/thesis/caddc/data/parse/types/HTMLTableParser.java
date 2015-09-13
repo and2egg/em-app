@@ -1,4 +1,4 @@
-package at.ac.tuwien.thesis.caddc.data.parse;
+package at.ac.tuwien.thesis.caddc.data.parse.types;
 
 import java.util.List;
 
@@ -6,7 +6,7 @@ import java.util.List;
  * Interface to provide functionality of parsing energy prices
  * out of a html table
  */
-public interface HTMLParser {
+public interface HTMLTableParser {
 
 	/**
 	 * Method to parse the prices arranged in a HTML table

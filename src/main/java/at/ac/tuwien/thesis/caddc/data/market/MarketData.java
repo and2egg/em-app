@@ -1,9 +1,10 @@
-package at.ac.tuwien.thesis.caddc.data.fetch;
+package at.ac.tuwien.thesis.caddc.data.market;
 
 import java.util.List;
 
 import javax.inject.Inject;
 
+import at.ac.tuwien.thesis.caddc.data.fetch.FetchDataException;
 import at.ac.tuwien.thesis.caddc.model.Location;
 import at.ac.tuwien.thesis.caddc.persistence.DAPricePersistence;
 import at.ac.tuwien.thesis.caddc.persistence.ImportDataException;
@@ -43,9 +44,9 @@ public abstract class MarketData {
 	 * Get the energy prices as a list of Strings for the given year
 	 * @param year the year for which to obtain energy prices
 	 * @return a list of Strings containing the energy price time series
-	 * @throws ImportDataException is thrown when data import failed
+	 * @throws FetchDataException is thrown when data fetch failed
 	 */
-	public abstract List<String> getPrices(Integer year) throws ImportDataException;
+	public abstract List<String> fetchPrices(Integer year) throws FetchDataException;
 	
 	/**
 	 * Import prices for the given year into the database
@@ -54,8 +55,8 @@ public abstract class MarketData {
 	 */
 	public void importPrices(Integer year) throws ImportDataException {
 		try {
-			daPriceResource.saveDAPrices(getPrices(year), getLocation().getName());
-		} catch (LocationNotFoundException e) {
+			daPriceResource.saveDAPrices(fetchPrices(year), getLocation().getName());
+		} catch (LocationNotFoundException | FetchDataException e) {
 			throw new ImportDataException("ImportDataException: "+e.getLocalizedMessage());
 		}
 	}

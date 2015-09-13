@@ -1,4 +1,4 @@
-package at.ac.tuwien.thesis.caddc.data.parse;
+package at.ac.tuwien.thesis.caddc.data.parse.types.impl;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -8,13 +8,15 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
+import at.ac.tuwien.thesis.caddc.data.parse.types.HTMLTableParser;
+
 /**
  * Specialized parser for retrieval of prices from aggregated data sheets
  * provided in an HTML table format. 
  * This parser implementation is used to get energy prices from the 
  * Nord Pool Spot market
  */
-public class NordPoolHTMLParser implements HTMLParser {
+public class HTMLParserNordPool implements HTMLTableParser {
 
 
 	/**

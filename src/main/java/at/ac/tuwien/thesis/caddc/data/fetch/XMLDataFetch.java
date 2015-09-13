@@ -1,4 +1,4 @@
-package at.ac.tuwien.thesis.caddc.data;
+package at.ac.tuwien.thesis.caddc.data.fetch;
 
 import java.io.IOException;
 import java.net.MalformedURLException;

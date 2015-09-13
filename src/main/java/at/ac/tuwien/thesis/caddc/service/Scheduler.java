@@ -6,9 +6,8 @@ import javax.ejb.Schedule;
 import javax.ejb.Schedules;
 import javax.ejb.Stateless;
 
-import at.ac.tuwien.thesis.caddc.data.IDataFetch;
-import at.ac.tuwien.thesis.caddc.data.XMLDataFetch;
-import at.ac.tuwien.thesis.caddc.rest.client.HttpsClient;
+import at.ac.tuwien.thesis.caddc.data.fetch.IDataFetch;
+import at.ac.tuwien.thesis.caddc.data.fetch.XMLDataFetch;
 import at.ac.tuwien.thesis.caddc.rest.client.RESTClient;
 
 @Stateless
