@@ -22,22 +22,21 @@ import at.ac.tuwien.thesis.caddc.data.parse.types.XLSParser;
  */
 public class XLSParserGeneric implements XLSParser {
 
+	private int sheetNumber;
+	private int rowOffset;
+	private Integer[] colIndices;
 	
-	public List<String> parse(File file, int sheetNumber, int rowOffset, int[] colIndices) throws ParseException {
-		try {
-			return parse(new FileInputStream(file), sheetNumber, rowOffset, colIndices);
-		} catch (FileNotFoundException e) {
-			throw new ParseException("FileNotFoundException: "+e.getLocalizedMessage());
-		}
+	public XLSParserGeneric(int sheetNumber, int rowOffset, Integer[] colIndices) {
+		this.sheetNumber = sheetNumber;
+		this.rowOffset = rowOffset;
+		this.colIndices = colIndices;
 	}
 	
-	
-	public List<String> parse(InputStream in, int sheetNumber, int rowOffset, int[] colIndices) throws ParseException {
-		
+	public List<String> parse(File file) throws ParseException {		
 		POIFSFileSystem fs = null;
 	    HSSFWorkbook wb = null;
 		try {
-			fs = new POIFSFileSystem(in);
+			fs = new POIFSFileSystem(new FileInputStream(file));
 		    wb = new HSSFWorkbook(fs);
 		    HSSFSheet sheet = wb.getSheetAt(sheetNumber);
 		    HSSFRow row;
@@ -80,8 +79,8 @@ public class XLSParserGeneric implements XLSParser {
 		    }
 		    wb.close();
 		    return priceList;
-		} catch(Exception ioe) {
-		    throw new ParseException("ParseException: "+ioe.getLocalizedMessage());
+		} catch(IOException ioe) {
+		    throw new ParseException("IOException: "+ioe.getLocalizedMessage());
 		} finally {
 			try {
 				wb.close();

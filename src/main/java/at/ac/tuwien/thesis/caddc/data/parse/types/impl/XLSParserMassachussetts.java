@@ -11,9 +11,8 @@ import at.ac.tuwien.thesis.caddc.data.parse.types.XLSParser;
 /**
  * 
  */
-public class XLSParserBelgium implements XLSParser {
+public class XLSParserMassachussetts implements XLSParser {
 
-	
 	private Integer sheetNumber;
 	private Integer rowOffset;
 	private Integer[] colIndices;
@@ -21,12 +20,11 @@ public class XLSParserBelgium implements XLSParser {
 	/**
 	 * Get default values
 	 */
-	public XLSParserBelgium() {
-		this.sheetNumber = 1;
+	public XLSParserMassachussetts() {
+		this.sheetNumber = 9;
 		this.rowOffset = 1;
 		this.colIndices = getColumnIndices();
 	}
-
 	
 	/**
 	 * @param file
@@ -42,31 +40,19 @@ public class XLSParserBelgium implements XLSParser {
 		List<String> priceList;
 		XLSParser parser = new XLSParserGeneric(this.sheetNumber, this.rowOffset, this.colIndices);
 		priceList = parser.parse(file);
-		List<String> transformedPrices = new ArrayList<String>();
-		for(String prices: priceList) {
-			String[] split = prices.split(";");
-			// go through all 24 prices in the row (24 hours)
-			for(int i = 1; i < split.length; i++) {
-				String result = split[0] + ";"; // date
-				String price = split[i].trim();
-				if(i == 25 && !price.isEmpty()) {
-					result += 1 + ";" + price; // when hour = 25 (i=25), encode hour as '1'
-				}
-				else {
-					result += (i-1) + ";" + price; // encoding hour as i-1
-				}
-				transformedPrices.add(result);
-			}
+		List<String> prices = new ArrayList<String>();
+		// iterate through every line and add to csv
+		for(String price : priceList) {
+			String[] split = price.split(";");
+			int hour = (int)Double.parseDouble(split[1]); // parse hour
+			hour --; // reduce hour by one to get hours from 0-23 instead of 1-24
+			String result = split[0] + ";" + String.valueOf(hour) + ";" + split[2]; // Date;Hour;Price
+			prices.add(result);
 		}
-		return transformedPrices;
+		return prices;
 	}
 	
-	
 	private Integer[] getColumnIndices() {
-		Integer[] colIdx = new Integer[26];
-		for(int i = 0; i < 26; i++) {
-			colIdx[i] = i;
-		}
-		return colIdx;
+		return new Integer[]{0,1,4}; // Column Types: Date, Hour, DA_LMP
 	}
 }

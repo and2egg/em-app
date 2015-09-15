@@ -22,7 +22,9 @@ public class URLDataFetch implements DataFetch {
 	private String url;
 	
 	
-	public URLDataFetch(String url) {
+	public URLDataFetch(String url) throws MissingDataException {
+		if(url == null || url.length() == 0)
+			throw new MissingDataException("Invalid URL");
 		this.url = url;
 	}
 

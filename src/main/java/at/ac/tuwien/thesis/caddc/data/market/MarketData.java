@@ -4,7 +4,11 @@ import java.util.List;
 
 import javax.inject.Inject;
 
+import at.ac.tuwien.thesis.caddc.data.fetch.DataFetch;
+import at.ac.tuwien.thesis.caddc.data.fetch.DataFetcher;
 import at.ac.tuwien.thesis.caddc.data.fetch.FetchDataException;
+import at.ac.tuwien.thesis.caddc.data.parse.Parser;
+import at.ac.tuwien.thesis.caddc.data.parse.types.HTMLTableParser;
 import at.ac.tuwien.thesis.caddc.model.Location;
 import at.ac.tuwien.thesis.caddc.persistence.DAPricePersistence;
 import at.ac.tuwien.thesis.caddc.persistence.ImportDataException;
@@ -14,7 +18,7 @@ import at.ac.tuwien.thesis.caddc.persistence.LocationNotFoundException;
  * Defines a MarketData Instance responsible for retrieving energy
  * market data from different sources and locations
  */
-public abstract class MarketData {
+public class MarketData {
 	
 	@Inject
     private DAPricePersistence daPriceResource;
@@ -22,14 +26,28 @@ public abstract class MarketData {
 	/**
 	 * The location associated with this MarketData Instance
 	 */
-	protected Location location;
+	private Location location;
 	
 	/**
-	 * Create a MarketData Instance with the given location
-	 * @param location the location for this MarketData Instance
+	 * The data fetcher responsible for data retrieval
 	 */
-	public MarketData(Location location) {
+	private DataFetcher fetcher;
+	
+	/**
+	 * The parser responsible for data parsing
+	 */
+	private Parser parser;
+	
+	/**
+	 * Create a MarketData Instance with the given location and parameters
+	 * @param location the location for this MarketData Instance
+	 * @param fetcher the data fetcher for data retrieval
+	 * @param parser the parser for data parsing
+	 */
+	public MarketData(Location location, DataFetcher dataFetcher, Parser parser) {
 		this.location = location;
+		this.fetcher = dataFetcher;
+		this.parser = parser;
 	}
 	
 	/**
@@ -46,7 +64,11 @@ public abstract class MarketData {
 	 * @return a list of Strings containing the energy price time series
 	 * @throws FetchDataException is thrown when data fetch failed
 	 */
-	public abstract List<String> fetchPrices(Integer year) throws FetchDataException;
+	public List<String> fetchPrices(Integer year) throws FetchDataException {
+		DataFetch dataFetch = this.fetcher.getDataFetch(year);
+    	HTMLTableParser htmlParser = this.parser.getHTMLTableParser();
+		return htmlParser.parsePrices(dataFetch.fetchToString());
+	}
 	
 	/**
 	 * Import prices for the given year into the database
@@ -59,18 +81,5 @@ public abstract class MarketData {
 		} catch (LocationNotFoundException | FetchDataException e) {
 			throw new ImportDataException("ImportDataException: "+e.getLocalizedMessage());
 		}
-	}
-	
-	/**
-     * Returns the path for a given resource at a resource root
-     * @param resourceRoot the root folder of the resource
-     * @param resourcePath the path relative to the root folder
-     * @return the complete real resource path
-     */
-    protected String getResourcePath(String resourceRoot, String resourcePath) {
-    	String path = getClass().getClassLoader().getResource(resourceRoot).getPath();
-		path = path + resourcePath;
-	    path = path.substring(1); // remove leading slash
-	    return path;
 	}
 }

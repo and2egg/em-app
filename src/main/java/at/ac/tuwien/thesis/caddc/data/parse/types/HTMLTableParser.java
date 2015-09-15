@@ -15,5 +15,5 @@ public interface HTMLTableParser {
 	 * @param colIndices the indices of the (price) columns to be retrieved 
 	 * 			(starts at 0 for the first price column)
 	 */
-	List<String> parsePrices(String contentString, int rowOffset, int[] colIndices);
+	List<String> parsePrices(String contentString);
 }

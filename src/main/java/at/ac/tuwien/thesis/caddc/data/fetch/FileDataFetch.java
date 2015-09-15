@@ -13,8 +13,16 @@ public class FileDataFetch implements DataFetch {
 	private String path;
 	
 	
-	public FileDataFetch(String path) {
+	public FileDataFetch(String path) throws MissingDataException {
+		if(path == null || path.length() == 0)
+			throw new MissingDataException("Invalid Path");
 		this.path = path;
+	}
+	
+	public FileDataFetch(File file) throws MissingDataException {
+		if(file == null)
+			throw new MissingDataException("Invalid File");
+		this.path = file.getAbsolutePath();
 	}
 	
 	

@@ -5,11 +5,13 @@ import at.ac.tuwien.thesis.caddc.data.parse.types.HTMLTableParser;
 import at.ac.tuwien.thesis.caddc.data.parse.types.JSONParser;
 import at.ac.tuwien.thesis.caddc.data.parse.types.XLSParser;
 import at.ac.tuwien.thesis.caddc.data.parse.types.XMLParser;
+import at.ac.tuwien.thesis.caddc.data.parse.types.impl.XLSParserBelgium;
+import at.ac.tuwien.thesis.caddc.data.parse.types.impl.XLSParserMaine;
 
 /**
  * 
  */
-public class BelgiumParser implements Parser {
+public class ParserMaine implements Parser {
 
 	/**
 	 * @return
@@ -27,8 +29,7 @@ public class BelgiumParser implements Parser {
 	 */
 	@Override
 	public XLSParser getXLSParser() {
-		// TODO Auto-generated method stub
-		return null;
+		return new XLSParserMaine();
 	}
 
 	/**
