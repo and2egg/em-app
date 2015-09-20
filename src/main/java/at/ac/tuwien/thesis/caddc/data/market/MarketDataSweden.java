@@ -13,7 +13,7 @@ import at.ac.tuwien.thesis.caddc.data.fetch.DataFetcherSweden;
 import at.ac.tuwien.thesis.caddc.data.fetch.FetchDataException;
 import at.ac.tuwien.thesis.caddc.data.fetch.FileDataFetch;
 import at.ac.tuwien.thesis.caddc.data.fetch.URLDataFetch;
-import at.ac.tuwien.thesis.caddc.data.parse.Parser;
+import at.ac.tuwien.thesis.caddc.data.parse.ParserFactory;
 import at.ac.tuwien.thesis.caddc.data.parse.ParserFinland;
 import at.ac.tuwien.thesis.caddc.data.parse.ParserSweden;
 import at.ac.tuwien.thesis.caddc.data.parse.types.HTMLTableParser;

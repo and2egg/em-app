@@ -7,8 +7,11 @@ import javax.inject.Inject;
 import at.ac.tuwien.thesis.caddc.data.fetch.DataFetch;
 import at.ac.tuwien.thesis.caddc.data.fetch.DataFetcher;
 import at.ac.tuwien.thesis.caddc.data.fetch.FetchDataException;
-import at.ac.tuwien.thesis.caddc.data.parse.Parser;
+import at.ac.tuwien.thesis.caddc.data.format.Resource;
+import at.ac.tuwien.thesis.caddc.data.parse.ParserFactory;
 import at.ac.tuwien.thesis.caddc.data.parse.types.HTMLTableParser;
+import at.ac.tuwien.thesis.caddc.data.resource.ResourceManager;
+import at.ac.tuwien.thesis.caddc.data.resource.types.ResourceType;
 import at.ac.tuwien.thesis.caddc.model.Location;
 import at.ac.tuwien.thesis.caddc.persistence.DAPricePersistence;
 import at.ac.tuwien.thesis.caddc.persistence.ImportDataException;
@@ -18,7 +21,7 @@ import at.ac.tuwien.thesis.caddc.persistence.LocationNotFoundException;
  * Defines a MarketData Instance responsible for retrieving energy
  * market data from different sources and locations
  */
-public class MarketData {
+public abstract class MarketData {
 	
 	@Inject
     private DAPricePersistence daPriceResource;
@@ -29,25 +32,16 @@ public class MarketData {
 	private Location location;
 	
 	/**
-	 * The data fetcher responsible for data retrieval
+	 * The resourceManager for this MarketData Instance
 	 */
-	private DataFetcher fetcher;
-	
-	/**
-	 * The parser responsible for data parsing
-	 */
-	private Parser parser;
+	protected ResourceManager resourceManager;
 	
 	/**
 	 * Create a MarketData Instance with the given location and parameters
 	 * @param location the location for this MarketData Instance
-	 * @param fetcher the data fetcher for data retrieval
-	 * @param parser the parser for data parsing
 	 */
-	public MarketData(Location location, DataFetcher dataFetcher, Parser parser) {
+	public MarketData(Location location) {
 		this.location = location;
-		this.fetcher = dataFetcher;
-		this.parser = parser;
 	}
 	
 	/**
@@ -65,10 +59,15 @@ public class MarketData {
 	 * @throws FetchDataException is thrown when data fetch failed
 	 */
 	public List<String> fetchPrices(Integer year) throws FetchDataException {
-		DataFetch dataFetch = this.fetcher.getDataFetch(year);
-    	HTMLTableParser htmlParser = this.parser.getHTMLTableParser();
-		return htmlParser.parsePrices(dataFetch.fetchToString());
+		Resource resource = getResourceType().fetchData(year);
+		return getResourceType().getParser().parse(resource);
 	}
+	
+	/**
+	 * Get the preferred resource type for this MarketData Instance
+	 * @return the preferred resource type
+	 */
+	public abstract ResourceType getResourceType();
 	
 	/**
 	 * Import prices for the given year into the database

@@ -13,6 +13,7 @@ import javax.net.ssl.HttpsURLConnection;
 
 import org.apache.commons.io.IOUtils;
 
+import at.ac.tuwien.thesis.caddc.data.format.Resource;
 import sun.misc.BASE64Encoder;
 
 /**
@@ -85,81 +86,23 @@ public class URLDataFetchSecure implements DataFetch {
 			this.acceptProperty = "application/xml";
 		}
 	}
-
-	
-	/**
-	 * @return
-	 * @see at.ac.tuwien.thesis.caddc.data.fetch.DataFetch#fetchToFile()
-	 */
-	@Override
-	public File fetchToFile() throws FetchDataException {
-		
-		URL urlObj = null;
-		HttpsURLConnection conn = null;
-		OutputStream out = null;
-		File file = null;
-		
-		try {
-			 
-			urlObj = new URL(this.url);
-			conn = (HttpsURLConnection) urlObj.openConnection();
-			conn.setRequestMethod(this.requestMethod);
-			conn.setRequestProperty("Accept", this.acceptProperty);
-			conn.setRequestProperty("Authorization", getBasicAuthorizationString(
-										this.username, 
-										this.password));
-	 
-			if (conn.getResponseCode() != 200) {
-				throw new RuntimeException("Failed : HTTP error code : "
-						+ conn.getResponseCode());
-			}
-	 
-//			BufferedReader br = new BufferedReader(new InputStreamReader(
-//				(conn.getInputStream())));
-//	 
-//			String output;
-//			System.out.println("Output from Server .... \n");
-//			while ((output = br.readLine()) != null) {
-//				System.out.println(output);
-//			}
-	 
-			file = new File("tempFile");
-			out = new FileOutputStream(file);
-			out.write(IOUtils.toByteArray(conn.getInputStream()));
-			out.flush();
-			
-		} catch (MalformedURLException e) {
-			throw new FetchDataException("MalformedURLException: "+e.getLocalizedMessage());
-		} catch (IOException e) {
-			throw new FetchDataException("IOException: "+e.getLocalizedMessage());
-		} finally {
-			if(out != null) {
-				try {
-					out.close();
-				} catch (IOException e) {
-					System.err.println("URLDataFetch: Error closing OutputStream");
-				}
-			}
-			conn.disconnect();
-		}
-		return file;
-	}
 	
 	
 	/**
 	 * @return
-	 * @see at.ac.tuwien.thesis.caddc.data.fetch.DataFetch#fetchToString()
+	 * @throws FetchDataException
+	 * @see at.ac.tuwien.thesis.caddc.data.fetch.DataFetch#fetch()
 	 */
 	@Override
-	public String fetchToString() throws FetchDataException {
-		
+	public Resource fetch() throws FetchDataException {
 		URL urlObj = null;
 		HttpsURLConnection conn = null;
 		InputStream in = null;
-		String result = null;
+		OutputStream out = null;
+		File file = null;
+		String content = null;
 		
 		try {
-			 
 			urlObj = new URL(this.url);
 			conn = (HttpsURLConnection) urlObj.openConnection();
 			conn.setRequestMethod(this.requestMethod);
@@ -174,27 +117,42 @@ public class URLDataFetchSecure implements DataFetch {
 			}
 	 
 			in = conn.getInputStream();
+			// fetch file
+			file = new File("tempFile");
+			out = new FileOutputStream(file);
+			out.write(IOUtils.toByteArray(in));
+			out.flush();
+			// fetch String
 			StringWriter writer = new StringWriter();
 			IOUtils.copy(in, writer, "UTF-8");
-			result = writer.toString();
+			content = writer.toString();			
 		} catch (MalformedURLException e) {
 			throw new FetchDataException("MalformedURLException: "+e.getLocalizedMessage());
 		} catch (IOException e) {
 			throw new FetchDataException("IOException: "+e.getLocalizedMessage());
 		} finally {
+			if(out != null) {
+				try {
+					out.close();
+				} catch (IOException e) {
+					System.err.println("URLDataFetch: Error closing OutputStream");
+				}
+			}
 			conn.disconnect();
 		}
-		return result;
+		return new Resource(file, content);
 	}
 	
-	
-	
+	/**
+	 * Helper method to get the basic authentication String for a given username and password
+	 * @param username the username to encode
+	 * @param password the password to encode
+	 * @return a Basic Authentication String containing the given username and password
+	 */
 	private String getBasicAuthorizationString(String username, String password) {
 		BASE64Encoder enc = new sun.misc.BASE64Encoder();
 		String userpassword = username + ":" + password;
 		String encodedAuthorization = enc.encode( userpassword.getBytes() );
 		return "Basic "+encodedAuthorization;
 	}
-	
-
 }

@@ -14,9 +14,11 @@ import at.ac.tuwien.thesis.caddc.data.fetch.FileDataFetch;
 import at.ac.tuwien.thesis.caddc.data.fetch.MissingDataException;
 import at.ac.tuwien.thesis.caddc.data.fetch.URLDataFetch;
 import at.ac.tuwien.thesis.caddc.data.parse.ParserFinland;
-import at.ac.tuwien.thesis.caddc.data.parse.Parser;
+import at.ac.tuwien.thesis.caddc.data.parse.ParserFactory;
 import at.ac.tuwien.thesis.caddc.data.parse.types.HTMLTableParser;
 import at.ac.tuwien.thesis.caddc.data.parse.types.impl.HTMLTableParserFinland;
+import at.ac.tuwien.thesis.caddc.data.resource.ResourceManagerFinland;
+import at.ac.tuwien.thesis.caddc.data.resource.types.ResourceType;
 import at.ac.tuwien.thesis.caddc.model.Location;
 import at.ac.tuwien.thesis.caddc.rest.client.RESTClient;
 
@@ -33,9 +35,17 @@ public class MarketDataFinland extends MarketData {
 	 * @param location the location for this MarketData Instance
 	 */
 	public MarketDataFinland(Location location) {
-		super(location, 
-			new DataFetcherFinland(),
-			new ParserFinland());
+		super(location);
+		this.resourceManager = new ResourceManagerFinland();
+	}
+
+	/**
+	 * @return
+	 * @see at.ac.tuwien.thesis.caddc.data.market.MarketData#getResourceType()
+	 */
+	@Override
+	public ResourceType getResourceType() {
+		return resourceManager.get();
 	}
 
 }

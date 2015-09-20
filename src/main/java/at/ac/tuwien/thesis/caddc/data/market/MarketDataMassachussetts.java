@@ -11,7 +11,7 @@ import at.ac.tuwien.thesis.caddc.data.fetch.DataFetch;
 import at.ac.tuwien.thesis.caddc.data.fetch.FetchDataException;
 import at.ac.tuwien.thesis.caddc.data.fetch.URLDataFetch;
 import at.ac.tuwien.thesis.caddc.data.parse.ParseException;
-import at.ac.tuwien.thesis.caddc.data.parse.Parser;
+import at.ac.tuwien.thesis.caddc.data.parse.ParserFactory;
 import at.ac.tuwien.thesis.caddc.data.parse.ParserMassachussetts;
 import at.ac.tuwien.thesis.caddc.data.parse.types.HTMLTableParser;
 import at.ac.tuwien.thesis.caddc.data.parse.types.XLSParser;
@@ -31,7 +31,7 @@ import at.ac.tuwien.thesis.caddc.rest.client.RESTClient;
  */
 public class MarketDataMassachussetts extends MarketData {
 	
-	private Parser localParser;
+	private ParserFactory localParser;
 	
 	/**
 	 * Create a MarketData Instance with the given location

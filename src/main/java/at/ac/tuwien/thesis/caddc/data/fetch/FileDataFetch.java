@@ -5,6 +5,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
+import at.ac.tuwien.thesis.caddc.data.format.Resource;
+
 /**
  * 
  */
@@ -20,32 +22,29 @@ public class FileDataFetch implements DataFetch {
 	}
 	
 	public FileDataFetch(File file) throws MissingDataException {
-		if(file == null)
+		if(file == null || !file.isFile())
 			throw new MissingDataException("Invalid File");
 		this.path = file.getAbsolutePath();
 	}
-	
-	
-	/**
-	 * @return
-	 * @see at.ac.tuwien.thesis.caddc.data.fetch.DataFetch#fetchToFile()
-	 */
-	@Override
-	public File fetchToFile() {
-		return new File(path);
-	}
+
 
 	/**
 	 * @return
-	 * @see at.ac.tuwien.thesis.caddc.data.fetch.DataFetch#fetchToString()
+	 * @throws FetchDataException
+	 * @see at.ac.tuwien.thesis.caddc.data.fetch.DataFetch#fetch()
 	 */
 	@Override
-	public String fetchToString() throws FetchDataException {
+	public Resource fetch() throws FetchDataException {
+		File file;
+		String content;
+		
+		file = new File(path);
 		try {
-			return new String(Files.readAllBytes(Paths.get(path)));
+			 content = new String(Files.readAllBytes(Paths.get(path)));
 		} catch (IOException e) {
 			throw new FetchDataException("IOException: "+e.getLocalizedMessage());
-		}	
+		}
+		return new Resource(file, content);
 	}
 
 }

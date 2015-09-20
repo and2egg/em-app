@@ -14,6 +14,8 @@ import java.net.URL;
 
 import org.apache.commons.io.IOUtils;
 
+import at.ac.tuwien.thesis.caddc.data.format.Resource;
+
 /**
  * 
  */
@@ -21,24 +23,25 @@ public class URLDataFetch implements DataFetch {
 
 	private String url;
 	
-	
 	public URLDataFetch(String url) throws MissingDataException {
 		if(url == null || url.length() == 0)
 			throw new MissingDataException("Invalid URL");
 		this.url = url;
 	}
-
 	
 	/**
 	 * @return
-	 * @see at.ac.tuwien.thesis.caddc.data.fetch.DataFetch#fetchToFile()
+	 * @throws FetchDataException
+	 * @see at.ac.tuwien.thesis.caddc.data.fetch.DataFetch#fetch()
 	 */
 	@Override
-	public File fetchToFile() throws FetchDataException {
+	public Resource fetch() throws FetchDataException {
 		URL urlObj = null;
 		HttpURLConnection conn = null;
+		InputStream in = null;
 		OutputStream out = null;
 		File file = null;
+		String content = null;
 		
 		try {
 			urlObj = new URL(this.url);
@@ -48,11 +51,16 @@ public class URLDataFetch implements DataFetch {
 						+ conn.getResponseCode());
 			}
 			
+			in = conn.getInputStream();
+			// fetch file
 			file = new File("tempFile");
 			out = new FileOutputStream(file);
-			out.write(IOUtils.toByteArray(conn.getInputStream()));
+			out.write(IOUtils.toByteArray(in));
 			out.flush();
-			
+			// fetch String
+			StringWriter writer = new StringWriter();
+			IOUtils.copy(in, writer, "UTF-8");
+			content = writer.toString();
 		} catch (MalformedURLException e) {
 			throw new FetchDataException("MalformedURLException: "+e.getLocalizedMessage());
 		} catch (IOException e) {
@@ -67,42 +75,6 @@ public class URLDataFetch implements DataFetch {
 			}
 			conn.disconnect();
 		}
-		return file;
+		return new Resource(file, content);
 	}
-	
-
-	/**
-	 * @return
-	 * @see at.ac.tuwien.thesis.caddc.data.fetch.DataFetch#fetchToString()
-	 */
-	@Override
-	public String fetchToString() throws FetchDataException {
-		URL urlObj = null;
-		HttpURLConnection conn = null;
-		InputStream in = null;
-		String result = null;
-		
-		try {
-			urlObj = new URL(this.url);
-			conn = (HttpURLConnection) urlObj.openConnection();
-			if (conn.getResponseCode() != 200) {
-				throw new FetchDataException("Connection failed: HTTP error code = "
-						+ conn.getResponseCode());
-			}
-			in = conn.getInputStream();
-			StringWriter writer = new StringWriter();
-			IOUtils.copy(in, writer, "UTF-8");
-			result = writer.toString();
-		} catch (MalformedURLException e) {
-			throw new FetchDataException("MalformedURLException: "+e.getLocalizedMessage());
-		} catch (SocketException e) {
-			throw new FetchDataException("SocketException: "+e.getLocalizedMessage()+"\n"+e.getMessage());
-		} catch (IOException e) {
-			throw new FetchDataException("IOException: "+e.getLocalizedMessage());
-		} finally {
-			conn.disconnect();
-		}
-		return result;
-	}
-
 }

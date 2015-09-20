@@ -9,7 +9,7 @@ import at.ac.tuwien.thesis.caddc.data.parse.types.XMLParser;
 /**
  * 
  */
-public interface Parser {
+public interface ParserFactory {
 
 	/**
 	 * Gets a well defined CSV parser designed to parse

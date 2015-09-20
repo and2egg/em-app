@@ -11,11 +11,11 @@ import at.ac.tuwien.thesis.caddc.data.parse.types.impl.XLSParserMassachussetts;
 /**
  * 
  */
-public class ParserMassachussetts implements Parser {
+public class ParserMassachussetts implements ParserFactory {
 
 	/**
 	 * @return
-	 * @see at.ac.tuwien.thesis.caddc.data.parse.Parser#getCSVParser()
+	 * @see at.ac.tuwien.thesis.caddc.data.parse.ParserFactory#getCSVParser()
 	 */
 	@Override
 	public CSVParser getCSVParser() {
@@ -25,7 +25,7 @@ public class ParserMassachussetts implements Parser {
 
 	/**
 	 * @return
-	 * @see at.ac.tuwien.thesis.caddc.data.parse.Parser#getXLSParser()
+	 * @see at.ac.tuwien.thesis.caddc.data.parse.ParserFactory#getXLSParser()
 	 */
 	@Override
 	public XLSParser getXLSParser() {
@@ -34,7 +34,7 @@ public class ParserMassachussetts implements Parser {
 
 	/**
 	 * @return
-	 * @see at.ac.tuwien.thesis.caddc.data.parse.Parser#getHTMLTableParser()
+	 * @see at.ac.tuwien.thesis.caddc.data.parse.ParserFactory#getHTMLTableParser()
 	 */
 	@Override
 	public HTMLTableParser getHTMLTableParser() {
@@ -44,7 +44,7 @@ public class ParserMassachussetts implements Parser {
 
 	/**
 	 * @return
-	 * @see at.ac.tuwien.thesis.caddc.data.parse.Parser#getXMLParser()
+	 * @see at.ac.tuwien.thesis.caddc.data.parse.ParserFactory#getXMLParser()
 	 */
 	@Override
 	public XMLParser getXMLParser() {
@@ -54,7 +54,7 @@ public class ParserMassachussetts implements Parser {
 
 	/**
 	 * @return
-	 * @see at.ac.tuwien.thesis.caddc.data.parse.Parser#getJSONParser()
+	 * @see at.ac.tuwien.thesis.caddc.data.parse.ParserFactory#getJSONParser()
 	 */
 	@Override
 	public JSONParser getJSONParser() {

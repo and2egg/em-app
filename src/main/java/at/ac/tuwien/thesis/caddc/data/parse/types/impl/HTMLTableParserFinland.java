@@ -8,7 +8,9 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
+import at.ac.tuwien.thesis.caddc.data.format.Resource;
 import at.ac.tuwien.thesis.caddc.data.parse.types.HTMLTableParser;
+import at.ac.tuwien.thesis.caddc.data.parse.types.Parser;
 
 /**
  * Specialized parser for retrieval of prices from aggregated data sheets
@@ -16,7 +18,7 @@ import at.ac.tuwien.thesis.caddc.data.parse.types.HTMLTableParser;
  * This parser implementation is used to get energy prices from the 
  * Nord Pool Spot market
  */
-public class HTMLTableParserFinland implements HTMLTableParser {
+public class HTMLTableParserFinland implements Parser {
 
 	private int rowOffset;
 	private Integer[] colIndices;
@@ -42,12 +44,12 @@ public class HTMLTableParserFinland implements HTMLTableParser {
 
 	/**
 	 * Method to parse the prices arranged in a HTML table
-	 * @param htmlContent the html content of the page to parse
-	 * 
+	 * @param resource the resource to parse
+	 * @see at.ac.tuwien.thesis.caddc.data.parse.types.Parser#parse()
 	 */
 	@Override
-	public List<String> parsePrices(String htmlString) {
-		Document doc = Jsoup.parse(htmlString);
+	public List<String> parse(Resource resource) {
+		Document doc = Jsoup.parse(resource.getContent());
 		Elements hourlyPrices = doc.select("tbody > tr");
 		System.out.println("hourly prices length = "+hourlyPrices.size());
 		ArrayList<String> arrPrices = new ArrayList<String>();
@@ -82,4 +84,5 @@ public class HTMLTableParserFinland implements HTMLTableParser {
 	private Integer[] getColumnIndices() {
 		return new Integer[]{5}; // price column index
 	}
+
 }

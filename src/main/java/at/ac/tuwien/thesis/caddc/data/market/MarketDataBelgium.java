@@ -15,7 +15,7 @@ import at.ac.tuwien.thesis.caddc.data.fetch.FetchDataException;
 import at.ac.tuwien.thesis.caddc.data.fetch.FileDataFetch;
 import at.ac.tuwien.thesis.caddc.data.parse.ParserBelgium;
 import at.ac.tuwien.thesis.caddc.data.parse.ParseException;
-import at.ac.tuwien.thesis.caddc.data.parse.Parser;
+import at.ac.tuwien.thesis.caddc.data.parse.ParserFactory;
 import at.ac.tuwien.thesis.caddc.data.parse.types.HTMLTableParser;
 import at.ac.tuwien.thesis.caddc.data.parse.types.XLSParser;
 import at.ac.tuwien.thesis.caddc.data.parse.types.impl.XLSParserBelgium;
@@ -33,7 +33,7 @@ import at.ac.tuwien.thesis.caddc.rest.client.RESTClient;
  */
 public class MarketDataBelgium extends MarketData {
 	
-	private Parser localParser;
+	private ParserFactory localParser;
 
 	/**
 	 * Create a MarketData Instance with the given location
@@ -52,7 +52,7 @@ public class MarketDataBelgium extends MarketData {
 	 */
 	@Override
 	public List<String> fetchPrices(Integer year) throws FetchDataException {
-		String path = getResourcePath("data","energydata/BELPEX/spotmarket_data_"+year+".xls");
+		String path = getPath("data","energydata/BELPEX/spotmarket_data_"+year+".xls");
 		DataFetch dataFetch = new FileDataFetch(path);
 		List<String> priceList;
 		try {
