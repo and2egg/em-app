@@ -13,6 +13,8 @@ import javax.net.ssl.HttpsURLConnection;
 
 import org.apache.commons.io.IOUtils;
 
+import at.ac.tuwien.thesis.caddc.data.fetch.exception.FetchDataException;
+import at.ac.tuwien.thesis.caddc.data.fetch.exception.MissingArgumentException;
 import at.ac.tuwien.thesis.caddc.data.format.Resource;
 import sun.misc.BASE64Encoder;
 

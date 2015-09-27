@@ -11,7 +11,7 @@ import javax.persistence.EntityManager;
 
 import at.ac.tuwien.thesis.caddc.model.DAPrice;
 import at.ac.tuwien.thesis.caddc.model.Location;
-
+import at.ac.tuwien.thesis.caddc.persistence.exception.LocationNotFoundException;
 import at.ac.tuwien.thesis.caddc.util.DateParser;
 
 /**
@@ -40,18 +40,17 @@ public class DAPricePersistence {
      * Method to save a list of prices encoded in Strings
      * @param prices a String array containing prices encoded in Strings
      * 			The encoding for a single price needs to have the following form: 
-     * 			datestring;timestring;price
+     * 			datestring;hour;price
      * 			Example: 2015-07-11;02;44,23
-     * @param location a location String of one of the locations stored in the 
+     * @param location a location Object of one of the locations stored in the 
      * 			database
      * @throws LocationNotFoundException is thrown when the given location is not registered
      */
-    public void saveDAPrices(List<String> priceData, String location) throws LocationNotFoundException {
-    	Location loc = locationRepository.findByName(location);
-		if(loc == null) {
+    public void saveDAPrices(List<String> priceData, Location location) throws LocationNotFoundException {
+		if(location == null) {
 			throw new LocationNotFoundException("Please provide a registered location");
 		}
-		String tz = loc.getTimeZone();
+		String tz = location.getTimeZone();
 		TimeZone timeZone;
 		if(!tz.isEmpty()) {
 			timeZone = TimeZone.getTimeZone(tz);
@@ -98,8 +97,8 @@ public class DAPricePersistence {
         			finalPrice *= -1;
     		}
     		if(i < 25) {
-    			System.out.println("price for location "+loc.getId()+": "+dateString+", "+timeString+", "+price);
-    			System.out.println("price for location "+loc.getId()+": "+dateString+", "+timeString+", "+finalPrice);
+    			System.out.println("price for location "+location.getId()+": "+dateString+", "+timeString+", "+price);
+    			System.out.println("price for location "+location.getId()+": "+dateString+", "+timeString+", "+finalPrice);
     		}
     		
     		Date d = DateParser.parseDate(dateString);
@@ -119,7 +118,7 @@ public class DAPricePersistence {
         	daPrice.setBiddingDate(cal.getTime());
         	daPrice.setInterval(1);
         	daPrice.setIntervalUnit("hour");
-        	daPrice.setLocation(loc);
+        	daPrice.setLocation(location);
         	daPrice.setPrice(finalPrice);
         	daPrice.setTimelag(timeLag);
         	

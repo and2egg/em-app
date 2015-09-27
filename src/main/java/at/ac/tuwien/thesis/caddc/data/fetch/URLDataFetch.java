@@ -6,14 +6,14 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.StringWriter;
-import java.net.ConnectException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
-import java.net.SocketException;
 import java.net.URL;
 
 import org.apache.commons.io.IOUtils;
 
+import at.ac.tuwien.thesis.caddc.data.fetch.exception.FetchDataException;
+import at.ac.tuwien.thesis.caddc.data.fetch.exception.MissingDataException;
 import at.ac.tuwien.thesis.caddc.data.format.Resource;
 
 /**

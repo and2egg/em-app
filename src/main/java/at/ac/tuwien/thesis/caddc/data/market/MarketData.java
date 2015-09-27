@@ -4,18 +4,15 @@ import java.util.List;
 
 import javax.inject.Inject;
 
-import at.ac.tuwien.thesis.caddc.data.fetch.DataFetch;
-import at.ac.tuwien.thesis.caddc.data.fetch.DataFetcher;
-import at.ac.tuwien.thesis.caddc.data.fetch.FetchDataException;
+import at.ac.tuwien.thesis.caddc.data.fetch.exception.FetchDataException;
 import at.ac.tuwien.thesis.caddc.data.format.Resource;
-import at.ac.tuwien.thesis.caddc.data.parse.ParserFactory;
-import at.ac.tuwien.thesis.caddc.data.parse.types.HTMLTableParser;
+import at.ac.tuwien.thesis.caddc.data.parse.exception.ParseException;
 import at.ac.tuwien.thesis.caddc.data.resource.ResourceManager;
 import at.ac.tuwien.thesis.caddc.data.resource.types.ResourceType;
 import at.ac.tuwien.thesis.caddc.model.Location;
 import at.ac.tuwien.thesis.caddc.persistence.DAPricePersistence;
-import at.ac.tuwien.thesis.caddc.persistence.ImportDataException;
-import at.ac.tuwien.thesis.caddc.persistence.LocationNotFoundException;
+import at.ac.tuwien.thesis.caddc.persistence.exception.ImportDataException;
+import at.ac.tuwien.thesis.caddc.persistence.exception.LocationNotFoundException;
 
 /**
  * Defines a MarketData Instance responsible for retrieving energy
@@ -58,7 +55,7 @@ public abstract class MarketData {
 	 * @return a list of Strings containing the energy price time series
 	 * @throws FetchDataException is thrown when data fetch failed
 	 */
-	public List<String> fetchPrices(Integer year) throws FetchDataException {
+	public List<String> fetchPrices(Integer year) throws FetchDataException, ParseException {
 		Resource resource = getResourceType().fetchData(year);
 		return getResourceType().getParser().parse(resource);
 	}
@@ -67,7 +64,17 @@ public abstract class MarketData {
 	 * Get the preferred resource type for this MarketData Instance
 	 * @return the preferred resource type
 	 */
-	public abstract ResourceType getResourceType();
+	public ResourceType getResourceType() {
+		return resourceManager.get();
+	}
+	
+	/**
+	 * Get a specific resource type for this MarketData Instance
+	 * @return the preferred resource type
+	 */
+	public ResourceType getResourceType(Integer index) {
+		return resourceManager.get(index);
+	}
 	
 	/**
 	 * Import prices for the given year into the database
@@ -76,8 +83,8 @@ public abstract class MarketData {
 	 */
 	public void importPrices(Integer year) throws ImportDataException {
 		try {
-			daPriceResource.saveDAPrices(fetchPrices(year), getLocation().getName());
-		} catch (LocationNotFoundException | FetchDataException e) {
+			daPriceResource.saveDAPrices(fetchPrices(year), getLocation());
+		} catch (LocationNotFoundException | FetchDataException | ParseException e) {
 			throw new ImportDataException("ImportDataException: "+e.getLocalizedMessage());
 		}
 	}

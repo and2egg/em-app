@@ -3,23 +3,16 @@ package at.ac.tuwien.thesis.caddc.service;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Calendar;
 import java.util.Date;
-import java.util.GregorianCalendar;
 import java.util.List;
 
 import javax.annotation.PostConstruct;
 import javax.ejb.Stateless;
 
 import org.apache.commons.lang3.ArrayUtils;
-import org.joda.time.Days;
-import org.joda.time.DurationFieldType;
-import org.joda.time.LocalDate;
 import org.rosuda.REngine.REXP;
-import org.rosuda.REngine.REXPGenericVector;
 import org.rosuda.REngine.REXPMismatchException;
 import org.rosuda.REngine.REngineException;
-import org.rosuda.REngine.RList;
 import org.rosuda.REngine.Rserve.RConnection;
 import org.rosuda.REngine.Rserve.RserveException;
 

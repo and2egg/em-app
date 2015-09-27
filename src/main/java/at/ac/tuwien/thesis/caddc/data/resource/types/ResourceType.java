@@ -1,15 +1,14 @@
 package at.ac.tuwien.thesis.caddc.data.resource.types;
 
-import java.util.List;
 import java.util.Map;
 
 import at.ac.tuwien.thesis.caddc.data.fetch.DataFetch;
-import at.ac.tuwien.thesis.caddc.data.fetch.FetchDataException;
 import at.ac.tuwien.thesis.caddc.data.fetch.FileDataFetch;
-import at.ac.tuwien.thesis.caddc.data.fetch.MissingDataException;
 import at.ac.tuwien.thesis.caddc.data.fetch.URLDataFetch;
+import at.ac.tuwien.thesis.caddc.data.fetch.exception.FetchDataException;
+import at.ac.tuwien.thesis.caddc.data.fetch.exception.MissingDataException;
 import at.ac.tuwien.thesis.caddc.data.format.Resource;
-import at.ac.tuwien.thesis.caddc.data.parse.types.Parser;
+import at.ac.tuwien.thesis.caddc.data.parse.Parser;
 
 /**
  * 
@@ -50,6 +49,10 @@ public abstract class ResourceType {
 		return dataFetch.fetch();
 	}
 	
+	/**
+	 * Method to get the parser associated with this Resource Type
+	 * @return the parser for this Resource Type
+	 */
 	public Parser getParser() {
 		return parser;
 	}

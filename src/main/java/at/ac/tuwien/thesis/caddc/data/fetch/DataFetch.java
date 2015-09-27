@@ -1,7 +1,6 @@
 package at.ac.tuwien.thesis.caddc.data.fetch;
 
-import java.io.File;
-
+import at.ac.tuwien.thesis.caddc.data.fetch.exception.FetchDataException;
 import at.ac.tuwien.thesis.caddc.data.format.Resource;
 
 /**

@@ -7,7 +7,7 @@ import at.ac.tuwien.thesis.caddc.data.resource.types.ResourceType;
 /**
  * 
  */
-public class ResourceManager {
+public abstract class ResourceManager {
 
 	private List<ResourceType> resources;
 	
@@ -20,10 +20,10 @@ public class ResourceManager {
 	}
 	
 	public ResourceType get() {
-		return getResourceAt(0);
+		return get(0);
 	}
 	
-	public ResourceType getResourceAt(Integer index) {
+	public ResourceType get(Integer index) {
 		return resources.get(index);
 	}
 }
