@@ -1,5 +1,6 @@
 package at.ac.tuwien.thesis.caddc.data.resource.types;
 
+import java.util.HashMap;
 import java.util.Map;
 
 import at.ac.tuwien.thesis.caddc.data.fetch.DataFetch;
@@ -15,8 +16,8 @@ import at.ac.tuwien.thesis.caddc.data.parse.Parser;
  */
 public abstract class ResourceType {
 	
-	protected Map<Integer, String> resourcePathMap;
-	protected Map<Integer, String> resourceURLMap;
+	protected Map<Integer, String> resourcePathMap = new HashMap<Integer, String>();
+	protected Map<Integer, String> resourceURLMap = new HashMap<Integer, String>();
 	
 	protected Parser parser;
 	

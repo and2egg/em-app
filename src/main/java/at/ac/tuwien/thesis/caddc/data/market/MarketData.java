@@ -2,6 +2,7 @@ package at.ac.tuwien.thesis.caddc.data.market;
 
 import java.util.List;
 
+import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
 import at.ac.tuwien.thesis.caddc.data.fetch.exception.FetchDataException;
@@ -18,9 +19,9 @@ import at.ac.tuwien.thesis.caddc.persistence.exception.LocationNotFoundException
  * Defines a MarketData Instance responsible for retrieving energy
  * market data from different sources and locations
  */
+//@ApplicationScoped
 public abstract class MarketData {
 	
-	@Inject
     private DAPricePersistence daPriceResource;
 	
 	/**
@@ -30,6 +31,7 @@ public abstract class MarketData {
 	
 	/**
 	 * The resourceManager for this MarketData Instance
+	 * Assigned in subclasses
 	 */
 	protected ResourceManager resourceManager;
 	
@@ -39,6 +41,7 @@ public abstract class MarketData {
 	 */
 	public MarketData(Location location) {
 		this.location = location;
+		this.daPriceResource = new DAPricePersistence();
 	}
 	
 	/**

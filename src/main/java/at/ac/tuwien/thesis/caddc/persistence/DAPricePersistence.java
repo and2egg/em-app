@@ -24,9 +24,6 @@ public class DAPricePersistence {
 	@Inject
 	private EntityManager em;
 	
-	@Inject
-    private LocationRepository locationRepository;
-	
 	public void saveDAPrice(DAPrice price) {
     	em.persist(price);
     }

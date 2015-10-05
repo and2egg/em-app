@@ -19,7 +19,6 @@ import at.ac.tuwien.thesis.caddc.model.Location;
  * EnergyMarket table. 
  * The ApplicationScoped annotation means that this object 
  * is created only once for the entire duration of the application. 
- * @author Andreas Egger
  */
 @ApplicationScoped
 public class EnergyMarketRepository {

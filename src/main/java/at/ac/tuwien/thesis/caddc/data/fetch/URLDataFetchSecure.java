@@ -1,6 +1,7 @@
 package at.ac.tuwien.thesis.caddc.data.fetch;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -126,8 +127,8 @@ public class URLDataFetchSecure implements DataFetch {
 			out.flush();
 			// fetch String
 			StringWriter writer = new StringWriter();
-			IOUtils.copy(in, writer, "UTF-8");
-			content = writer.toString();			
+			IOUtils.copy(new FileInputStream(file), writer, "UTF-8");
+			content = writer.toString();
 		} catch (MalformedURLException e) {
 			throw new FetchDataException("MalformedURLException: "+e.getLocalizedMessage());
 		} catch (IOException e) {

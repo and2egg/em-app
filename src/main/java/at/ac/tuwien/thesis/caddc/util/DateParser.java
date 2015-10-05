@@ -29,7 +29,7 @@ public class DateParser {
 	}};
 	
 	public static String checkDatePattern(String dateString) {
-		if (dateString.length() > 10)
+		if (dateString.contains(" "))
 			for (String regexp : validDateTimeFormats.keySet()) {
 		        if (dateString.toLowerCase().matches(regexp)) {
 		            return validDateTimeFormats.get(regexp);

@@ -16,10 +16,12 @@ import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
 import javax.validation.ConstraintViolation;
 import javax.validation.Validator;
+import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
@@ -45,9 +47,6 @@ public class RManagerResourceRESTService {
     @Inject
     private Logger log;
 
-    @Inject
-    private Validator validator;
-    
     @Inject
     private LocationRepository locationRepository;
 
@@ -227,11 +226,11 @@ public class RManagerResourceRESTService {
      * @return a Response indicating the status (success/failure) of the calculation
      */
     @GET
-    @Path("/generatemodels/{loc_id}/{training_period}/{startDate}/{endDate}/{transformPrice}")
+    @Path("/generatemodels/{loc_id}/{training_period}/{startDate}/{endDate}")
     @Produces(MediaType.APPLICATION_JSON)
     public Response generateModels(@PathParam("loc_id") Long locationId, @PathParam("training_period") Integer trainingsPeriod, 
     						@PathParam("startDate") String startDateString, @PathParam("endDate") String endDateString, 
-    						@PathParam("transformPrice") String transformPrice) {
+    						@DefaultValue("false") @QueryParam("transformPrice") Boolean transformPrice) {
     	Date start = DateParser.parseDate(startDateString);
     	Date end = DateParser.parseDate(endDateString);
     	
@@ -291,10 +290,10 @@ public class RManagerResourceRESTService {
      * @return Response to indicate whether or not the model generation was successful
      */
     @GET
-    @Path("/generatemodel/{modelName}/{loc_id}/{startDate}/{endDate}/{transformPrice}")
+    @Path("/generatemodel/{modelName}/{loc_id}/{startDate}/{endDate}")
     @Produces(MediaType.APPLICATION_JSON)
     public Response generateModel(@PathParam("modelName") String modelName, @PathParam("loc_id") Long locationId, @PathParam("startDate") String startTraining, 
-    								@PathParam("endDate") String endTraining, @PathParam("transformPrice") String transformPrice) {
+    								@PathParam("endDate") String endTraining, @DefaultValue("false") @QueryParam("transformPrice") Boolean transformPrice) {
     	String result;
     	Response priceResponse = pricesRestService.retrieveDAPricesCSV(locationId, startTraining, endTraining, transformPrice);
     	String csvData = priceResponse.getEntity().toString();
@@ -366,24 +365,4 @@ public class RManagerResourceRESTService {
 	    dates.add(calendar.getTime());
 	    return dates;
 	}
-    
-    
-    /**
-     * Creates a JAX-RS "Bad Request" response including a map of all violation fields, and their message. This can then be used
-     * by clients to show violations.
-     * 
-     * @param violations A set of violations that needs to be reported
-     * @return JAX-RS response containing all violations
-     */
-    private Response.ResponseBuilder createViolationResponse(Set<ConstraintViolation<?>> violations) {
-        log.fine("Validation completed. violations found: " + violations.size());
-
-        Map<String, String> responseObj = new HashMap<String, String>();
-
-        for (ConstraintViolation<?> violation : violations) {
-            responseObj.put(violation.getPropertyPath().toString(), violation.getMessage());
-        }
-
-        return Response.status(Response.Status.BAD_REQUEST).entity(responseObj);
-    }
 }

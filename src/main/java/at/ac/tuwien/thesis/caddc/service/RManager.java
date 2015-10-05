@@ -35,6 +35,12 @@ public class RManager {
 		System.out.println("server "+server+", port "+port);
 	}
 
+	/**
+	 * A test method to test the connection to R via the set server and port
+	 * @return a String indicating the result of test calculations
+	 * @throws RserveException is thrown when the connection to the R server has been lost
+	 * @throws REXPMismatchException is thrown when a datatype mismatch occurred
+	 */
 	public String testR() throws RserveException, REXPMismatchException {
 		RConnection c = new RConnection(server, port);
 	    REXP x = c.eval("R.version.string");
@@ -68,7 +74,19 @@ public class RManager {
 	    		"\n running @ " + server_str;
 	}
 	
-	
+	/**
+	 * Get the actual forecast (mean) values from previously calculated forecasts
+	 * @param locationId the location for which to retrieve forecast values
+	 * @param trainingsPeriod the trainingsperiod by which to filter the list of forecasts
+	 * @param startDateString a string denoting the start date of the list of forecasts
+	 * @param endDateString a string denoting the end date of the list of forecasts
+	 * @return a String array containing the concatenated series of mean forecast values
+	 * 			of all models considered by the parameter filters (one forecast has 
+	 * 			exactly 24 values i.e. one day, therefore a concatenation results in a seamless 
+	 * 			series of forecast values)
+	 * @throws REXPMismatchException is thrown when a datatype mismatch occurred
+	 * @throws REngineException is thrown when something has gone wrong on the R connection
+	 */
 	public String[] getForecasts(Long locationId, Integer trainingsPeriod, String startDateString, String endDateString) throws REXPMismatchException, REngineException {
 		RConnection c = new RConnection(server, port);
 	    
@@ -87,7 +105,12 @@ public class RManager {
 	    return meanValues;
 	}
 	
-	
+	/**
+	 * Generate forecasts for all currently saved models
+	 * @return a String indicating the result of the calculation
+	 * @throws REXPMismatchException is thrown when a datatype mismatch occurred
+	 * @throws REngineException is thrown when something has gone wrong on the R connection
+	 */
 	public String generateForecastsAllModels() throws REXPMismatchException, REngineException {
 		RConnection c = new RConnection(server, port);
 
@@ -111,7 +134,16 @@ public class RManager {
 	    return "forecasts generated for "+modelNames.length+" models";
 	}
 	
-	
+	/**
+	 * Generate forecasts based on previously saved models, filtered by given parameters
+	 * @param locationId the location for which to calculate forecasts
+	 * @param trainingsPeriod the trainingsperiod by which to filter the model list (given in number of days)
+	 * @param startDateString a string denoting the start date of the model list
+	 * @param endDateString a string denoting the end date of the model list
+	 * @return a String indicating the result of the calculation
+	 * @throws REXPMismatchException is thrown when a datatype mismatch occurred
+	 * @throws REngineException is thrown when something has gone wrong on the R connection
+	 */
 	public String generateForecasts(Long locationId, Integer trainingsPeriod, String startDateString, String endDateString) throws REXPMismatchException, REngineException {
 		RConnection c = new RConnection(server, port);
 
@@ -134,7 +166,18 @@ public class RManager {
 	    return "forecasts generated for "+modelNames.length+" models";
 	}
 	
-	
+	/**
+	 * Method to retrieve a list of models based on given parameters, restrict by location, date range and trainings period
+	 * @param c the currently active RConnection (necessary since only one active connection is allowed on Windows)
+	 * @param modelPath the relative path where the model files are located
+	 * @param locationId the locationId for which to retrieve the saved models
+	 * @param trainingsPeriod the trainingsperiod by which to filter the model list (given in number of days)
+	 * @param startDateString a string denoting the minimum start date of the resulting model list
+	 * @param endDateString a string denoting the maximum end date of the resulting model list
+	 * @return a list of strings containing all model names filtered by the given parameters
+	 * @throws REXPMismatchException is thrown when a datatype mismatch occurred
+	 * @throws REngineException is thrown when something has gone wrong on the R connection
+	 */
 	private String[] getModelList(RConnection c, String modelPath, Long locationId, Integer trainingsPeriod, 
 									String startDateString, String endDateString) throws REXPMismatchException, REngineException {
 	    String path = getClass().getClassLoader().getResource("data").getPath(); // folder "rscripts" in resource directory
@@ -176,7 +219,19 @@ public class RManager {
 		return modelNames;
 	}
 	
-	
+	/**
+	 * Method to generate an R model based on the given data
+	 * @param modelName the name under which this model should be saved (without extension)
+	 * @param csvData csv data as a single string
+	 * @param targetPeriod a specific target period to search for (e.g. 24 to mark a period every 24 hours)
+	 * @param approximation boolean value indicating whether the model should be approximated (true=faster)
+	 * @param stepwise a boolean value indicating whether a stepwise calculation should be performed (true=faster)
+	 * @param output a boolean value indicating whether output to the console should be written
+	 * @param plot a boolean value indicating whether the R results should be plotted
+	 * @return a String indicating the result of the calculation
+	 * @throws REXPMismatchException is thrown when a datatype mismatch occurred
+	 * @throws REngineException is thrown when something has gone wrong on the R connection
+	 */
 	public String generateModel(String modelName, String csvData, int targetPeriod, 
 						boolean approximation, boolean stepwise, boolean output, boolean plot) throws RserveException, REXPMismatchException {
 		RConnection c = new RConnection(server, port);
@@ -210,12 +265,25 @@ public class RManager {
 	    return "Model saved";
 	}
 	
-	
+	/**
+	 * Method to generate an R model with default values (for faster and yet accurate model generation)
+	 * @param modelName the name under which this model should be saved (without extension)
+	 * @param csvData csv data as a single string
+	 * @return a String indicating the result of the calculation
+	 * @throws REXPMismatchException is thrown when a datatype mismatch occurred
+	 * @throws REngineException is thrown when something has gone wrong on the R connection
+	 */
 	public String generateModel(String modelName, String csvData) throws RserveException, REXPMismatchException {
 		return generateModel(modelName, csvData, 24, true, true, true, false);
 	}
 	
-	
+	/**
+	 * Load the given list of model names in the current R session
+	 * @param modelNames the list of models to load in R
+	 * @return a String indicating the result of the operation
+	 * @throws REXPMismatchException is thrown when a datatype mismatch occurred
+	 * @throws REngineException is thrown when something has gone wrong on the R execution
+	 */
 	public String loadModels(String[] modelNames) throws RserveException, REXPMismatchException {
 		RConnection c = new RConnection(server, port);
 
@@ -230,9 +298,16 @@ public class RManager {
 		
 		c.close();
 	    
-	    return "loaded models";
+	    return "loaded models: "+modelNames.length;
 	}
 	
+	/**
+	 * Load a single model based on the given model name in the current R session
+	 * @param modelName the model to load in R
+	 * @return a String indicating the result of the operation
+	 * @throws REXPMismatchException is thrown when a datatype mismatch occurred
+	 * @throws REngineException is thrown when something has gone wrong on the R connection
+	 */
 	public String loadModel(String modelName) throws RserveException, REXPMismatchException  {
 		RConnection c = new RConnection(server, port);
 

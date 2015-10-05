@@ -82,61 +82,6 @@ public class EnergyMarketResourceRESTService {
     }
     
     @GET
-    @Path("/rtest")
-    @Produces(MediaType.APPLICATION_JSON)
-    public Response testR() {
-    	String result = "";
-    	try {
-			result = rManager.testR();
-		} catch (RserveException e) {
-			e.printStackTrace();
-			result = e.getMessage();
-		} catch (REXPMismatchException e) {
-			e.printStackTrace();
-			result = e.getMessage();
-		}
-    	String output = "R result: "+result;
-    	return Response.status(200).entity(output).build();
-    }
-    
-    
-    @GET
-    @Path("/r/getdata")
-    @Produces(MediaType.APPLICATION_JSON)
-    public Response getDataR() {
-    	String result = "";
-    	List<DAPrice> prices;
-    	Calendar start = Calendar.getInstance(),
-    			end = Calendar.getInstance();
-    	start.set(2014, 06, 07, 0, 0, 0);
-    	end.set(2014, 06, 20, 23, 0, 0);
-    	Long locationId = 1L;
-    	prices = daPriceRepository.findByDateAndLocation(start.getTime(), end.getTime(), locationId);
-    	
-    	StringBuilder builder = new StringBuilder();
-    	for(DAPrice price : prices) {
-    		builder.append(price.getBiddingDate());
-    		builder.append(",");
-    		builder.append(price.getPrice().doubleValue() / 100.0);
-    		builder.append(System.lineSeparator());
-    	}
-    	String csv = builder.toString();
-//    	try {
-//    		result = rManager.rTestReadData(csv);
-//		} catch (RserveException e) {
-//			e.printStackTrace();
-//			result = e.getMessage();
-//		} catch (REXPMismatchException e) {
-//			e.printStackTrace();
-//			result = e.getMessage();
-//		}
-    	String output = "R result: "+result;
-    	output = csv;
-    	return Response.status(200).entity(output).build();
-    }
-    
-    
-    @GET
     @Path("/register")
     @Produces(MediaType.APPLICATION_JSON)
     public Response registerEnergyMarket(@QueryParam("name") String name, @QueryParam("location") String location, @QueryParam("description") String description) {

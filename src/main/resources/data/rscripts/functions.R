@@ -192,7 +192,7 @@ getPeriod <- function(data, target_period=24, output=FALSE, plot=FALSE)
 }
 
 
-# function to check if the target_period is one of the four most
+# function to check if the target_period is one of the most
 # frequent periods in the dataset. Returns TRUE if it is, FALSE otherwise
 checkPeriods <- function(periods, target_period=24)
 {

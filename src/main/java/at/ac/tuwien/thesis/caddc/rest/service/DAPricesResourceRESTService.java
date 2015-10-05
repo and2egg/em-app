@@ -15,10 +15,12 @@ import javax.annotation.PostConstruct;
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
 import javax.validation.ConstraintViolation;
+import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
@@ -55,7 +57,7 @@ public class DAPricesResourceRESTService {
     private DAPriceRepository daPriceRepository;
     
     
-    private List<MarketData> marketList;
+    private List<MarketData> marketList = new ArrayList<MarketData>();
     
     
     /**
@@ -82,11 +84,9 @@ public class DAPricesResourceRESTService {
     @Produces(MediaType.APPLICATION_JSON)
     public Response importAllLocationsForYears(@PathParam("yearfrom") Integer yearFrom, @PathParam("yearto") Integer yearTo) {
     	try {
-	    	for(int year = yearFrom; year <= yearTo; year++) {
-	    		for(MarketData market : marketList) {
+	    	for(int year = yearFrom; year <= yearTo; year++) 
+	    		for(MarketData market : marketList)
 					market.importPrices(year);
-	    		}
-	    	}
     	} catch (ImportDataException e) {
     		return Response.status(503).entity("Request failed: Retrieving data for all locations for years "+yearFrom+" to "+yearTo).build();
 		}
@@ -96,6 +96,7 @@ public class DAPricesResourceRESTService {
     
     /**
      * Import energy market data per location and time range
+     * example: http://localhost:8081/em-app/rest/daprices/import/1/2014/2014
      * @param locationId the location Id for which to retrieve energy prices
      * @param yearFrom the year from which to import energy prices
      * @param yearTo the year up to which to import energy prices
@@ -107,23 +108,16 @@ public class DAPricesResourceRESTService {
     public Response importMarketDataPerLocation(@PathParam("id") Long locationId, @PathParam("yearfrom") Integer yearFrom, @PathParam("yearto") Integer yearTo) {
     	List<MarketData> list = new ArrayList<MarketData>();
     	// if all locations should be queried, assign whole list
-    	if(locationId.equals(Long.valueOf(-1L))) {
+    	if(locationId.equals(Long.valueOf(-1L)))
     		list = marketList;
-    	}
-    	else {
-    		for(MarketData m : marketList) {
-    			if(m.getLocation().getId().equals(locationId)) {
+    	else
+    		for(MarketData m : marketList)
+    			if(m.getLocation().getId().equals(locationId))
     				list.add(m);
-    			}
-    		}
-    	}
-    	
     	try {
-	    	for(int year = yearFrom; year <= yearTo; year++) {
-	    		for(MarketData market : list) {
+	    	for(int year = yearFrom; year <= yearTo; year++)
+	    		for(MarketData market : list)
 					market.importPrices(year);
-	    		}
-	    	}
     	} catch (ImportDataException e) {
     		if(locationId.equals(Long.valueOf(-1L))) {
     			return Response.status(503).entity("Request failed: Retrieving data for all locations for years "+yearFrom+" to "+yearTo).build();
@@ -144,7 +138,7 @@ public class DAPricesResourceRESTService {
     /**
      * Retrieve day ahead prices from the location with the given id
      * and within a start- and enddate, based on the local timezone
-     * example: http://localhost:8081/em-app/rest/daprices/price/1/2014-07-11/2014-07-12/localTZ
+     * example: http://localhost:8081/em-app/rest/daprices/price/localTZ/1/2014-07-11/2014-07-12
      * @param locationId the id of the location where the query should be executed
      * 					if -1 then all stored locations are queried
      * @param startDate the startdate of the query (Dateformat: yyyy-MM-dd or yyyy-MM-dd HH:mm:ss)
@@ -154,10 +148,10 @@ public class DAPricesResourceRESTService {
      * @return Response to indicate whether or not the query was successful
      */
     @GET
-    @Path("/price/{loc_id}/{startDate}/{endDate}/{transformPrice}/localTZ")
+    @Path("/price/localTZ/{loc_id}/{startDate}/{endDate}")
     @Produces(MediaType.APPLICATION_JSON)
     public Response retrieveDAPricesLocalTZ(@PathParam("loc_id") Long locationId, @PathParam("startDate") String startDate, 
-    										@PathParam("endDate") String endDate, @PathParam("transformPrice") String transformPrice) {
+    										@PathParam("endDate") String endDate, @DefaultValue("false") @QueryParam("transformPrice") Boolean transformPrice) {
     	Location location = locationRepository.findById(locationId);
     	if(location == null) 
     		return Response.status(Response.Status.BAD_REQUEST).entity("DA Price save: Invalid location").build();
@@ -236,7 +230,7 @@ public class DAPricesResourceRESTService {
     /**
      * Retrieve day ahead prices from the location with the given id
      * and within a start- and enddate, based on current local time
-     * example: http://localhost:8081/em-app/rest/daprices/price/1/2014-07-11/2014-07-12
+     * example: http://localhost:8081/em-app/rest/daprices/price/1/2014-07-11/2014-07-12?transformPrice=true
      * @param locationId the id of the location where the query should be executed
      * 					if -1 then all stored locations are queried
      * @param startDateString the startdate of the query (Dateformat: yyyy-MM-dd or yyyy-MM-dd HH:mm:ss)
@@ -246,10 +240,10 @@ public class DAPricesResourceRESTService {
      * @return Response to indicate whether or not the query was successful
      */
     @GET
-    @Path("/price/{loc_id}/{startDate}/{endDate}/{transformPrice}")
+    @Path("/price/{loc_id}/{startDate}/{endDate}")
     @Produces(MediaType.APPLICATION_JSON)
     public Response retrieveDAPrices(@PathParam("loc_id") Long locationId, @PathParam("startDate") String startDateString, 
-    								@PathParam("endDate") String endDateString, @PathParam("transformPrice") String transformPrice) {
+    								@PathParam("endDate") String endDateString, @DefaultValue("false") @QueryParam("transformPrice") Boolean transformPrice) {
     	Location location = null;
     	if(locationId != -1) {
     		location = locationRepository.findById(locationId);
@@ -326,7 +320,7 @@ public class DAPricesResourceRESTService {
     /**
      * Retrieve day ahead prices in csv format from the location with the given id
      * and within a start- and enddate, based on the local timezone
-     * example: http://localhost:8081/em-app/rest/daprices/price/csv/1/2014-07-11/2014-07-12/true/localTZ
+     * example: http://localhost:8081/em-app/rest/daprices/price/csv/localTZ/1/2014-07-11/2014-07-12?transformPrice=true
      * @param locationId the id of the location where the query should be executed
      * 					if -1 then all stored locations are queried
      * @param startDate the startdate of the query (Dateformat: yyyy-MM-dd or yyyy-MM-dd HH:mm:ss)
@@ -337,10 +331,10 @@ public class DAPricesResourceRESTService {
      */
     @SuppressWarnings("unchecked")
 	@GET
-    @Path("/price/csv/{loc_id}/{startDate}/{endDate}/{transformPrice}/localTZ")
+    @Path("/price/csv/localTZ/{loc_id}/{startDate}/{endDate}")
     @Produces(MediaType.APPLICATION_JSON)
     public Response retrieveDAPricesCSVLocalTZ(@PathParam("loc_id") Long locationId, @PathParam("startDate") String startDate, 
-    										@PathParam("endDate") String endDate, @PathParam("transformPrice") String transformPrice) {
+    										@PathParam("endDate") String endDate, @DefaultValue("false") @QueryParam("transformPrice") Boolean transformPrice) {
     	Response response = retrieveDAPricesLocalTZ(locationId, startDate, endDate, transformPrice);
     	List<DAPrice> prices = (List<DAPrice>)response.getEntity();
     	StringBuilder builder = new StringBuilder();
@@ -358,7 +352,7 @@ public class DAPricesResourceRESTService {
     /**
      * Retrieve day ahead prices in csv format from the location with the given id
      * and within a start- and enddate, based on current local time
-     * example: http://localhost:8081/em-app/rest/daprices/price/csv/1/2014-07-07 00:00:00/2014-07-20 23:00:00/true
+     * example: http://localhost:8081/em-app/rest/daprices/price/csv/1/2014-07-07 00:00:00/2014-07-20 23:00:00?transformPrice=true
      * @param locationId the id of the location where the query should be executed
      * 					if -1 then all stored locations are queried
      * @param startDate the startdate of the query (Dateformat: yyyy-MM-dd or yyyy-MM-dd HH:mm:ss)
@@ -369,10 +363,10 @@ public class DAPricesResourceRESTService {
      */
     @SuppressWarnings("unchecked")
 	@GET
-    @Path("/price/csv/{loc_id}/{startDate}/{endDate}/{transformPrice}")
+    @Path("/price/csv/{loc_id}/{startDate}/{endDate}")
     @Produces(MediaType.APPLICATION_JSON)
     public Response retrieveDAPricesCSV(@PathParam("loc_id") Long locationId, @PathParam("startDate") String startDate, 
-    									@PathParam("endDate") String endDate, @PathParam("transformPrice") String transformPrice) {
+    									@PathParam("endDate") String endDate, @DefaultValue("false") @QueryParam("transformPrice") Boolean transformPrice) {
     	Response response = retrieveDAPrices(locationId, startDate, endDate, transformPrice);
     	List<DAPrice> prices = (List<DAPrice>)response.getEntity();
     	StringBuilder builder = new StringBuilder();
@@ -386,23 +380,4 @@ public class DAPricesResourceRESTService {
     	return Response.status(200).entity(csv).build();
     }
     
-    
-    /**
-     * Creates a JAX-RS "Bad Request" response including a map of all violation fields, and their message. This can then be used
-     * by clients to show violations.
-     * 
-     * @param violations A set of violations that needs to be reported
-     * @return JAX-RS response containing all violations
-     */
-    private Response.ResponseBuilder createViolationResponse(Set<ConstraintViolation<?>> violations) {
-        log.fine("Validation completed. violations found: " + violations.size());
-
-        Map<String, String> responseObj = new HashMap<String, String>();
-
-        for (ConstraintViolation<?> violation : violations) {
-            responseObj.put(violation.getPropertyPath().toString(), violation.getMessage());
-        }
-
-        return Response.status(Response.Status.BAD_REQUEST).entity(responseObj);
-    }
 }

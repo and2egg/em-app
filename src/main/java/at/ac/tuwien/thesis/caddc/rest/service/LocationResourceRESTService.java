@@ -36,7 +36,7 @@ public class LocationResourceRESTService {
     
     
     @GET
-    @Path("/tz")
+    @Path("/tztest")
     @Produces(MediaType.APPLICATION_JSON)
     public Response testTZ() {
     	TimeZone UTC = TimeZone.getTimeZone("UTC");

@@ -1,5 +1,6 @@
 package at.ac.tuwien.thesis.caddc.data.resource;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import at.ac.tuwien.thesis.caddc.data.resource.types.ResourceType;
@@ -9,7 +10,7 @@ import at.ac.tuwien.thesis.caddc.data.resource.types.ResourceType;
  */
 public abstract class ResourceManager {
 
-	private List<ResourceType> resources;
+	private List<ResourceType> resources = new ArrayList<ResourceType>();
 	
 	public void addResource(ResourceType type) {
 		this.resources.add(type);
