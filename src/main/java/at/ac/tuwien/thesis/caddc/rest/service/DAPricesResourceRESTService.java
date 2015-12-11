@@ -121,11 +121,8 @@ public class DAPricesResourceRESTService {
     				list.add(m);
     	try {
 	    	for(int year = yearFrom; year <= yearTo; year++)
-	    		for(MarketData market : list) {
-	    			@SuppressWarnings("unused")
-					Date d = daPriceRepository.findMaxDate(locationId);
+	    		for(MarketData market : list)
 	    			market.importPrices(year);
-	    		}
     	} catch (ImportDataException e) {
     		if(locationId.equals(Long.valueOf(-1L))) {
     			return Response.status(503).entity("Request failed: Retrieving data for all locations for years "+yearFrom+" to "+yearTo).build();

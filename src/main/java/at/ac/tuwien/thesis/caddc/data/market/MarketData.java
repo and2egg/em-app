@@ -1,5 +1,6 @@
 package at.ac.tuwien.thesis.caddc.data.market;
 
+import java.util.Date;
 import java.util.List;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -14,6 +15,7 @@ import at.ac.tuwien.thesis.caddc.model.Location;
 import at.ac.tuwien.thesis.caddc.persistence.DAPricePersistence;
 import at.ac.tuwien.thesis.caddc.persistence.exception.ImportDataException;
 import at.ac.tuwien.thesis.caddc.persistence.exception.LocationNotFoundException;
+import at.ac.tuwien.thesis.caddc.util.DateUtils;
 
 /**
  * Defines a MarketData Instance responsible for retrieving energy
@@ -88,8 +90,12 @@ public abstract class MarketData {
 	 * @throws ImportDataException is thrown when data import failed
 	 */
 	public void importPrices(Integer year) throws ImportDataException {
+		Date currentDate = DateUtils.getCurrentDateWithTimeZone(getLocation().getTimeZone());
+		Date maxDate = daPriceResource.findMaxDate(getLocation());
+		if(!currentDate.after(maxDate)) 
+			return;
 		try {
-			daPriceResource.saveDAPrices(fetchPrices(year), getLocation());
+			daPriceResource.saveDAPrices(fetchPrices(year), getLocation(), maxDate);
 		} catch (LocationNotFoundException | FetchDataException | ParseException e) {
 			throw new ImportDataException("ImportDataException: "+e.getLocalizedMessage());
 		}

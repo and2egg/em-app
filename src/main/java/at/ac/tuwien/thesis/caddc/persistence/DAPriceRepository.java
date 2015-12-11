@@ -53,6 +53,7 @@ public class DAPriceRepository {
     
     public Date findMaxDate(Long locationId) {
     	TypedQuery<Date> q = em.createNamedQuery("DAPrice.findMaxDate", Date.class);
+    	q.setParameter("locationId", locationId);
     	return q.getSingleResult();
     }
     

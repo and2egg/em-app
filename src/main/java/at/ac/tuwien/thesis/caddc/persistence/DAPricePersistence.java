@@ -14,6 +14,7 @@ import at.ac.tuwien.thesis.caddc.model.DAPrice;
 import at.ac.tuwien.thesis.caddc.model.Location;
 import at.ac.tuwien.thesis.caddc.persistence.exception.LocationNotFoundException;
 import at.ac.tuwien.thesis.caddc.util.DateParser;
+import at.ac.tuwien.thesis.caddc.util.DateUtils;
 
 /**
  * 
@@ -42,15 +43,13 @@ public class DAPricePersistence {
      * 			Example: 2015-07-11;02;44,23
      * @param location a location Object of one of the locations stored in the 
      * 			database
+     * @param lastDate the last bidding date saved for the given location
      * @throws LocationNotFoundException is thrown when the given location is not registered
      */
-    public void saveDAPrices(List<String> priceData, Location location) throws LocationNotFoundException {
+    public void saveDAPrices(List<String> priceData, Location location, Date lastDate) throws LocationNotFoundException {
 		if(location == null) {
 			throw new LocationNotFoundException("Please provide a registered location");
 		}
-		
-		TypedQuery<Date> q = em.createNamedQuery("DAPrice.findMaxDate", Date.class);
-		Date lastDate = q.getSingleResult();
 		
 		String tz = location.getTimeZone();
 		TimeZone timeZone;
@@ -117,7 +116,7 @@ public class DAPricePersistence {
 																		// dst time (one hour in milliseconds)
 
     		// skip saving data for dates before the last saved date
-    		if(cal.getTimeInMillis() <= lastDate.getTime()) {
+    		if(!cal.getTime().after(lastDate)) {
     			continue;
     		}
     		
@@ -131,5 +130,11 @@ public class DAPricePersistence {
         	
         	saveDAPrice(daPrice);
     	}
+    }
+    
+    public Date findMaxDate(Location location) {
+    	TypedQuery<Date> q = em.createNamedQuery("DAPrice.findMaxDate", Date.class);
+    	q.setParameter("locationId", location.getId());
+    	return q.getSingleResult();
     }
 }
