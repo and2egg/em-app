@@ -8,6 +8,7 @@ import java.util.TimeZone;
 import javax.ejb.Stateless;
 import javax.inject.Inject;
 import javax.persistence.EntityManager;
+import javax.persistence.TypedQuery;
 
 import at.ac.tuwien.thesis.caddc.model.DAPrice;
 import at.ac.tuwien.thesis.caddc.model.Location;
@@ -47,6 +48,10 @@ public class DAPricePersistence {
 		if(location == null) {
 			throw new LocationNotFoundException("Please provide a registered location");
 		}
+		
+		TypedQuery<Date> q = em.createNamedQuery("DAPrice.findMaxDate", Date.class);
+		Date lastDate = q.getSingleResult();
+		
 		String tz = location.getTimeZone();
 		TimeZone timeZone;
 		if(!tz.isEmpty()) {
@@ -110,6 +115,11 @@ public class DAPricePersistence {
     		
     		int timeLag = timeZone.getOffset(cal.getTimeInMillis()) / 3600000; // 3600000 is the minimum offset for a 
 																		// dst time (one hour in milliseconds)
+
+    		// skip saving data for dates before the last saved date
+    		if(cal.getTimeInMillis() <= lastDate.getTime()) {
+    			continue;
+    		}
     		
     		DAPrice daPrice = new DAPrice();
         	daPrice.setBiddingDate(cal.getTime());

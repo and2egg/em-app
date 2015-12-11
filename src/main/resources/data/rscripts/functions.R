@@ -1,5 +1,18 @@
 
 
+# load all necessary libraries
+loadLibraries <- function()
+{
+  library(forecast) # import ARIMA etc. 
+  library(MASS)
+  library(TSA) # import periodogram etc. 
+  library(car) # import qqPlot
+  library(xts) # import periodicity and time functions
+}
+
+
+
+
 ### Plot a histogram plus normal distribution of fc errors ###
 
 plotFcErrorHist <- function(forecasterrors, heading="Forecast Error Histogram")
@@ -58,9 +71,6 @@ RMSE <- function(errors)
 
 getAccuracyVector <- function(matrices, set, acc_measure)
 {
-#   for matrix in matrices {
-#     
-#   }
   
   # example
   acc_rmse <- c(acc_rwf['Training set', 'RMSE'])
@@ -105,17 +115,6 @@ pacf_sig <- function(series, main="PACF Series", ci=0.95, lag.max=28, plot=TRUE,
   significance_level <- qnorm((1 + ci)/2)/sqrt(sum(!is.na(series)))
   corr <- c(corr, sig.level=significance_level)
   return(corr)
-}
-
-
-# load all necessary libraries
-loadLibraries <- function()
-{
-  library(forecast) # import ARIMA etc. 
-  library(MASS)
-  library(TSA) # import periodogram etc. 
-  library(car) # import qqPlot
-  library(xts) # import periodicity and time functions
 }
 
 

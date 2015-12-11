@@ -81,142 +81,6 @@ public class RManagerResourceRESTService {
     
     
     /**
-     * Method to retrieve a CSV list of forecasts for possible multiple locations at once
-     * This format is perfectly suitable to be read by a csv parser
-     * example: http://localhost:8081/em-app/rest/r/forecastAll/1,3,4/14/2014-07-07/2014-07-10
-     * @param locationIds the locationIds to include in the output
-     * @param trainingsPeriod only include the models generated with this training period
-     * @param startDate the start date for which to get forecasts
-     * @param endDate the end date for which to get forecasts
-     * @return a String in csv format containing all of the retrieved forecasts
-     */
-    @GET
-    @Path("/forecastAll/{loc_ids}/{training_period}/{startDate}/{endDate}")
-    @Produces(MediaType.APPLICATION_JSON)
-    public Response getMultipleForecastsCsv(@PathParam("loc_ids") String locationIds, @PathParam("training_period") Integer trainingsPeriod,  
-    										@PathParam("startDate") String startDate, @PathParam("endDate") String endDate) {
-    	String result = "";
-    	String csvData = "";
-    	String values[] = null;
-    	List<Date> dates = getDates(startDate, endDate);
-    	try {
-    		String[] locs = locationIds.split(",");
-    		String[] locationNames = new String[locs.length];
-    		List<String[]> fcList = new ArrayList<String[]>();
-    		for(int i = 0; i < locs.length; i++) {
-    			Location loc = locationRepository.findById(Long.valueOf(locs[i]));
-    			locationNames[i] = loc.getName();
-    			values = rManager.getForecasts(Long.valueOf(locs[i]), trainingsPeriod, startDate, endDate);
-    			fcList.add(values);
-    		}
-    		
-    		StringBuilder builder = new StringBuilder();
-    		
-    		for(int l = 0; l < locationNames.length; l++) {
-    			builder.append(",");
-    			builder.append(locationNames[l]);
-    		}
-    		builder.append(System.lineSeparator());
-    		
-    		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-    		// add dummy values for the first line (date is not forecasted)
-    		Date date = dates.get(0);
-			String dateString = sdf.format(date);
-			builder.append(dateString);
-    		for(String[] meanValues : fcList) {
-	    		builder.append(",");
-	    		builder.append(meanValues[0]);
-	    	}
-    		builder.append(System.lineSeparator());
-    		
-    		int rows = fcList.get(0).length;
-    		for(int i = 0; i < rows; i++) {
-    			date = dates.get(i+1);
-    			dateString = sdf.format(date);
-    			builder.append(dateString);
-        		
-    	    	for(String[] meanValues : fcList) {
-    	    		builder.append(",");
-    	    		builder.append(meanValues[i]);
-    	    	}
-    	    	builder.append(System.lineSeparator());
-    		}
-    		csvData = builder.toString();
-		} catch (RserveException e) {
-			e.printStackTrace();
-			result = e.getMessage();
-		} catch (REXPMismatchException e) {
-			e.printStackTrace();
-			result = e.getMessage();
-		} catch (REngineException e) {
-			e.printStackTrace();
-			result = e.getMessage();
-		}
-    	String output = csvData;
-    	return Response.status(200).entity(output).build();
-    }
-    
-    
-    /**
-     * Method to retrieve a list of forecasts for a given location
-     * example: http://localhost:8081/em-app/rest/r/forecast/1/14/2014-07-07/2014-07-10
-     * @param locationId the locationId for which to get forecasts
-     * @param trainingsPeriod only include the models generated with this training period
-     * @param startDate the start date for which to get forecasts
-     * @param endDate the end date for which to get forecasts
-     * @return a String containing the retrieved forecasts
-     */
-    @GET
-    @Path("/forecast/{loc_id}/{training_period}/{startDate}/{endDate}")
-    @Produces(MediaType.APPLICATION_JSON)
-    public Response getForecasts(@PathParam("loc_id") Long locationId, @PathParam("training_period") Integer trainingsPeriod, 
-    							@PathParam("startDate") String startDate, @PathParam("endDate") String endDate) {
-    	String result = "";
-    	String[] fcValues = null;
-    	try {
-    		fcValues = rManager.getForecasts(locationId, trainingsPeriod, startDate, endDate);
-		} catch (RserveException e) {
-			e.printStackTrace();
-			result = e.getMessage();
-		} catch (REXPMismatchException e) {
-			e.printStackTrace();
-			result = e.getMessage();
-		} catch (REngineException e) {
-			e.printStackTrace();
-			result = e.getMessage();
-		}
-    	String output = "Forecast result: "+result+"\n"+Arrays.toString(fcValues);
-    	return Response.status(200).entity(output).build();
-    }
-    
-    
-    /**
-     * Generate forecast data from all currently existing models (files listed in data/models)
-     * @return a Response indicating success or failure of forecast generation
-     */
-    @GET
-    @Path("/forecast/generateAll")
-    @Produces(MediaType.APPLICATION_JSON)
-    public Response generateForecasts() {
-    	String result = "";
-    	try {
-			result = rManager.generateForecastsAllModels();
-		} catch (RserveException e) {
-			e.printStackTrace();
-			result = e.getMessage();
-		} catch (REXPMismatchException e) {
-			e.printStackTrace();
-			result = e.getMessage();
-		} catch (REngineException e) {
-			e.printStackTrace();
-			result = e.getMessage();
-		}
-    	String output = "R result: "+result;
-    	return Response.status(200).entity(output).build();
-    }
-    
-    
-    /**
      * Method to generate ARIMA models for the given location, with the given training period,
      * and for all dates between the given start and end date strings
      * @param locationId the location id of the location for which to generate the models
@@ -337,10 +201,146 @@ public class RManagerResourceRESTService {
     
     
     /**
-     * Method to retrieve all dates between a defined start and end date
+     * Method to retrieve a list of forecasts for a given location
+     * example: http://localhost:8081/em-app/rest/r/forecast/1/14/2014-07-07/2014-07-10
+     * @param locationId the locationId for which to get forecasts
+     * @param trainingsPeriod only include the models generated with this training period
+     * @param startDate the start date for which to get forecasts
+     * @param endDate the end date for which to get forecasts
+     * @return a String containing the retrieved forecasts
+     */
+    @GET
+    @Path("/forecast/{loc_id}/{training_period}/{startDate}/{endDate}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response getForecasts(@PathParam("loc_id") Long locationId, @PathParam("training_period") Integer trainingsPeriod, 
+    							@PathParam("startDate") String startDate, @PathParam("endDate") String endDate) {
+    	String result = "";
+    	String[] fcValues = null;
+    	try {
+    		fcValues = rManager.getForecasts(locationId, trainingsPeriod, startDate, endDate);
+		} catch (RserveException e) {
+			e.printStackTrace();
+			result = e.getMessage();
+		} catch (REXPMismatchException e) {
+			e.printStackTrace();
+			result = e.getMessage();
+		} catch (REngineException e) {
+			e.printStackTrace();
+			result = e.getMessage();
+		}
+    	String output = "Forecast result: "+result+"\n"+Arrays.toString(fcValues);
+    	return Response.status(200).entity(output).build();
+    }
+    
+    
+    /**
+     * Generate forecast data from all currently existing models (files listed in data/models)
+     * @return a Response indicating success or failure of forecast generation
+     */
+    @GET
+    @Path("/forecast/generateAll")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response generateForecasts() {
+    	String result = "";
+    	try {
+			result = rManager.generateForecastsAllModels();
+		} catch (RserveException e) {
+			e.printStackTrace();
+			result = e.getMessage();
+		} catch (REXPMismatchException e) {
+			e.printStackTrace();
+			result = e.getMessage();
+		} catch (REngineException e) {
+			e.printStackTrace();
+			result = e.getMessage();
+		}
+    	String output = "R result: "+result;
+    	return Response.status(200).entity(output).build();
+    }
+    
+    
+    /**
+     * Method to retrieve a CSV list of forecasts for possible multiple locations at once
+     * This format is perfectly suitable to be read by a csv parser
+     * example: http://localhost:8081/em-app/rest/r/forecastAll/1,3,4/14/2014-07-07/2014-07-10
+     * @param locationIds the locationIds to include in the output
+     * @param trainingsPeriod only include the models generated with this training period
+     * @param startDate the start date for which to get forecasts
+     * @param endDate the end date for which to get forecasts
+     * @return a String in csv format containing all of the retrieved forecasts
+     */
+    @GET
+    @Path("/forecastAll/{loc_ids}/{training_period}/{startDate}/{endDate}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response getMultipleForecastsCsv(@PathParam("loc_ids") String locationIds, @PathParam("training_period") Integer trainingsPeriod,  
+    										@PathParam("startDate") String startDate, @PathParam("endDate") String endDate) {
+    	String result = "";
+    	String csvData = "";
+    	String values[] = null;
+    	List<Date> dates = getDates(startDate, endDate);
+    	try {
+    		String[] locs = locationIds.split(",");
+    		String[] locationNames = new String[locs.length];
+    		List<String[]> fcList = new ArrayList<String[]>();
+    		for(int i = 0; i < locs.length; i++) {
+    			Location loc = locationRepository.findById(Long.valueOf(locs[i]));
+    			locationNames[i] = loc.getName();
+    			values = rManager.getForecasts(Long.valueOf(locs[i]), trainingsPeriod, startDate, endDate);
+    			fcList.add(values);
+    		}
+    		
+    		StringBuilder builder = new StringBuilder();
+    		
+    		for(int l = 0; l < locationNames.length; l++) {
+    			builder.append(",");
+    			builder.append(locationNames[l]);
+    		}
+    		builder.append(System.lineSeparator());
+    		
+    		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+    		// add dummy values for the first line (date is not forecasted)
+    		Date date = dates.get(0);
+			String dateString = sdf.format(date);
+			builder.append(dateString);
+    		for(String[] meanValues : fcList) {
+	    		builder.append(",");
+	    		builder.append(meanValues[0]);
+	    	}
+    		builder.append(System.lineSeparator());
+    		
+    		int rows = fcList.get(0).length;
+    		for(int i = 0; i < rows; i++) {
+    			date = dates.get(i+1);
+    			dateString = sdf.format(date);
+    			builder.append(dateString);
+        		
+    	    	for(String[] meanValues : fcList) {
+    	    		builder.append(",");
+    	    		builder.append(meanValues[i]);
+    	    	}
+    	    	builder.append(System.lineSeparator());
+    		}
+    		csvData = builder.toString();
+		} catch (RserveException e) {
+			e.printStackTrace();
+			result = e.getMessage();
+		} catch (REXPMismatchException e) {
+			e.printStackTrace();
+			result = e.getMessage();
+		} catch (REngineException e) {
+			e.printStackTrace();
+			result = e.getMessage();
+		}
+    	String output = csvData;
+    	return Response.status(200).entity(output).build();
+    }
+    
+    
+    /**
+     * Method to retrieve all dates in one hour steps between a defined start and end date
      * @param startDateString the start date to begin with
      * @param endDateString the end date to end with
-     * @return a list of dates between start and end date
+     * @return a list of dates in one hour steps between start and end date
      */
     private List<Date> getDates(String startDateString, String endDateString) {
 		Date startDate = DateParser.parseDate(startDateString);

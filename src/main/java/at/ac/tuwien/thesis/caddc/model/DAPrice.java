@@ -30,7 +30,8 @@ import javax.validation.constraints.Size;
 	@NamedQuery(name="DAPrice.findByDateAndLocation", query="SELECT p FROM DAPrice p "
 									+ "WHERE p.biddingDate BETWEEN :startDate AND :endDate "
 									+ "AND p.location.id = :locationId "
-									+ "ORDER BY p.biddingDate")
+									+ "ORDER BY p.biddingDate"),
+	@NamedQuery(name="DAPrice.findMaxDate", query="SELECT MAX(p.biddingDate) FROM DAPrice p")
 })
 @Table(
 	name="DA_PRICES"

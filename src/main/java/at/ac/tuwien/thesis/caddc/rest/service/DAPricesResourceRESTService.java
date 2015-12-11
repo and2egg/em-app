@@ -4,6 +4,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,6 +33,7 @@ import at.ac.tuwien.thesis.caddc.data.market.MarketDataMassachussetts;
 import at.ac.tuwien.thesis.caddc.data.market.MarketDataSweden;
 import at.ac.tuwien.thesis.caddc.model.DAPrice;
 import at.ac.tuwien.thesis.caddc.model.Location;
+import at.ac.tuwien.thesis.caddc.persistence.DAPricePersistence;
 import at.ac.tuwien.thesis.caddc.persistence.DAPriceRepository;
 import at.ac.tuwien.thesis.caddc.persistence.LocationRepository;
 import at.ac.tuwien.thesis.caddc.persistence.exception.ImportDataException;
@@ -56,6 +58,9 @@ public class DAPricesResourceRESTService {
     @Inject
     private DAPriceRepository daPriceRepository;
     
+    @Inject
+    private DAPricePersistence daPriceResource;
+    
     
     private List<MarketData> marketList = new ArrayList<MarketData>();
     
@@ -65,11 +70,11 @@ public class DAPricesResourceRESTService {
      */
     @PostConstruct
     public void init() {
-    	marketList.add(new MarketDataFinland(locationRepository.findByName("Helsinki")));
-    	marketList.add(new MarketDataSweden(locationRepository.findByName("Stockholm")));
-    	marketList.add(new MarketDataMaine(locationRepository.findByName("Portland")));
-    	marketList.add(new MarketDataMassachussetts(locationRepository.findByName("Boston")));
-    	marketList.add(new MarketDataBelgium(locationRepository.findByName("Brussels")));
+    	marketList.add(new MarketDataFinland(locationRepository.findByName("Helsinki"), daPriceResource));
+    	marketList.add(new MarketDataSweden(locationRepository.findByName("Stockholm"), daPriceResource));
+    	marketList.add(new MarketDataMaine(locationRepository.findByName("Portland"), daPriceResource));
+    	marketList.add(new MarketDataMassachussetts(locationRepository.findByName("Boston"), daPriceResource));
+    	marketList.add(new MarketDataBelgium(locationRepository.findByName("Brussels"), daPriceResource));
     }
     
     
@@ -116,8 +121,11 @@ public class DAPricesResourceRESTService {
     				list.add(m);
     	try {
 	    	for(int year = yearFrom; year <= yearTo; year++)
-	    		for(MarketData market : list)
-					market.importPrices(year);
+	    		for(MarketData market : list) {
+	    			@SuppressWarnings("unused")
+					Date d = daPriceRepository.findMaxDate(locationId);
+	    			market.importPrices(year);
+	    		}
     	} catch (ImportDataException e) {
     		if(locationId.equals(Long.valueOf(-1L))) {
     			return Response.status(503).entity("Request failed: Retrieving data for all locations for years "+yearFrom+" to "+yearTo).build();

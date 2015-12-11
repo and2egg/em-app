@@ -22,6 +22,9 @@ import at.ac.tuwien.thesis.caddc.persistence.exception.LocationNotFoundException
 //@ApplicationScoped
 public abstract class MarketData {
 	
+	/**
+	 * The interface to the da price persistence provider
+	 */
     private DAPricePersistence daPriceResource;
 	
 	/**
@@ -39,9 +42,9 @@ public abstract class MarketData {
 	 * Create a MarketData Instance with the given location and parameters
 	 * @param location the location for this MarketData Instance
 	 */
-	public MarketData(Location location) {
+	public MarketData(Location location, DAPricePersistence persistence) {
 		this.location = location;
-		this.daPriceResource = new DAPricePersistence();
+		this.daPriceResource = persistence;
 	}
 	
 	/**
