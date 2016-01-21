@@ -1,6 +1,6 @@
 
 
-# load all necessary libraries
+#' load all necessary libraries
 loadLibraries <- function()
 {
   library(forecast) # import ARIMA etc. 
@@ -11,73 +11,13 @@ loadLibraries <- function()
 }
 
 
-
-
-### Plot a histogram plus normal distribution of fc errors ###
-
-plotFcErrorHist <- function(forecasterrors, heading="Forecast Error Histogram")
-{
-  # make a histogram of the forecast errors:
-  mybinsize <- IQR(forecasterrors)/4
-  mysd   <- sd(forecasterrors)
-  mymin  <- min(forecasterrors) - mysd*5
-  mymax  <- max(forecasterrors) + mysd*3
-  # generate normally distributed data with mean 0 and standard deviation mysd
-  mynorm <- rnorm(10000, mean=0, sd=mysd)
-  mymin2 <- min(mynorm)
-  mymax2 <- max(mynorm)
-  if (mymin2 < mymin) { mymin <- mymin2 }
-  if (mymax2 > mymax) { mymax <- mymax2 }
-  # make a red histogram of the forecast errors, with the normally distributed data overlaid:
-  mybins <- seq(mymin, mymax, mybinsize)
-  
-  hist(forecasterrors, 
-       main=heading, 
-       xlab="Forecast error distribution", 
-       ylab="Density", 
-       col="grey", 
-       freq=FALSE, 
-       breaks=mybins)
-  # freq=FALSE ensures the area under the histogram = 1
-  
-  # generate normally distributed data with mean 0 and standard deviation mysd
-  myhist <- hist(mynorm, 
-                 main=heading, 
-                 xlab="Forecast error distribution", 
-                 ylab="Density", 
-                 plot=FALSE, 
-                 breaks=mybins)
-  
-  # plot the normal curve as a blue line on top of the histogram of forecast errors:
-  points(myhist$mids, myhist$density, type="l", col="black", lwd=1)
-}
-
-
-
-### RMSE (Root mean square error) to determine the fitness of a model ###
-# 
-# rmse = sqrt( mean( (obs - sim)^2, na.rm = TRUE) )
-# 
-
-RMSE1 <- function(actual, predicted) 
-{
-  sqrt(mean((actual-predicted)^2))
-}
-
-RMSE <- function(errors) 
-{
-  sqrt(mean((errors)^2))
-}
-
-getAccuracyVector <- function(matrices, set, acc_measure)
-{
-  
-  # example
-  acc_rmse <- c(acc_rwf['Training set', 'RMSE'])
-}
-
-
-plotModelAgainstErrors <- function(model, title, xlab, ylab) {
+#' Plot time series vs. residuals of given model
+#' ------------
+#' @param model the model to evaluate
+#' @param title the title of the plot
+#' @param xlab label for x-axis
+#' @param ylab label for y-axis
+plotModelAgainstErrors <- function(model, title="Model vs. Residuals", xlab="Time", ylab="Value") {
   # plot the result
   plot(model$x, 
        main=title, 
@@ -87,18 +27,17 @@ plotModelAgainstErrors <- function(model, title, xlab, ylab) {
 }
 
 
-# idea taken from http://www.squaregoldfish.co.uk/2010/01/20/r-the-acf-function-and-statistical-significance/
-
-acf_ci <- function(series, main="Acf Series", type="correlation", ci=0.95, lag.max=28, plot=TRUE, na.action=na.pass)
-{
-  corr <- acf(series,main=main,lag.max=lag.max,type=type,plot=plot,na.action=na.action)
-  significance_level <- qnorm((1 + ci)/2)/sqrt(sum(!is.na(series)))
-  corr <- c(corr, sig.level=significance_level)
-  return(corr)
-}
-
-# Add significance level to ACF function
-
+#' Add significance level to ACF function
+#' ----------------
+#' idea taken from http://www.squaregoldfish.co.uk/2010/01/20/r-the-acf-function-and-statistical-significance/
+#' @param series the series to calculate the ACF for
+#' @param main the title of the plot
+#' @param type the type of ACF to generate
+#' @param ci confidence interval
+#' @param lag.max the maximum lag up to which to compute the ACF
+#' @param plot boolean value to indicate whether the result should be plotted
+#' @param na.action value to define what to do in case NA values are encountered
+#' @return a vector consisting of the ACF correlation results plus the calculated significance level
 acf_sig <- function(series, main="ACF Series", type="correlation", ci=0.95, lag.max=28, plot=TRUE, na.action=na.pass)
 {
   corr <- acf(series,main=main,lag.max=lag.max,type=type,plot=plot,na.action=na.action)
@@ -107,8 +46,17 @@ acf_sig <- function(series, main="ACF Series", type="correlation", ci=0.95, lag.
   return(corr)
 }
 
-# Add significance level to PACF function
-
+#' Add significance level to PACF function
+#' ----------------
+#' idea taken from http://www.squaregoldfish.co.uk/2010/01/20/r-the-acf-function-and-statistical-significance/
+#' @param series the series to calculate the ACF for
+#' @param main the title of the plot
+#' @param type the type of ACF to generate
+#' @param ci confidence interval
+#' @param lag.max the maximum lag up to which to compute the ACF
+#' @param plot boolean value to indicate whether the result should be plotted
+#' @param na.action value to define what to do in case NA values are encountered
+#' @return a vector consisting of the ACF correlation results plus the calculated significance level
 pacf_sig <- function(series, main="PACF Series", ci=0.95, lag.max=28, plot=TRUE, na.action=na.pass)
 {
   corr <- pacf(series,main=main,lag.max=lag.max,plot=plot,na.action=na.action)
@@ -119,11 +67,16 @@ pacf_sig <- function(series, main="PACF Series", ci=0.95, lag.max=28, plot=TRUE,
 
 
 
-# function to compute the frequency of seasonality
-# in the dataset, if it exists. In case no seasonality
-# exists the period is 1. 
-# Uses the highest frequency visible in the periodogram
-# of the data to retrieve the periodicity
+#' function to retrieve the maximum frequency from a given dataset
+#' --------------------
+#' retrieve the maximum detected frequency (seasonal cycle) if it exists. 
+#' In case no seasonality exists the period is 1. 
+#' Uses the highest frequency visible in the periodogram
+#' of the data to retrieve the periodicity
+#' @param data the dataset to examine
+#' @param output boolean value to indicate whether results should be printed
+#' @param plot boolean value to indicate whether results should be plotted
+#' @return the maximum determined frequency in the data
 getMaxPeriod <- function(data, output=FALSE, plot=FALSE)
 {
   # create a periodogram of the data
@@ -142,25 +95,39 @@ getMaxPeriod <- function(data, output=FALSE, plot=FALSE)
 }
 
 
-# function to compute the frequency of seasonality
-# in the dataset, if it exists. Retrieves the four most frequent
-# periods and thus different seasonal periods may be estimated
-getPeriods <- function(data, round=TRUE, output=FALSE, plot=FALSE)
+#' function to retrieve the most significant frequencies in the dataset
+#' -----------------------
+#' Retrieves the most frequent periods and thus different seasonal periods may be estimated
+#' If the series indicates white noise behaviour (by white noise threshold)
+#' a periodicity of 1 is returned
+#' @param data the dataset to examine
+#' @param numPeriods the number of periods with the most common frequencies that is returned
+#' @param round if resulting periods should be rounded to integers
+#' @param output boolean value to indicate whether results should be printed
+#' @param plot boolean value to indicate whether results should be plotted
+#' @return a vector of numPeriods maximum periods in the data
+getMaxPeriods <- function(data, numPeriods=4, round=TRUE, output=FALSE, plot=FALSE)
 {
   # create a periodogram of the data
   perdgram <- periodogram(data, plot=plot)
+  # Empirically set threshold for white noise
+  whiteNoiseTH <- 50
+  if(max(perdgram$spec) < whiteNoiseTH)
+  {
+    return(c(1))
+  }
   # get the occurrences of the most frequent periodicities
   sorted_spec <- sort(perdgram$spec, decreasing=TRUE)
-  top_freq <- vector(length=4)
-  for (i in 1:4)
+  top_freq <- vector(length=numPeriods)
+  for (i in 1:numPeriods)
   {
-    # get the position of the next spec value in the original vector
+    # get the position of the next sorted spec value in the original vector
     pos <- match(sorted_spec[i],perdgram$spec)
-    top_freq[i] <- perdgram$freq[pos]
-    top_freq[i] <- 1 / top_freq[i] # transform to period length
+    top_freq[i] <- perdgram$freq[pos] # get the frequency value at this position
+    top_freq[i] <- 1 / top_freq[i] # transform to number of periods
     if(round)
     {
-      top_freq[i] <- round(top_freq[i])
+      top_freq[i] <- round(top_freq[i]) # truncates number to integer
     }
   }
   if(output)
@@ -172,94 +139,86 @@ getPeriods <- function(data, round=TRUE, output=FALSE, plot=FALSE)
 }
 
 
-# function to get the most significant period from the periodogram of the
-# given dataset. Given a target period the most frequent periods of the 
-# dataset are searched for this period, if it is contained, it is returned. 
-# Otherwise, the number 1 is returned, which is the standard frequency 
-# for any time series
-getPeriod <- function(data, target_period=24, output=FALSE, plot=FALSE)
+#' function to determine the most significant periods from the given dataset
+#' ------------------
+#' Get the most significant periods from the periodogram of the given dataset. 
+#' If a target period is given the most frequent periods of the 
+#' dataset are searched for this period, and if it is contained, it is returned. 
+#' If the target period is NULL or is not among the most frequent periods
+#' a vector with the most common periods is returned
+#' @param data the dataset to examine for seasonalities
+#' @param target_period the target period to search for
+#' @param output boolean value to indicate whether results should be printed
+#' @param plot boolean value to indicate whether results should be plotted
+getPeriodsWithTarget <- function(data, target_period=24, output=FALSE, plot=FALSE)
 {
-  periods <- getPeriods(data, output=output, plot=plot)
-  if(checkPeriods(periods, target_period) == TRUE)
-  {
-    return(target_period)
+  periods <- getMaxPeriods(data, output=output, plot=plot)
+  if(is.null(target_period)) {
+    return(periods) # return most common periods
   }
-  else
-  {
-    return(1)
+  if(target_period %in% periods) {
+    return(c(target_period))
+  } else {
+    return(periods)
   }
 }
 
 
-# function to check if the target_period is one of the most
-# frequent periods in the dataset. Returns TRUE if it is, FALSE otherwise
-checkPeriods <- function(periods, target_period=24)
-{
-  if(target_period %in% periods) 
-  {
-    return(TRUE)
-  }
-  else
-  {
-    return(FALSE)
-  }
-}
 
-
-# Function to compute the Ljung box test to test the given models
-# residuals for white noise
-# All needed parameters are chosen based on the values in the provided model
-#
-# rule of thumb for choosing lag -> http://www.r-bloggers.com/thoughts-on-the-ljung-box-test/
-# or http://robjhyndman.com/hyndsight/ljung-box-test/
-# or http://stats.stackexchange.com/questions/6455/how-many-lags-to-use-in-the-ljung-box-test-of-a-time-series
-# For non-seasonal time series, use h = min(10, T/5).
-# For seasonal time series, use h = min(2m, T/5).
-# where T is the sample size and m denotes the seasonal period
-# In this case T = 336, 2m = 48, T/5 = 67
-automatedBoxTest <- function(model, lag=NULL, fitdf=NULL, nonseasonal.lag=TRUE, 
-                             type = c("Box-Pierce", "Ljung-Box"), output=FALSE)
-{
-  if(type == "Box-Pierce")
-  {
+#' automatedBoxTest: Function to compute the Ljung box test to test the given models residuals for white noise
+#' ---------------------
+#' All needed parameters are chosen based on the values in the provided model
+#' rule of thumb for choosing lag -> http://robjhyndman.com/hyndsight/ljung-box-test/
+#' or http://www.r-bloggers.com/thoughts-on-the-ljung-box-test/
+#' or http://stats.stackexchange.com/questions/6455/how-many-lags-to-use-in-the-ljung-box-test-of-a-time-series
+#' Note: h == lag 
+#' For non-seasonal time series, use h = min(10, T/5).
+#' For seasonal time series, use h = min(2m, round(T/5)).
+#' where T is the sample size and m denotes the seasonal period
+#' In this case T = 336, 2m = 48 (2 days), round(T/5) = 67
+#' @param model the model to test
+#' @param lag the given lag. Represents the degrees of freedom of the corresponding
+#'        X-squared statistic. If NULL the most suitable value will be estimated
+#' @param fitdf fit degrees of freedom. This value is equal to the number of
+#'    parameters of the provided model. It will be substracted from the 
+#'    degrees of freedom (lag) value of the test. If it is NULL it will be set to the
+#'    number of parameters of the model
+#'    (@seealso https://www.otexts.org/fpp/2/6)
+#' @param type the type name of the Test ("Box-Pierce", "Ljung-Box") (may be abbreviated)
+#' @param output boolean value to indicate whether results should be printed to console
+#' @return an array (box, lag) where box is the box-test object and lag the number of used lags
+automatedBoxTest <- function(model, lag=NULL, fitdf=NULL, 
+                             type = c("Box-Pierce", "Ljung-Box"), output=FALSE) {
+  
+  if(type == "Box-Pierce") {
+    
     print("The Box-Pierce test is not supported yet")
     return()
   }
+  # length of time series
   t_val <- length(model$x)
+  # the frequency stored in the model's time series
   periods <- frequency(model$x)
   
-  if(is.null(lag))
-  {
-    if(nonseasonal.lag==FALSE)
-    {
-      h <- t_val/5
-    }
-    # no seasonality in data
-    if(periods == 1)
-    {
+  if(is.null(lag)) {
+    if(periods <= 1) { # no seasonality in data
       h <- min(10, t_val/5)
-    }
-    else
-    {
+    } else {
       h <- min(2*periods, t_val/5)
     }
-  }
-  else
-  {
+  } else {
     h <- lag
   }
   
-  if(is.null(fitdf))
-  {
-    # get number of model params
-    params <- length(model$coef)
+  h <- round(h)
+  
+  if(is.null(fitdf)) {
+    params <- length(model$coef) # get number of model params
     if("intercept" %in% names(model$coef))
     {
       params <- params - 1
     }
-  }
-  else
-  {
+  } else {
     params <- fitdf
   }
   
@@ -269,144 +228,168 @@ automatedBoxTest <- function(model, lag=NULL, fitdf=NULL, nonseasonal.lag=TRUE,
   }
   
   # do actual box test
-  box_t <- Box.test(residuals(model), lag=h, fitdf=params, type="Ljung")
+  box_t <- Box.test(residuals(model), lag=h, fitdf=params, type=type)
   box_t <- c(box_t, lag=h)
   return(box_t)
 }
 
 
-# function for automatic model generation based on given data values
-# estimates the occurring frequency in the data, builds and evaluates
-# the model and does a boxcox transformation if necessary 
-# (when data does not appear to have stationary variance)
-generate_model <- function(data, target_period=24, approximation=TRUE, stepwise=TRUE, output=FALSE, plot=FALSE)
+#' generate_model: function for automatic model generation based on given data values
+#' -------------------
+#' estimates the occurring frequency in the data, builds and evaluates
+#' the model and does a boxcox transformation if necessary 
+#' (when data does not appear to have stationary variance)
+#' @param data the data series to generate the model upon
+#' @param target_period the target period to search for within the periodogram of the dataset
+#' @param w_aicc weight for the aicc utility value
+#' @param w_ljung weight for the ljung box test p utility value
+#' @param boxcox boolean value to indicate whether a boxcox transform should be done
+#' @param approximation boolean value to indicate whether model generation should be approximated (faster)
+#' @param stepwise boolean value to indicate whether model search should be done stepwise (faster)
+#' @param output boolean value to indicate whether results should be printed
+#' @param plot boolean value to indicate whether results should be plotted
+generate_model <- function(data, target_period=NULL, w_aicc=0.7,
+                           w_ljung=0.3, boxcox=TRUE, approximation=TRUE, stepwise=TRUE, output=FALSE, plot=FALSE)
 {
   series <- data
   # retrieves the target period if available, otherwise 1
-  period <- getPeriod(series, target_period=target_period, output=output, plot=plot)
-  series_ts <- ts(series, frequency=period)
+  periods <- getPeriodsWithTarget(series, target_period=target_period, output=output, plot=plot)
   
-  lambda_ts <- BoxCox.lambda(series_ts)
+  # generate list objects
+  series_ts <- vector(mode="list", length=length(periods))
+  lambda_ts <- vector(mode="list", length=length(periods))
+  auto.fit <- vector(mode="list", length=length(periods))
+  auto.fit.lambda <- vector(mode="list", length=length(periods))
+  box_t <- vector(mode="list", length=length(periods))
+  box_t_lambda <- vector(mode="list", length=length(periods))
   
-  if(output) {
-    print("Create model 1")
+  # time series and lambda parameter generation
+  for(i in 1:length(periods)) {
+    series_ts[[i]] = ts(series, frequency=periods[[i]])
+    lambda_ts[[i]] = BoxCox.lambda(series_ts[[i]])
   }
-  auto.fit <- auto.arima(series_ts, approximation=approximation, stepwise=stepwise)
-  if(output) {
-    print("Create model 2 (coxbox transformation)")
+  
+  # model generation and box tests
+  for(i in 1:length(periods)) {
+    if(output) {
+      print("------------------")
+      print(paste("Creating model ",i,sep=""))
+    }
+    auto.fit[[i]] = auto.arima(series_ts[[i]], approximation=approximation, stepwise=stepwise)
+    box_t[[i]] <- automatedBoxTest(auto.fit[[i]], type="Ljung", output=output)
   }
-  auto.fit.lambda <- auto.arima(series_ts, lambda=lambda_ts, approximation=approximation, stepwise=stepwise)
+  
+  if(boxcox == TRUE) {
+    # boxcox transformations (if applicable)
+    for(i in 1:length(periods)) {
+      # if lambda = 1 the model will not be changed
+      if(lambda_ts[[i]] != 1)
+      {
+        if(output) {
+          print("------------------")
+          print(paste("Creating model ",i," (with BoxCox transformation)",sep=""))
+        }
+        auto.fit.lambda[[i]] <- auto.arima(series_ts[[i]], lambda=lambda_ts[[i]], approximation=approximation, stepwise=stepwise)
+        box_t_lambda[[i]] <- automatedBoxTest(auto.fit.lambda[[i]], type="Ljung", output=output)
+      }
+      else {
+        if(output) {
+          print(paste("Not creating model ",i," (lambda == 1)",sep=""))
+        }
+      }
+    }
+  }
+ 
+  models <- append(auto.fit, auto.fit.lambda)
+  boxtests <- append(box_t, box_t_lambda)
+  
+  aicc.values <- numeric()
+  p.values <- numeric()
 
-  box_t <- automatedBoxTest(auto.fit, type="Ljung", output=output)
-  box_t.lambda <- automatedBoxTest(auto.fit.lambda, type="Ljung", output=output)
-  
-  models <- list(m1=auto.fit, m2=auto.fit.lambda) # , m3=auto.fit.no_period, m4=auto.fit.no_period.lambda
-  boxtests <- list(b1=box_t, b2=box_t.lambda) # , b3=box_t.no_period, b4=box_t.no_period.lambda
-  p.values <- c(boxtests[[1]]$p.value, boxtests[[2]]$p.value) #, boxtests[[3]]$p.value, boxtests[[4]]$p.value
+  for (i in 1:length(models)) {
+    if(!is.null(models[[i]])) {
+      aicc.values[i] <- models[[i]]$aicc # appends the current value to the vector  
+      p.values[i] <- boxtests[[i]]$p.value # appends the current value to the vector
+    }
+    else {
+      aicc.values[i] <- NA
+      p.values[i] <- NA
+    }
+  }
   
   if(output) {
+    print("------------------")
+    print("Model aicc values: ")
+    print(aicc.values)
+    
+    print("------------------")
     print("Ljung box test p.values: ")
     print(p.values)
   }
   
-  # compare output of the Ljung box test to determine
-  # which model exhibits a more advantageous distribution
-  # within the residuals
-  pos <- match(max(p.values), p.values)
-  resultModel <- models[[pos]]
-  resultTest <- boxtests[[pos]]
-  boxcox <- FALSE
-  if(pos == 2)
-    boxcox = TRUE
+  aicc.utility <- numeric()
+  p.utility <- numeric()
+  result.utility <- numeric()
+
+  # standard significance level for the p-value of the Ljung Box test
+  box_test_TH <- 0.05
+
+  AICmin <- aicc.values[which.min(aicc.values)] # get minimum value of aicc values
+  
+  # calculating utility values
+  for (i in 1:length(models)) {
+    if(!is.na(aicc.values[i]) && !is.na(p.values)) {
+      aicc.utility[i] <- 1 / (abs(AICmin - aicc.values[i]) + 2) # calculate aicc utility value
+      p.utility[i] <- (p.values[i] - box_test_TH) / (1 - box_test_TH) # calculate box test utility value
+      result.utility[i] <- w_aicc * aicc.utility[i] + w_ljung * p.utility[i] # calculate result utility value
+    }
+  }
+  
+  # get index of maximum utility value
+  idx <- which.max(result.utility)
+  resultModel <- models[[idx]]
+  resultTest <- boxtests[[idx]]
+  
+  if(is.null(resultModel$lambda)) {
+    boxcoxTransformed <- FALSE
+  } else {
+    boxcoxTransformed <- TRUE
+  }
   
   if(output)
   {
+    print("------------------")
+    print("Utility values")
+    print("AICc values")
+    print(aicc.values)
+    print("Ljung Box p-values")
+    print(p.values)
+    print("AICc utility values")
+    print(aicc.utility)
+    print("Ljung Box test utility values")
+    print(p.utility)
+    print("result utility values")
+    print(result.utility)
+    print("")
+    
     print("Resulting model:")
-    print(paste("BoxCox transformed = ",boxcox,", Estimated period = ",period, sep=""))
+    print("------------------")
+    print(paste("BoxCox transformed = ",boxcoxTransformed,", Estimated period = ",period, sep=""))
     print(resultModel$coef)
     print(paste("model parameters (aic,aicc,bic):",resultModel$aic,resultModel$aicc,resultModel$bic))
     print(paste("Ljung box test p-value:",resultTest$p.value))
-    print("-------------------")
+    print("===================================================")
   }
   
   return(resultModel)
 }
 
 
-
-# function for automatic model generation based on given data values
-# estimates the occurring frequency in the data, builds and evaluates
-# the model and does a boxcox transformation if necessary 
-# (when data does not appear to have stationary variance)
-generate_model_ <- function(data, same.lag=TRUE, approximation=TRUE, stepwise=TRUE, output=FALSE, plot=FALSE)
-{
-  series <- data
-  
-  series_ts <- ts(series, frequency=getPeriod(series, target_period=24, output=output, plot=plot))
-#   series_ts_no.freq <- ts(series)
-  
-  lambda_ts <- BoxCox.lambda(series_ts)
-#   lambda_ts_no.freq <- BoxCox.lambda(series_ts_no.freq)
-  
-  if(output) {
-    print("Create model 1")
-  }
-  auto.fit <- auto.arima(series_ts, approximation=approximation, stepwise=stepwise)
-  if(output) {
-    print("Create model 2")
-  }
-  auto.fit.lambda <- auto.arima(series_ts, lambda=lambda_ts, approximation=approximation, stepwise=stepwise)
-#   print("Create model 3")
-#   auto.fit.no_period <- auto.arima(series_ts_no.freq, approximation=approximation, stepwise=stepwise)
-#   print("Create model 4")
-#   auto.fit.no_period.lambda <- auto.arima(series_ts_no.freq, lambda=lambda_ts_no.freq, approximation=approximation, stepwise=stepwise)
-  
-  box_t <- automatedBoxTest(auto.fit, type="Ljung", output=output)
-  box_t.lambda <- automatedBoxTest(auto.fit.lambda, type="Ljung", output=output)
-  
-#   if(same.lag==TRUE)
-#   {
-#     box_t.no_period <- automatedBoxTest(auto.fit.no_period, lag=box_t$lag, type="Ljung", output=output)
-#     box_t.no_period.lambda <- automatedBoxTest(auto.fit.no_period.lambda, lag=box_t$lag, type="Ljung", output=output)
-#   }
-#   else
-#   {
-#     box_t.no_period <- automatedBoxTest(auto.fit.no_period, type="Ljung", output=output)
-#     box_t.no_period.lambda <- automatedBoxTest(auto.fit.no_period.lambda, type="Ljung", output=output)
-#   }
-  
-  models <- list(m1=auto.fit, m2=auto.fit.lambda) # , m3=auto.fit.no_period, m4=auto.fit.no_period.lambda
-  boxtests <- list(b1=box_t, b2=box_t.lambda) # , b3=box_t.no_period, b4=box_t.no_period.lambda
-  p.values <- c(boxtests[[1]]$p.value, boxtests[[2]]$p.value) #, boxtests[[3]]$p.value, boxtests[[4]]$p.value
-  
-  if(output) {
-    print("p.values: ")
-    print(p.values)
-  }
-  
-  # compare output of the Ljung box test to determine
-  # which model exhibits a more advantageous distribution
-  # within the residuals
-  pos <- match(max(p.values), p.values)
-  resultModel <- models[[pos]]
-  resultTest <- boxtests[[pos]]
-
-  if(output)
-  {
-    print("Resulting model:")
-    print(resultModel$coef)
-    print(paste("model parameters (aic,aicc,bic):",resultModel$aic,resultModel$aicc,resultModel$bic))
-    print(paste("test p-value:",resultTest$p.value))
-  }
-  
-  return(resultModel)
-}
-
-
-
-# not really useful, only one specific lag is examined
-# see function automatedBoxTest
-avgBoxTest <- function(x, lag.min=10, lag.max=80, type = c("Box-Pierce", "Ljung-Box"), fitdf=0)
+#' iterated_box_test: (currently not used) function to generate box tests between a 
+#' defined minimum and maximum lag
+#' -----------------
+#' @return the box test object that exhibited the largest p-value
+iterated_box_test <- function(x, lag.min=10, lag.max=80, type = c("Box-Pierce", "Ljung-Box"), fitdf=0)
 {
   lag_vec <- lag.min:lag.max
   len <- length(lag_vec)
@@ -426,11 +409,13 @@ avgBoxTest <- function(x, lag.min=10, lag.max=80, type = c("Box-Pierce", "Ljung-
 }
 
 
+#' hello_world: test function for R
 hello_world <- function(hi) {
   return(paste("Hello, ",hi,sep=""))
 }
 
 
+#' palindrome: test function for R
 palindrome <- function(p) {
   for(i in 1:floor(nchar(p)/2) ) {
     r <- nchar(p) - i + 1
@@ -438,147 +423,3 @@ palindrome <- function(p) {
   }
   TRUE
 }
-
-
-myacf <- function (x, lag.max = NULL, type = c("correlation", "covariance", "partial"), plot = TRUE, na.action = na.fail, demean = TRUE, ...) 
-{
-  type <- match.arg(type)
-  if (type == "partial") {
-    m <- match.call()
-    m[[1L]] <- quote(stats::pacf)
-    m$type <- NULL
-    return(eval(m, parent.frame()))
-  }
-  series <- deparse(substitute(x))
-  x <- na.action(as.ts(x))
-  x.freq <- frequency(x)
-  x <- as.matrix(x)
-  if (!is.numeric(x)) 
-    stop("'x' must be numeric")
-  sampleT <- as.integer(nrow(x))
-  nser <- as.integer(ncol(x))
-  if (is.na(sampleT) || is.na(nser)) 
-    stop("'sampleT' and 'nser' must be integer")
-  if (is.null(lag.max)) 
-    lag.max <- floor(10 * (log10(sampleT) - log10(nser)))
-  lag.max <- as.integer(min(lag.max, sampleT - 1L))
-  if (is.na(lag.max) || lag.max < 0) 
-    stop("'lag.max' must be at least 0")
-  if (demean) 
-    x <- sweep(x, 2, colMeans(x, na.rm = TRUE), check.margin = FALSE)
-  lag <- matrix(1, nser, nser)
-  lag[lower.tri(lag)] <- -1
-  acf <- .Call(C_acf, x, lag.max, type == "correlation")
-  lag <- outer(0:lag.max, lag/x.freq)
-  acf.out <- structure(list(acf = acf, type = type, n.used = sampleT, 
-                            lag = lag, series = series, snames = colnames(x)), class = "acf")
-  if (plot) {
-    plot.acf(acf.out, ...)
-    invisible(acf.out)
-  }
-  else acf.out
-}
-
-
-myplotacf <- function (x, ci = 0.95, type = "h", xlab = "Lag", ylab = NULL, 
-                       ylim = NULL, main = NULL, ci.col = "blue", ci.type = c("white", "ma"), max.mfrow = 6, ask = Npgs > 1 && dev.interactive(), 
-                       mar = if (nser > 2) c(3, 2, 2, 0.8) else par("mar"), oma = if (nser > 2) c(1, 1.2, 1, 1) else par("oma"), mgp = if (nser > 2) c(1.5, 0.6, 0) else par("mgp"), xpd = par("xpd"), 
-                       cex.main = if (nser > 2) 1 else par("cex.main"), verbose = getOption("verbose"), 
-                       ...) 
-{
-  ci.type <- match.arg(ci.type)
-  if ((nser <- ncol(x$lag)) < 1L) 
-    stop("x$lag must have at least 1 column")
-  if (is.null(ylab)) 
-    ylab <- switch(x$type, correlation = "ACF", covariance = "ACF (cov)", 
-                   partial = "Partial ACF")
-  if (is.null(snames <- x$snames)) 
-    snames <- paste("Series ", if (nser == 1L) 
-      x$series
-      else 1L:nser)
-  with.ci <- ci > 0 && x$type != "covariance"
-  with.ci.ma <- with.ci && ci.type == "ma" && x$type == "correlation"
-  if (with.ci.ma && x$lag[1L, 1L, 1L] != 0L) {
-    warning("can use ci.type=\"ma\" only if first lag is 0")
-    with.ci.ma <- FALSE
-  }
-  clim0 <- if (with.ci) 
-    qnorm((1 + ci)/2)/sqrt(x$n.used)
-  else c(0, 0)
-  Npgs <- 1L
-  nr <- nser
-  if (nser > 1L) {
-    sn.abbr <- if (nser > 2L) 
-      abbreviate(snames)
-    else snames
-    if (nser > max.mfrow) {
-      Npgs <- ceiling(nser/max.mfrow)
-      nr <- ceiling(nser/Npgs)
-    }
-    opar <- par(mfrow = rep(nr, 2L), mar = mar, oma = oma, 
-                mgp = mgp, ask = ask, xpd = xpd, cex.main = cex.main)
-    on.exit(par(opar))
-    if (verbose) {
-      message("par(*) : ", appendLF = FALSE, domain = NA)
-      str(par("mfrow", "cex", "cex.main", "cex.axis", "cex.lab", 
-              "cex.sub"))
-    }
-  }
-  if (is.null(ylim)) {
-    ylim <- range(x$acf[, 1L:nser, 1L:nser], na.rm = TRUE)
-    if (with.ci) 
-      ylim <- range(c(-clim0, clim0, ylim))
-    if (with.ci.ma) {
-      for (i in 1L:nser) {
-        clim <- clim0 * sqrt(cumsum(c(1, 2 * x$acf[-1, 
-                                                   i, i]^2)))
-        ylim <- range(c(-clim, clim, ylim))
-      }
-    }
-  }
-  for (I in 1L:Npgs) for (J in 1L:Npgs) {
-    dev.hold()
-    iind <- (I - 1) * nr + 1L:nr
-    jind <- (J - 1) * nr + 1L:nr
-    if (verbose) 
-      message("Page [", I, ",", J, "]: i =", paste(iind, 
-                                                   collapse = ","), "; j =", paste(jind, collapse = ","), 
-              domain = NA)
-    for (i in iind) for (j in jind) if (max(i, j) > nser) {
-      frame()
-      box(col = "light gray")
-    }
-    else {
-      clim <- if (with.ci.ma && i == j) 
-        clim0 * sqrt(cumsum(c(1, 2 * x$acf[-1, i, j]^2)))
-      else clim0
-      plot(x$lag[, i, j], x$acf[, i, j], type = type, xlab = xlab, 
-           ylab = if (j == 1) 
-             ylab
-           else "", ylim = ylim, ...)
-      abline(h = 0)
-      if (with.ci && ci.type == "white") 
-        abline(h = c(clim, -clim), col = ci.col, lty = 2)
-      else if (with.ci.ma && i == j) {
-        clim <- clim[-length(clim)]
-        lines(x$lag[-1, i, j], clim, col = ci.col, lty = 2)
-        lines(x$lag[-1, i, j], -clim, col = ci.col, lty = 2)
-      }
-      title(if (!is.null(main)) 
-        main
-        else if (i == j) 
-          snames[i]
-        else paste(sn.abbr[i], "&", sn.abbr[j]), line = if (nser > 
-                                                              2) 
-          1
-        else 2)
-    }
-    if (Npgs > 1) {
-      mtext(paste("[", I, ",", J, "]"), side = 1, line = -0.2, 
-            adj = 1, col = "dark gray", cex = 1, outer = TRUE)
-    }
-    dev.flush()
-  }
-  invisible()
-}
-

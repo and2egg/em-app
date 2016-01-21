@@ -5,40 +5,47 @@ import java.util.Date;
 import javax.ejb.Schedule;
 import javax.ejb.Schedules;
 import javax.ejb.Stateless;
+import javax.inject.Inject;
+
+import at.ac.tuwien.thesis.caddc.rest.service.DAPricesResourceRESTService;
+import at.ac.tuwien.thesis.caddc.rest.service.RManagerResourceRESTService;
 
 @Stateless
 public class Scheduler {
+	
+	public static final Long LOCATION_HELSINKI = 1L;
+	public static final Long LOCATION_STOCKHOLM = 2L;
+	
+	@Inject
+	DAPricesResourceRESTService daPriceService;
+	
+	@Inject
+	RManagerResourceRESTService rManagerService;
 
-////	Example with more schedules on the same method
+	
 //	@Schedules ({
-//	    @Schedule(second="0", minute="*", hour="*"),
-//	    @Schedule(second="0", minute="*", hour="6", timezone="America/New_York"),
+////	    @Schedule(second="0", minute="0", hour="*"),
+//	    @Schedule(second="0", minute="0", hour="15", timezone="Europe/Helsinki")
 //	})
-//	public void importData() {
-//		System.out.println("Scheduler active on "+new Date());
-//		String urlIsoNe = "https://webservices.iso-ne.com/api/v1.1/hourlylmp/da/final/day/20150622/location/4008";
-////		IDataFetch dataFetch = new XMLDataFetch();
-////		dataFetch.fetch(urlIsoNe);
-//		
-//		if(System.getProperty("javax.net.ssl.trustStore") == null) {
-//			System.setProperty("javax.net.ssl.trustStore","C:\\Program Files\\Java\\jdk1.7.0_79\\jre\\lib\\security\\cacerts");
-//		}
-////		RESTClient client = new RESTClient();
-////		client.fetchURL(urlIsoNe);
-//	}
-//	
-//	@Schedule(second="0", minute="0", hour="3")
-//	public void importNordPoolData() {
-//		System.out.println("Scheduler NordPool active on "+new Date());
-//		String url = "http://www.nordpoolspot.com/globalassets/marketdata-excel-files/elspot-prices_2014_hourly_eur.xls";
-////		String result = RESTClient.fetchDataString(url);
-////		System.out.println("DATA FETCH\n"+NordPoolHelsinkiParser.parsePrices(result));
-//	}
-//	
-//	@Schedule(second="0", minute="0", hour="*")
-//	public void importNordPoolFinlandData() {
-//		System.out.println("NordPoolFinland Scheduler active on "+new Date());
-//		String url = "http://www.nordpoolspot.com/Market-data1/Elspot/Area-Prices/FI/Hourly/?view=table";
-////		NordPoolHelsinkiParser.parsePrices(url);
-//	}
+	public void importData() {
+		System.out.println("Helsinki price scheduler active on "+new Date());
+		
+		daPriceService.importMarketDataPerLocation(LOCATION_HELSINKI, 2015, 2015);
+		
+		rManagerService.generateModels(LOCATION_HELSINKI, 14, "2014-07-07", "2014-07-10", true);
+		
+		rManagerService.generateForecasts();
+	}
+	
+//	@Schedule(second="0", minute="0", hour="15", timezone="Europe/Stockholm")
+	public void importStockholmPriceData() {
+		System.out.println("Stockholm price scheduler active on "+new Date());
+		
+		daPriceService.importMarketDataPerLocation(LOCATION_STOCKHOLM, 2015, 2015);
+		
+		rManagerService.generateModels(LOCATION_STOCKHOLM, 14, "2014-07-07", "2014-07-10", true);
+		
+		rManagerService.generateForecasts();
+	}
+	
 }

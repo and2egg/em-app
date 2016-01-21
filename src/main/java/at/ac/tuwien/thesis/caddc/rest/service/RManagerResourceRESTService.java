@@ -85,16 +85,16 @@ public class RManagerResourceRESTService {
      * and for all dates between the given start and end date strings
      * @param locationId the location id of the location for which to generate the models
      * @param trainingsPeriod the training period for the model in days, e.g. 14 days for 2 weeks
-     * @param startDateString the starting date for which to generate models
-     * @param endDateString the end date for which to generate models
-     * @return a Response indicating the status (success/failure) of the calculation
+     * @param startDateString the starting date for which to generate models (Dateformat: yyyy-MM-dd or yyyy-MM-dd HH:mm:ss)
+     * @param endDateString the end date for which to generate models (Dateformat: yyyy-MM-dd or yyyy-MM-dd HH:mm:ss)
+     * @return a Response indicating the status (success/failure) of the calculation 
      */
     @GET
     @Path("/generatemodels/{loc_id}/{training_period}/{startDate}/{endDate}")
     @Produces(MediaType.APPLICATION_JSON)
     public Response generateModels(@PathParam("loc_id") Long locationId, @PathParam("training_period") Integer trainingsPeriod, 
     						@PathParam("startDate") String startDateString, @PathParam("endDate") String endDateString, 
-    						@DefaultValue("false") @QueryParam("transformPrice") Boolean transformPrice) {
+    						@DefaultValue("true") @QueryParam("transformPrice") Boolean transformPrice) {
     	Date start = DateParser.parseDate(startDateString);
     	Date end = DateParser.parseDate(endDateString);
     	
@@ -157,7 +157,7 @@ public class RManagerResourceRESTService {
     @Path("/generatemodel/{modelName}/{loc_id}/{startDate}/{endDate}")
     @Produces(MediaType.APPLICATION_JSON)
     public Response generateModel(@PathParam("modelName") String modelName, @PathParam("loc_id") Long locationId, @PathParam("startDate") String startTraining, 
-    								@PathParam("endDate") String endTraining, @DefaultValue("false") @QueryParam("transformPrice") Boolean transformPrice) {
+    								@PathParam("endDate") String endTraining, @DefaultValue("true") @QueryParam("transformPrice") Boolean transformPrice) {
     	String result;
     	Response priceResponse = pricesRestService.retrieveDAPricesCSV(locationId, startTraining, endTraining, transformPrice);
     	String csvData = priceResponse.getEntity().toString();

@@ -194,6 +194,7 @@ public class RManager {
 	    
 	    Integer locId = locationId.intValue();
 	    String pattern = ".*_"+locId+"_"+trainingsPeriod+"d_.*"; // get modelnames containing the given location id
+	    														// and trainings period
 	    
 	    String[] names = c.eval("list.files(path=\""+modelPath+"\", pattern=\""+pattern+"\")").asStrings();
 	    Arrays.sort(names);

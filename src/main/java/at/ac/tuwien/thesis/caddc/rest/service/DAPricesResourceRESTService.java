@@ -26,11 +26,11 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import at.ac.tuwien.thesis.caddc.data.market.MarketData;
-import at.ac.tuwien.thesis.caddc.data.market.MarketDataBelgium;
-import at.ac.tuwien.thesis.caddc.data.market.MarketDataFinland;
-import at.ac.tuwien.thesis.caddc.data.market.MarketDataMaine;
-import at.ac.tuwien.thesis.caddc.data.market.MarketDataMassachussetts;
-import at.ac.tuwien.thesis.caddc.data.market.MarketDataSweden;
+import at.ac.tuwien.thesis.caddc.data.market.da.MarketDataBelgium;
+import at.ac.tuwien.thesis.caddc.data.market.da.MarketDataFinland;
+import at.ac.tuwien.thesis.caddc.data.market.da.MarketDataMaine;
+import at.ac.tuwien.thesis.caddc.data.market.da.MarketDataMassachussetts;
+import at.ac.tuwien.thesis.caddc.data.market.da.MarketDataSweden;
 import at.ac.tuwien.thesis.caddc.model.DAPrice;
 import at.ac.tuwien.thesis.caddc.model.Location;
 import at.ac.tuwien.thesis.caddc.persistence.DAPricePersistence;
@@ -156,7 +156,7 @@ public class DAPricesResourceRESTService {
     @Path("/price/localTZ/{loc_id}/{startDate}/{endDate}")
     @Produces(MediaType.APPLICATION_JSON)
     public Response retrieveDAPricesLocalTZ(@PathParam("loc_id") Long locationId, @PathParam("startDate") String startDate, 
-    										@PathParam("endDate") String endDate, @DefaultValue("false") @QueryParam("transformPrice") Boolean transformPrice) {
+    										@PathParam("endDate") String endDate, @DefaultValue("true") @QueryParam("transformPrice") Boolean transformPrice) {
     	Location location = locationRepository.findById(locationId);
     	if(location == null) 
     		return Response.status(Response.Status.BAD_REQUEST).entity("DA Price save: Invalid location").build();
@@ -248,7 +248,7 @@ public class DAPricesResourceRESTService {
     @Path("/price/{loc_id}/{startDate}/{endDate}")
     @Produces(MediaType.APPLICATION_JSON)
     public Response retrieveDAPrices(@PathParam("loc_id") Long locationId, @PathParam("startDate") String startDateString, 
-    								@PathParam("endDate") String endDateString, @DefaultValue("false") @QueryParam("transformPrice") Boolean transformPrice) {
+    								@PathParam("endDate") String endDateString, @DefaultValue("true") @QueryParam("transformPrice") Boolean transformPrice) {
     	Location location = null;
     	if(locationId != -1) {
     		location = locationRepository.findById(locationId);
@@ -339,7 +339,7 @@ public class DAPricesResourceRESTService {
     @Path("/price/csv/localTZ/{loc_id}/{startDate}/{endDate}")
     @Produces(MediaType.APPLICATION_JSON)
     public Response retrieveDAPricesCSVLocalTZ(@PathParam("loc_id") Long locationId, @PathParam("startDate") String startDate, 
-    										@PathParam("endDate") String endDate, @DefaultValue("false") @QueryParam("transformPrice") Boolean transformPrice) {
+    										@PathParam("endDate") String endDate, @DefaultValue("true") @QueryParam("transformPrice") Boolean transformPrice) {
     	Response response = retrieveDAPricesLocalTZ(locationId, startDate, endDate, transformPrice);
     	List<DAPrice> prices = (List<DAPrice>)response.getEntity();
     	StringBuilder builder = new StringBuilder();
@@ -371,7 +371,7 @@ public class DAPricesResourceRESTService {
     @Path("/price/csv/{loc_id}/{startDate}/{endDate}")
     @Produces(MediaType.APPLICATION_JSON)
     public Response retrieveDAPricesCSV(@PathParam("loc_id") Long locationId, @PathParam("startDate") String startDate, 
-    									@PathParam("endDate") String endDate, @DefaultValue("false") @QueryParam("transformPrice") Boolean transformPrice) {
+    									@PathParam("endDate") String endDate, @DefaultValue("true") @QueryParam("transformPrice") Boolean transformPrice) {
     	Response response = retrieveDAPrices(locationId, startDate, endDate, transformPrice);
     	List<DAPrice> prices = (List<DAPrice>)response.getEntity();
     	StringBuilder builder = new StringBuilder();
