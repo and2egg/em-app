@@ -21,13 +21,7 @@ import at.ac.tuwien.thesis.caddc.util.DateUtils;
  * Defines a MarketData Instance responsible for retrieving energy
  * market data from different sources and locations
  */
-//@ApplicationScoped
 public abstract class MarketData {
-	
-	/**
-	 * The interface to the da price persistence provider
-	 */
-    private DAPricePersistence daPriceResource;
 	
 	/**
 	 * The location associated with this MarketData Instance
@@ -35,18 +29,11 @@ public abstract class MarketData {
 	private Location location;
 	
 	/**
-	 * The resourceManager for this MarketData Instance
-	 * Assigned in subclasses
-	 */
-	protected ResourceManager resourceManager;
-	
-	/**
 	 * Create a MarketData Instance with the given location and parameters
 	 * @param location the location for this MarketData Instance
 	 */
-	public MarketData(Location location, DAPricePersistence persistence) {
+	public MarketData(Location location) {
 		this.location = location;
-		this.daPriceResource = persistence;
 	}
 	
 	/**
@@ -72,32 +59,18 @@ public abstract class MarketData {
 	 * Get the preferred resource type for this MarketData Instance
 	 * @return the preferred resource type
 	 */
-	public ResourceType getResourceType() {
-		return resourceManager.get();
-	}
+	public abstract ResourceType getResourceType();
 	
 	/**
 	 * Get a specific resource type for this MarketData Instance
 	 * @return the preferred resource type
 	 */
-	public ResourceType getResourceType(Integer index) {
-		return resourceManager.get(index);
-	}
+	public abstract ResourceType getResourceType(Integer index);
 	
 	/**
 	 * Import prices for the given year into the database
 	 * @param year the year for which to save the energy prices
 	 * @throws ImportDataException is thrown when data import failed
 	 */
-	public void importPrices(Integer year) throws ImportDataException {
-		Date currentDate = DateUtils.getCurrentDateWithTimeZone(getLocation().getTimeZone());
-		Date maxDate = daPriceResource.findMaxDate(getLocation());
-		if(!currentDate.after(maxDate)) 
-			return;
-		try {
-			daPriceResource.saveDAPrices(fetchPrices(year), getLocation(), maxDate);
-		} catch (LocationNotFoundException | FetchDataException | ParseException e) {
-			throw new ImportDataException("ImportDataException: "+e.getLocalizedMessage());
-		}
-	}
+	public abstract void importPrices(Integer year) throws ImportDataException;
 }

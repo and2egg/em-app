@@ -8,6 +8,8 @@ import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
 import javax.persistence.ManyToOne;
+import javax.persistence.NamedQueries;
+import javax.persistence.NamedQuery;
 import javax.persistence.Table;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
@@ -19,6 +21,19 @@ import javax.validation.constraints.Size;
  */
 @SuppressWarnings("serial")
 @Entity
+@NamedQueries({
+	@NamedQuery(name="RTPrice.findAll", query="SELECT p FROM RTPrice p " +
+													"ORDER BY id ASC"),
+	@NamedQuery(name="RTPrice.findByDate", query="SELECT p FROM RTPrice p "
+									+ "WHERE p.biddingDate BETWEEN :startDate AND :endDate "
+									+ "ORDER BY p.biddingDate"),
+	@NamedQuery(name="RTPrice.findByDateAndLocation", query="SELECT p FROM RTPrice p "
+									+ "WHERE p.biddingDate BETWEEN :startDate AND :endDate "
+									+ "AND p.location.id = :locationId "
+									+ "ORDER BY p.biddingDate"),
+	@NamedQuery(name="RTPrice.findMaxDate", query="SELECT MAX(p.biddingDate) FROM RTPrice p "
+									+ "WHERE p.location.id = :locationId")
+})
 @Table(
 	name="RT_PRICES"
 )
@@ -41,14 +56,12 @@ public class RTPrice implements Serializable {
 	@NotNull
 	private Integer price;
 	
-	@Size(min=1,max=99)
 	private Integer interval;
 	
 	@Size(min=1, max=10)
 	@Column(name="interval_unit")
 	private String intervalUnit;
 	
-	@Size(min=-12, max=12)
 	@Column(name="time_lag")
 	private Integer timelag;
 	
@@ -142,5 +155,14 @@ public class RTPrice implements Serializable {
 	 */
 	public void setTimelag(Integer timelag) {
 		this.timelag = timelag;
+	}
+	
+	@Override
+	public String toString() {
+		return "RT PRICE: "+
+				"id="+this.getId()+", bid date="+this.getBiddingDate()+
+				", price="+this.getPrice()+", location="+this.getLocation().getName()+
+				", interval="+this.getInterval()+", intervalUnit="+this.getIntervalUnit()+
+				", timelag="+this.getTimelag();
 	}
 }

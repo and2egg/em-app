@@ -12,7 +12,7 @@ import at.ac.tuwien.thesis.caddc.model.DAPrice;
 
 /**
  * <p>
- * Repository for retrieving data from energy markets
+ * Repository for retrieving da price data from energy markets
  * </p>
  * Retrieves data from the database by querying the 
  * EnergyMarket table. 

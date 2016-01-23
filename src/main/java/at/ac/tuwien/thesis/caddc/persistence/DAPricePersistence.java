@@ -116,7 +116,7 @@ public class DAPricePersistence {
 																		// dst time (one hour in milliseconds)
 
     		// skip saving data for dates before the last saved date
-    		if(!cal.getTime().after(lastDate)) {
+    		if(lastDate != null  &&  !cal.getTime().after(lastDate)) {
     			continue;
     		}
     		

@@ -26,11 +26,11 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import at.ac.tuwien.thesis.caddc.data.market.MarketData;
-import at.ac.tuwien.thesis.caddc.data.market.da.MarketDataBelgium;
-import at.ac.tuwien.thesis.caddc.data.market.da.MarketDataFinland;
-import at.ac.tuwien.thesis.caddc.data.market.da.MarketDataMaine;
-import at.ac.tuwien.thesis.caddc.data.market.da.MarketDataMassachussetts;
-import at.ac.tuwien.thesis.caddc.data.market.da.MarketDataSweden;
+import at.ac.tuwien.thesis.caddc.data.market.da.MarketDataBelgiumDA;
+import at.ac.tuwien.thesis.caddc.data.market.da.MarketDataFinlandDA;
+import at.ac.tuwien.thesis.caddc.data.market.da.MarketDataMaineDA;
+import at.ac.tuwien.thesis.caddc.data.market.da.MarketDataMassachussettsDA;
+import at.ac.tuwien.thesis.caddc.data.market.da.MarketDataSwedenDA;
 import at.ac.tuwien.thesis.caddc.model.DAPrice;
 import at.ac.tuwien.thesis.caddc.model.Location;
 import at.ac.tuwien.thesis.caddc.persistence.DAPricePersistence;
@@ -70,11 +70,12 @@ public class DAPricesResourceRESTService {
      */
     @PostConstruct
     public void init() {
-    	marketList.add(new MarketDataFinland(locationRepository.findByName("Helsinki"), daPriceResource));
-    	marketList.add(new MarketDataSweden(locationRepository.findByName("Stockholm"), daPriceResource));
-    	marketList.add(new MarketDataMaine(locationRepository.findByName("Portland"), daPriceResource));
-    	marketList.add(new MarketDataMassachussetts(locationRepository.findByName("Boston"), daPriceResource));
-    	marketList.add(new MarketDataBelgium(locationRepository.findByName("Brussels"), daPriceResource));
+    	marketList.add(new MarketDataFinlandDA(locationRepository.findByName("Hamina"), daPriceResource));
+//    	marketList.add(new MarketDataSwedenDA(locationRepository.findByName("Stockholm"), daPriceResource));
+    	marketList.add(new MarketDataMaineDA(locationRepository.findByName("Portland"), daPriceResource));
+    	marketList.add(new MarketDataMassachussettsDA(locationRepository.findByName("Boston"), daPriceResource));
+    	marketList.add(new MarketDataBelgiumDA(locationRepository.findByName("St. Ghislain"), daPriceResource));
+//    	marketList.add(new MarketDataBelgiumDA(locationRepository.findByName("Potsdam"), daPriceResource));
     }
     
     
