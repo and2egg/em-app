@@ -10,7 +10,7 @@ import at.ac.tuwien.thesis.caddc.data.fetch.exception.MissingDataException;
 import at.ac.tuwien.thesis.caddc.data.format.Resource;
 
 /**
- * 
+ * Class for fetching data from a file
  */
 public class FileDataFetch implements DataFetch {
 

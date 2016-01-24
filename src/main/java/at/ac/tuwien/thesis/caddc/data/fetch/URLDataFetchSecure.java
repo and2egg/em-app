@@ -20,7 +20,7 @@ import at.ac.tuwien.thesis.caddc.data.format.Resource;
 import sun.misc.BASE64Encoder;
 
 /**
- * 
+ * Class for fetching data from a secured URL (https) 
  */
 public class URLDataFetchSecure implements DataFetch {
 
@@ -31,6 +31,8 @@ public class URLDataFetchSecure implements DataFetch {
 	private String acceptProperty;
 	
 	
+	// builder pattern for dynamically
+	// build a url from parameters
 	public static class Builder {
 		// Required properties
 		private String url;

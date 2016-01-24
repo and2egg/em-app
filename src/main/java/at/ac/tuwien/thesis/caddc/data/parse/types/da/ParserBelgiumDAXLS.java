@@ -6,10 +6,11 @@ import java.util.List;
 import at.ac.tuwien.thesis.caddc.data.format.Resource;
 import at.ac.tuwien.thesis.caddc.data.parse.Parser;
 import at.ac.tuwien.thesis.caddc.data.parse.exception.ParseException;
-import at.ac.tuwien.thesis.caddc.data.parse.types.ParserGenericXLS;
+import at.ac.tuwien.thesis.caddc.data.parse.types.ParserXLS;
 
 /**
- * 
+ * Class to fetch an XLS file containing day ahead (DA) 
+ * prices from energy Market Belpex, location Belgium
  */
 public class ParserBelgiumDAXLS implements Parser {
 
@@ -36,7 +37,7 @@ public class ParserBelgiumDAXLS implements Parser {
 	@Override
 	public List<String> parse(Resource resource) throws ParseException {
 		List<String> priceList;
-		Parser parser = new ParserGenericXLS(this.sheetNumber, this.rowOffset, this.colIndices);
+		Parser parser = new ParserXLS(this.sheetNumber, this.rowOffset, this.colIndices);
 		priceList = parser.parse(resource);
 		List<String> transformedPrices = new ArrayList<String>();
 		for(String prices: priceList) {

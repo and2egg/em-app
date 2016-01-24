@@ -19,7 +19,8 @@ import at.ac.tuwien.thesis.caddc.data.parse.Parser;
 import at.ac.tuwien.thesis.caddc.data.parse.exception.ParseException;
 
 /**
- * Class to fetch XML content from a URL
+ * Class to fetch an XML file containing day ahead (DA) 
+ * prices from energy Market ISO-NE, location Maine
  */
 public class ParserMaineDAXML implements Parser {
 
@@ -35,7 +36,7 @@ public class ParserMaineDAXML implements Parser {
 		List<String> priceList = new ArrayList<String>();
 		try {
 			db = dbf.newDocumentBuilder();
-			Document doc = db.parse(resource.getFile());  //db.parse(new URL(url).openStream())
+			Document doc = db.parse(resource.getFile());
 			NodeList list = doc.getElementsByTagName("HourlyLmp");
 			
 			for(int i = 0; i < list.getLength(); i++) {

@@ -12,7 +12,8 @@ import at.ac.tuwien.thesis.caddc.data.format.Resource;
 import at.ac.tuwien.thesis.caddc.data.parse.Parser;
 
 /**
- * 
+ * ResourceType containing path and URL resources mapped to specific years
+ * and a parser for parsing the content provided by the resources
  */
 public abstract class ResourceType {
 	

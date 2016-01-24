@@ -6,7 +6,7 @@ import at.ac.tuwien.thesis.caddc.data.format.Resource;
 import at.ac.tuwien.thesis.caddc.data.parse.exception.ParseException;
 
 /**
- * The interface for all types of parsers
+ * The super interface for all types of parsers
  */
 public interface Parser {
 	

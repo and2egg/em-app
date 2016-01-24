@@ -18,7 +18,7 @@ import at.ac.tuwien.thesis.caddc.data.fetch.exception.MissingDataException;
 import at.ac.tuwien.thesis.caddc.data.format.Resource;
 
 /**
- * 
+ * Class for fetching data from a URL
  */
 public class URLDataFetch implements DataFetch {
 

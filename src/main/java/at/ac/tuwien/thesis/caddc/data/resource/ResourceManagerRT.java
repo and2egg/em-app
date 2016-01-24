@@ -6,7 +6,7 @@ import java.util.List;
 import at.ac.tuwien.thesis.caddc.data.resource.types.ResourceType;
 
 /**
- * 
+ * Resource Manager for resources of RT (real time) prices
  */
 public abstract class ResourceManagerRT extends ResourceManager {
 

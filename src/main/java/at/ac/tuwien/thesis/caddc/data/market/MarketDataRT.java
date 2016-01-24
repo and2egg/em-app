@@ -21,8 +21,8 @@ import at.ac.tuwien.thesis.caddc.persistence.exception.LocationNotFoundException
 import at.ac.tuwien.thesis.caddc.util.DateUtils;
 
 /**
- * Defines a MarketData Instance responsible for retrieving energy
- * market data from different sources and locations
+ * Defines a MarketData Instance responsible for retrieving real time
+ * energy market data from different sources and locations
  */
 public abstract class MarketDataRT extends MarketData {
 	

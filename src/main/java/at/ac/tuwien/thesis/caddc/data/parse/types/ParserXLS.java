@@ -16,15 +16,15 @@ import at.ac.tuwien.thesis.caddc.data.parse.Parser;
 import at.ac.tuwien.thesis.caddc.data.parse.exception.ParseException;
 
 /**
- * 
+ * A general parser for XLS files
  */
-public class ParserGenericXLS implements Parser {
+public class ParserXLS implements Parser {
 
 	private int sheetNumber;
 	private int rowOffset;
 	private Integer[] colIndices;
 	
-	public ParserGenericXLS(int sheetNumber, int rowOffset, Integer[] colIndices) {
+	public ParserXLS(int sheetNumber, int rowOffset, Integer[] colIndices) {
 		this.sheetNumber = sheetNumber;
 		this.rowOffset = rowOffset;
 		this.colIndices = colIndices;

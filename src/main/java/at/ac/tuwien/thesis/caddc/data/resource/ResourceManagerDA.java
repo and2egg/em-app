@@ -7,7 +7,7 @@ import at.ac.tuwien.thesis.caddc.data.resource.types.ResourceType;
 import at.ac.tuwien.thesis.caddc.data.resource.types.da.ResourceTypeMassachussettsDAXLS;
 
 /**
- * 
+ * Resource Manager for resources of DA (day ahead) prices
  */
 public abstract class ResourceManagerDA extends ResourceManager {
 

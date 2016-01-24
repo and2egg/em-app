@@ -66,13 +66,13 @@ public class ParserFinlandDAHTML implements Parser {
 				String price = prices.get(0).text();
 				
 				if(price.length() < 2) {
-					System.out.println(dateString +";"+ timeString +";"+ price);
+					System.out.println("Price String length < 2: "+ dateString +";"+ timeString +";"+ price);
 					continue;
 				}
 				arrPrices.add(dateString +";"+ timeString +";"+ price);
 			}
 		}
-		System.out.println("\nprices length: "+arrPrices.size());
+		System.out.println("\n"+getClass().getSimpleName()+" prices length: "+arrPrices.size());
 		return arrPrices;
 	}
 	

@@ -10,8 +10,8 @@ import at.ac.tuwien.thesis.caddc.persistence.DAPricePersistence;
 
 
 /**
- * Defines a MarketData Instance responsible for retrieving energy
- * market data from Finland for different data sources
+ * Defines a MarketData Instance responsible for retrieving day ahead 
+ * energy market data from Finland for different data sources
  */
 public class MarketDataFinlandDA extends MarketDataDA {
 	

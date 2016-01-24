@@ -4,7 +4,7 @@ import at.ac.tuwien.thesis.caddc.data.fetch.exception.FetchDataException;
 import at.ac.tuwien.thesis.caddc.data.format.Resource;
 
 /**
- * 
+ * Interface for fetching resources from various types of sources
  */
 public interface DataFetch {
 

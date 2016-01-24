@@ -3,7 +3,8 @@ package at.ac.tuwien.thesis.caddc.data.format;
 import java.io.File;
 
 /**
- * 
+ * A wrapper for resources represented as both
+ * a file and a String (content of the file) 
  */
 public class Resource {
 

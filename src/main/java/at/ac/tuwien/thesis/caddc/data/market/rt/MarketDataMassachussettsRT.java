@@ -9,8 +9,8 @@ import at.ac.tuwien.thesis.caddc.persistence.RTPricePersistence;
 
 
 /**
- * Defines a MarketData Instance responsible for retrieving energy
- * market data from Massachussetts for different data sources
+ * Defines a MarketData Instance responsible for retrieving real time 
+ * energy market data from Massachussetts for different data sources
  */
 public class MarketDataMassachussettsRT extends MarketDataRT {
 	

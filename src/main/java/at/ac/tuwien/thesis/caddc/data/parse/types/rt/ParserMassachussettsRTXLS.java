@@ -6,10 +6,11 @@ import java.util.List;
 import at.ac.tuwien.thesis.caddc.data.format.Resource;
 import at.ac.tuwien.thesis.caddc.data.parse.Parser;
 import at.ac.tuwien.thesis.caddc.data.parse.exception.ParseException;
-import at.ac.tuwien.thesis.caddc.data.parse.types.ParserGenericXLS;
+import at.ac.tuwien.thesis.caddc.data.parse.types.ParserXLS;
 
 /**
- * 
+ * Class to fetch an XLS file containing real time (RT) 
+ * prices from energy Market ISO-NE, location Massachussetts
  */
 public class ParserMassachussettsRTXLS implements Parser {
 
@@ -34,7 +35,7 @@ public class ParserMassachussettsRTXLS implements Parser {
 	@Override
 	public List<String> parse(Resource resource) throws ParseException {
 		List<String> priceList;
-		Parser parser = new ParserGenericXLS(this.sheetNumber, this.rowOffset, this.colIndices);
+		Parser parser = new ParserXLS(this.sheetNumber, this.rowOffset, this.colIndices);
 		priceList = parser.parse(resource);
 		List<String> prices = new ArrayList<String>();
 		// iterate through every line and add to csv
