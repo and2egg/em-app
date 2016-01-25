@@ -1,11 +1,17 @@
 package at.ac.tuwien.thesis.caddc.rest.service;
 
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Date;
+import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.logging.Logger;
+
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
 import javax.validation.ConstraintViolation;
@@ -15,6 +21,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+
 import at.ac.tuwien.thesis.caddc.model.Location;
 import at.ac.tuwien.thesis.caddc.persistence.LocationRepository;
 
@@ -38,45 +45,61 @@ public class LocationResourceRESTService {
     @GET
     @Path("/tztest")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response testTZ() {
-    	TimeZone UTC = TimeZone.getTimeZone("UTC");
-    	TimeZone HLS = TimeZone.getTimeZone("Europe/Helsinki");
-    	
-    	Calendar c0 = Calendar.getInstance(TimeZone.getTimeZone("Europe/Helsinki"));
-    	c0.set(2012, 02, 25, 00, 00, 00);
-    	c0.set(Calendar.MILLISECOND, 0);
-    	System.out.println("HELSINKI TIME: "+c0.getTimeInMillis()+", "+c0.getTime()+", "+HLS.getOffset(c0.getTimeInMillis()));
-    	c0.set(2012, 02, 25, 01, 00, 00);
-    	System.out.println("HELSINKI TIME: "+c0.getTimeInMillis()+", "+c0.getTime()+", "+HLS.getOffset(c0.getTimeInMillis()));
-    	c0.set(2012, 02, 25, 02, 00, 00);
-    	System.out.println("HELSINKI TIME: "+c0.getTimeInMillis()+", "+c0.getTime()+", "+HLS.getOffset(c0.getTimeInMillis()));
-    	System.out.println("THIS TIME DOES NOT EXIST !!!!");
-    	c0.set(2012, 02, 25, 03, 00, 00);
-    	System.out.println("HELSINKI TIME: "+c0.getTimeInMillis()+", "+c0.getTime()+", "+HLS.getOffset(c0.getTimeInMillis()));
-    	c0.set(2012, 02, 25, 04, 00, 00);
-    	System.out.println("HELSINKI TIME: "+c0.getTimeInMillis()+", "+c0.getTime()+", "+HLS.getOffset(c0.getTimeInMillis()));
-    	c0.set(2012, 02, 25, 05, 00, 00);
-    	System.out.println("HELSINKI TIME: "+c0.getTimeInMillis()+", "+c0.getTime()+", "+HLS.getOffset(c0.getTimeInMillis()));
-    	c0.set(2012, 02, 25, 06, 00, 00);
-    	System.out.println("HELSINKI TIME: "+c0.getTimeInMillis()+", "+c0.getTime()+", "+HLS.getOffset(c0.getTimeInMillis()));
-
-    	
-    	Calendar c1 = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-    	c1.set(2012, 02, 25, 00, 00, 00);
-    	c1.set(Calendar.MILLISECOND, 0);
-    	System.out.println("UTC TIME: "+c1.getTimeInMillis()+", "+c1.getTime()+", "+HLS.getOffset(c1.getTimeInMillis()));
-    	c1.set(2012, 02, 25, 01, 00, 00);
-    	System.out.println("UTC TIME: "+c1.getTimeInMillis()+", "+c1.getTime()+", "+HLS.getOffset(c1.getTimeInMillis()));
-    	c1.set(2012, 02, 25, 02, 00, 00);
-    	System.out.println("UTC TIME: "+c1.getTimeInMillis()+", "+c1.getTime()+", "+HLS.getOffset(c1.getTimeInMillis()));
-    	c1.set(2012, 02, 25, 03, 00, 00);
-    	System.out.println("UTC TIME: "+c1.getTimeInMillis()+", "+c1.getTime()+", "+HLS.getOffset(c1.getTimeInMillis()));
-    	c1.set(2012, 02, 25, 04, 00, 00);
-    	System.out.println("UTC TIME: "+c1.getTimeInMillis()+", "+c1.getTime()+", "+HLS.getOffset(c1.getTimeInMillis()));
-
-    	
-    	String output = "Finished";
+    public Response testTZ(@QueryParam("dateFrom") String dateFrom, @QueryParam("tz") String timeZone) {
+    
+		String output;
+	
+		if(dateFrom == null) {
+			output = "Please provide a dateFrom parameter in format \"yyyy-MM-dd\" \n";
+		}
+		else if(timeZone == null) {
+    		output = "Please provide a query parameter \"tz\" for the time zone (e.g. tz=Europe/Helsinki) \n";
+    	}
+    	else {
+    		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+    		try {
+				Date date = sdf.parse(dateFrom);
+				Calendar cal = new GregorianCalendar();
+	        	cal.setTime(date);
+	        	cal.set(Calendar.HOUR_OF_DAY, 0);
+	        	cal.set(Calendar.MINUTE, 0);
+	        	cal.set(Calendar.SECOND, 0);
+	        	cal.set(Calendar.MILLISECOND, 0);
+	    		output = checkForDSTShift(cal, timeZone);
+			} catch (ParseException e) {
+				output = "Please provide a date in format \"yyyy-MM-dd\"";
+			}
+    	}
     	return Response.status(200).entity(output).build();
+    }
+    
+    
+    private String checkForDSTShift(Calendar cal, String timeZone) {
+    	
+    	String result = "";
+    	
+    	TimeZone tz = TimeZone.getTimeZone(timeZone);
+    	
+    	DateFormat formatter = new SimpleDateFormat("EEE MMM dd HH:mm:ss zzz yyyy");
+    	formatter.setTimeZone(tz);
+    	
+    	cal.setTimeZone(tz);
+    	
+    	result += "TIME: "+cal.getTimeInMillis()+", "+formatter.format(cal.getTime())+", "+tz.getOffset(cal.getTimeInMillis()) + "\n";
+    	cal.add(Calendar.HOUR_OF_DAY, 1);
+    	result += "TIME: "+cal.getTimeInMillis()+", "+formatter.format(cal.getTime())+", "+tz.getOffset(cal.getTimeInMillis()) + "\n";
+    	cal.add(Calendar.HOUR_OF_DAY, 1);
+    	result += "TIME: "+cal.getTimeInMillis()+", "+formatter.format(cal.getTime())+", "+tz.getOffset(cal.getTimeInMillis()) + "\n";
+    	cal.add(Calendar.HOUR_OF_DAY, 1);
+    	result += "TIME: "+cal.getTimeInMillis()+", "+formatter.format(cal.getTime())+", "+tz.getOffset(cal.getTimeInMillis()) + "\n";
+    	cal.add(Calendar.HOUR_OF_DAY, 1);
+    	result += "TIME: "+cal.getTimeInMillis()+", "+formatter.format(cal.getTime())+", "+tz.getOffset(cal.getTimeInMillis()) + "\n";
+    	cal.add(Calendar.HOUR_OF_DAY, 1);
+    	result += "TIME: "+cal.getTimeInMillis()+", "+formatter.format(cal.getTime())+", "+tz.getOffset(cal.getTimeInMillis()) + "\n";
+    	cal.add(Calendar.HOUR_OF_DAY, 1);
+    	result += "TIME: "+cal.getTimeInMillis()+", "+formatter.format(cal.getTime())+", "+tz.getOffset(cal.getTimeInMillis()) + "\n";
+    	
+    	return result;
     }
     
     

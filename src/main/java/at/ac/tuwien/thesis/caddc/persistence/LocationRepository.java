@@ -23,6 +23,7 @@ import at.ac.tuwien.thesis.caddc.model.Location;
  */
 @ApplicationScoped
 public class LocationRepository {
+	
 
 	@Inject
     private EntityManager em;

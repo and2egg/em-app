@@ -22,6 +22,7 @@ import at.ac.tuwien.thesis.caddc.model.Location;
  */
 @ApplicationScoped
 public class EnergyMarketRepository {
+	
 
     @Inject
     private EntityManager em;

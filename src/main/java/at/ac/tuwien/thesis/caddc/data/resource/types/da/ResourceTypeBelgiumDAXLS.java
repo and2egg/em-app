@@ -10,7 +10,7 @@ public class ResourceTypeBelgiumDAXLS extends ResourceType {
 
 	public ResourceTypeBelgiumDAXLS() {
 		for(Integer year = 2012; year < 2015; year++) {
-			addResourcePath(year, getPath("data", "energydata/BELPEX/spotmarket_data_"+year+".xls"));
+			addResourcePath(year, getPath("data", "energydata/Belpex/spotmarket_data_"+year+".xls"));
 		}
 		this.parser = new ParserBelgiumDAXLS();
 	}

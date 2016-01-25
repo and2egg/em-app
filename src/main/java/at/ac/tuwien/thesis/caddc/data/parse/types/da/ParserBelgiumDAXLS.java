@@ -40,12 +40,27 @@ public class ParserBelgiumDAXLS implements Parser {
 		Parser parser = new ParserXLS(this.sheetNumber, this.rowOffset, this.colIndices);
 		priceList = parser.parse(resource);
 		List<String> transformedPrices = new ArrayList<String>();
+		int hour = 0;
+		
 		for(String prices: priceList) {
 			String[] split = prices.split(";");
+			
+			
 			// go through all 24 prices in the row (24 hours)
 			for(int i = 1; i < split.length; i++) {
 				String result = split[0] + ";"; // date
+				
 				String price = split[i].trim();
+				
+				// check if one hour is missing -> DST activated
+				if(split[24].trim().isEmpty()) {
+					if(i == 1) {
+						result += (i-1) + ";" + price; // encoding hour as i-1
+					}
+					else {
+						result += i + ";" + price;
+					}
+				}
 				if(i == 25 && !price.isEmpty()) {
 					result += 1 + ";" + price; // when hour = 25 (i=25), encode hour as '1'
 				}
@@ -54,6 +69,8 @@ public class ParserBelgiumDAXLS implements Parser {
 				}
 				transformedPrices.add(result);
 			}
+			
+			
 		}
 		return transformedPrices;
 	}
