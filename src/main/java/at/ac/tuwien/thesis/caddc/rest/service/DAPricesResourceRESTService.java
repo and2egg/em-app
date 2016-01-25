@@ -71,7 +71,7 @@ public class DAPricesResourceRESTService {
     @PostConstruct
     public void init() {
     	marketList.add(new MarketDataFinlandDA(locationRepository.findByName("Hamina"), daPriceResource));
-//    	marketList.add(new MarketDataSwedenDA(locationRepository.findByName("Stockholm"), daPriceResource));
+    	marketList.add(new MarketDataSwedenDA(locationRepository.findByName("Stockholm"), daPriceResource));
     	marketList.add(new MarketDataMaineDA(locationRepository.findByName("Portland"), daPriceResource));
     	marketList.add(new MarketDataMassachussettsDA(locationRepository.findByName("Boston"), daPriceResource));
     	marketList.add(new MarketDataBelgiumDA(locationRepository.findByName("St. Ghislain"), daPriceResource));

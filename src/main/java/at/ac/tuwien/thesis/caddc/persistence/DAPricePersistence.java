@@ -142,35 +142,33 @@ public class DAPricePersistence {
     					hour = 3;
     					dstOff = false;
     				}
-    				if(hour == 2) {
+    				else if(hour == 2) {
     					dstOff = true;
     				}
     			}
     		}
     		
-    		
-    		
+    		if(location.getId().equals(LocationType.LOCATION_ST_GHISLAIN)) {
+    			if(d.compareTo(LocationType.getDSTDateOff(location, cal.get(Calendar.YEAR))) == 0) {
+    				if(dstOff  &&  hour == 2) {
+    					dstOff = false;
+    				}
+    				else if(hour == 2) {
+    					cal.set(Calendar.HOUR_OF_DAY, hour-1);
+    					cal.add(Calendar.HOUR_OF_DAY, 1);
+    					dstOff = true;
+    				}
+    			}
+    		}
     		
     		// getTimeInMillis() will always return number of milliseconds since 1970 for UTC time
-    		timeLag = timeZone.getOffset(cal.getTimeInMillis()) / EnergyMarketType.MIN_DST_TIME;
-//    		if(i == 0) {
-//    			timeLagOld = timeLag;
-//    		}
-//    		// DST activated
-//    		else if(timeLagOld < timeLag) {
-//    			dstChange = 1;
-//    		}
-//    		// DST deactivated
-//    		else if(timeLagOld > timeLag) {
-//    			dstChange = -1;
-//    		}
-    	
+    		timeLag = timeZone.getOffset(cal.getTimeInMillis()) / EnergyMarketType.MIN_DST_TIME;    	
     		
     		Calendar from = Calendar.getInstance(timeZone);
     		Calendar to = Calendar.getInstance(timeZone);
     		
-    		from.set(2012, Calendar.MARCH, 24);
-    		to.set(2012, Calendar.MARCH, 26);
+    		from.set(2012, Calendar.OCTOBER, 27);
+    		to.set(2012, Calendar.OCTOBER, 29);
     		// get range for dst time change 4th nov
     		
     		DateFormat formatter = new SimpleDateFormat("EEE MMM dd HH:mm:ss zzz yyyy");

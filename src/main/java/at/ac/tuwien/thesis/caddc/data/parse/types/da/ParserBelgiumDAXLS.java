@@ -48,21 +48,31 @@ public class ParserBelgiumDAXLS implements Parser {
 			
 			// go through all 24 prices in the row (24 hours)
 			for(int i = 1; i < split.length; i++) {
+				
 				String result = split[0] + ";"; // date
 				
 				String price = split[i].trim();
 				
 				// check if one hour is missing -> DST activated
-				if(split[24].trim().isEmpty()) {
-					if(i == 1) {
+				if(split.length < 25) {
+					if(i <= 2) {
 						result += (i-1) + ";" + price; // encoding hour as i-1
 					}
 					else {
 						result += i + ";" + price;
 					}
 				}
-				if(i == 25 && !price.isEmpty()) {
-					result += 1 + ";" + price; // when hour = 25 (i=25), encode hour as '1'
+				// if one additional hour is added -> DST deactivated
+				else if(split.length > 25  &&  !split[25].trim().isEmpty()) {
+					if(i == 4) {
+						String dstChange = result + (i-2) + ";" + split[25].trim(); // insert dst hour for hour "2"
+						transformedPrices.add(dstChange);
+						
+						result += (i-1) + ";" + price; // price at hour 3
+					}
+					else {
+						result += (i-1) + ";" + price;
+					}
 				}
 				else {
 					result += (i-1) + ";" + price; // encoding hour as i-1
