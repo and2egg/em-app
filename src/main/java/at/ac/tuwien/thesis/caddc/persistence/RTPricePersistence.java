@@ -1,5 +1,7 @@
 package at.ac.tuwien.thesis.caddc.persistence;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
@@ -13,6 +15,11 @@ import javax.persistence.TypedQuery;
 import at.ac.tuwien.thesis.caddc.model.DAPrice;
 import at.ac.tuwien.thesis.caddc.model.Location;
 import at.ac.tuwien.thesis.caddc.model.RTPrice;
+import at.ac.tuwien.thesis.caddc.model.handler.EnergyPriceHandler;
+import at.ac.tuwien.thesis.caddc.model.handler.EnergyPriceManager;
+import at.ac.tuwien.thesis.caddc.model.type.EnergyMarketType;
+import at.ac.tuwien.thesis.caddc.model.type.EnergyPriceType;
+import at.ac.tuwien.thesis.caddc.model.type.EnergyPriceType.IntervalType;
 import at.ac.tuwien.thesis.caddc.persistence.exception.LocationNotFoundException;
 import at.ac.tuwien.thesis.caddc.util.DateParser;
 
@@ -51,85 +58,22 @@ public class RTPricePersistence {
 			throw new LocationNotFoundException("Please provide a registered location");
 		}
 		
-		String tz = location.getTimeZone();
-		TimeZone timeZone;
-		if(!tz.isEmpty()) {
-			timeZone = TimeZone.getTimeZone(tz);
-		}
-		else {
-			timeZone = TimeZone.getDefault();
-		}
-		Calendar cal = Calendar.getInstance(timeZone);
-		Calendar temp = Calendar.getInstance();
-    	
-    	for(int i = 0; i < priceData.size(); i++) {
-    		String[] split = priceData.get(i).split(";");
-    		if(split.length != 3) {
-    			System.err.println("Price data format at index "+i+" is invalid: "+priceData.get(i));
-    			continue;
-    		}
-    		String dateString = split[0];
-    		String timeString = split[1];
-    		String price = split[2];
-    		
-    		int finalPrice;
-    		boolean negative = false;
-    		if(price.contains("-")) {
-    			negative = true;
-    		}
-    		if(!price.contains(".") && !price.contains(",")) {
-    			finalPrice = Integer.parseInt(price) * 100;
-    		}
-    		else {
-    			String[] priceParts = null;
-    			if(price.contains(","))
-        			priceParts = price.split(",");
-        		if(price.contains("."))
-        			priceParts = price.split("\\.");
-        		
-        		if(priceParts[1].length() == 1) {
-        			priceParts[1] = priceParts[1] + "0";
-        		}
-        		
-        		int priceBeforeComma = Integer.parseInt(priceParts[0])*100;
-        		int priceAfterComma = Integer.parseInt(priceParts[1]);
-        		finalPrice = priceBeforeComma + priceAfterComma; // price in integer, multiplied by 100
-        		if(negative)
-        			finalPrice *= -1;
-    		}
-    		if(i < 25) {
-    			System.out.println("price for location "+location.getId()+": "+dateString+", "+timeString+", "+price);
-    			System.out.println("price for location "+location.getId()+": "+dateString+", "+timeString+", "+finalPrice);
-    		}
-    		
-    		Date d = DateParser.parseDate(dateString);
-    		temp.setTime(d);
-    		cal.set(temp.get(Calendar.YEAR), temp.get(Calendar.MONTH), temp.get(Calendar.DATE));
-    		
-    		Integer hour = (int)Double.parseDouble(timeString);
-    		cal.set(Calendar.HOUR_OF_DAY, hour); // hour is set on the calendar with local timezone
-    		cal.set(Calendar.MINUTE, 0);
-    		cal.set(Calendar.SECOND, 0);
-    		cal.set(Calendar.MILLISECOND, 0);
-    		
-    		int timeLag = timeZone.getOffset(cal.getTimeInMillis()) / 3600000; // 3600000 is the minimum offset for a 
-																		// dst time (one hour in milliseconds)
-
-    		// skip saving data for dates before the last saved date
-    		if(lastDate != null  &&  !cal.getTime().after(lastDate)) {
-    			continue;
-    		}
-    		
-    		RTPrice rtPrice = new RTPrice();
-        	rtPrice.setBiddingDate(cal.getTime());
-        	rtPrice.setInterval(1);
-        	rtPrice.setIntervalUnit("hour");
+		List<EnergyPriceType> prices = EnergyPriceManager.parsePrices(priceData, location, lastDate);
+		
+		Integer interval = IntervalType.HOURLY.interval();
+		String intervalUnit = IntervalType.HOURLY.intervalUnit();
+		
+		for(EnergyPriceType priceType : prices) {
+			RTPrice rtPrice = new RTPrice();
+        	rtPrice.setBiddingDate(priceType.getDate());
+        	rtPrice.setInterval(interval);
+        	rtPrice.setIntervalUnit(intervalUnit);
         	rtPrice.setLocation(location);
-        	rtPrice.setPrice(finalPrice);
-        	rtPrice.setTimelag(timeLag);
+        	rtPrice.setPrice(priceType.getPrice());
+        	rtPrice.setTimelag(priceType.getTimeLag());
         	
-        	saveRTPrice(rtPrice);
-    	}
+//        	saveRTPrice(rtPrice);
+		}
     }
     
     public Date findMaxDate(Location location) {

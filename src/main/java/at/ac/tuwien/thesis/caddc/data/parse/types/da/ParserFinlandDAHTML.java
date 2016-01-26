@@ -66,16 +66,9 @@ public class ParserFinlandDAHTML implements Parser {
 				String timeString = time.get(0).text().substring(0, 2);
 				String price = prices.get(0).text();
 				
-//				if(DST == true) {
-//					int hour = (int)Double.parseDouble(timeString);
-//					timeString = "0" + String.valueOf(hour-1); // save hour 2 instead of hour 3 (as hour 3 is not existing in DST)
-//					DST = false;
-//				}
-				
 				// price is missing for hour - indicator for missing DST hour
 				if(price.length() < 2) {
 					System.out.println("Price String length < 2: "+ dateString +";"+ timeString +";"+ price);
-//					DST = true;
 					continue;
 				}
 				arrPrices.add(dateString +";"+ timeString +";"+ price);

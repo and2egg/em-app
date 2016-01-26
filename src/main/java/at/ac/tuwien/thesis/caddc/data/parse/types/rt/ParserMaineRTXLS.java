@@ -50,7 +50,7 @@ public class ParserMaineRTXLS implements Parser {
 	}
 	
 	private Integer[] getColumnIndices() {
-		return new Integer[]{0,1,8}; // Column Types: Date, Hour, DA_LMP
+		return new Integer[]{0,1,8}; // Column Types: Date, Hour, RT_LMP
 	}
 	
 }

@@ -52,5 +52,4 @@ public class ParserMaineDAXLS implements Parser {
 	private Integer[] getColumnIndices() {
 		return new Integer[]{0,1,4}; // Column Types: Date, Hour, DA_LMP
 	}
-	
 }
