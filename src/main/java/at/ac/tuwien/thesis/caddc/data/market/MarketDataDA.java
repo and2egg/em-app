@@ -69,8 +69,8 @@ public abstract class MarketDataDA extends MarketData {
 	public void importPrices(Integer year) throws ImportDataException {
 		Date currentDate = DateUtils.getCurrentDateWithTimeZone(getLocation().getTimeZone());
 		Date maxDate = daPriceResource.findMaxDate(getLocation());
-		if(maxDate != null  &&  !currentDate.after(maxDate)) 
-			return;
+//		if(maxDate != null  &&  !currentDate.after(maxDate)) 
+//			return;
 		try {
 			daPriceResource.saveDAPrices(fetchPrices(year), getLocation(), maxDate);
 		} catch (LocationNotFoundException | FetchDataException | ParseException e) {

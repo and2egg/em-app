@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.TimeZone;
 
 import at.ac.tuwien.thesis.caddc.model.Location;
@@ -117,4 +118,9 @@ public class EnergyPriceHandlerFinland extends EnergyPriceHandler {
     	
     	return energyPrices;
     }
+	
+	@Override
+	protected Locale getLocale() {
+		return Locale.FRANCE;
+	}
 }

@@ -30,6 +30,11 @@ import at.ac.tuwien.thesis.caddc.data.market.da.MarketDataMaineDA;
 import at.ac.tuwien.thesis.caddc.data.market.da.MarketDataMassachussettsDA;
 import at.ac.tuwien.thesis.caddc.data.market.rt.MarketDataMaineRT;
 import at.ac.tuwien.thesis.caddc.data.market.rt.MarketDataMassachussettsRT;
+import at.ac.tuwien.thesis.caddc.data.market.rt.MarketDataMichiganRT;
+import at.ac.tuwien.thesis.caddc.data.market.rt.MarketDataOhioRT;
+import at.ac.tuwien.thesis.caddc.data.market.rt.MarketDataPennsylvaniaRT;
+import at.ac.tuwien.thesis.caddc.data.market.rt.MarketDataVirginiaRT;
+import at.ac.tuwien.thesis.caddc.data.market.rt.MarketDataWisconsinRT;
 import at.ac.tuwien.thesis.caddc.model.Location;
 import at.ac.tuwien.thesis.caddc.model.RTPrice;
 import at.ac.tuwien.thesis.caddc.persistence.LocationRepository;
@@ -71,6 +76,11 @@ public class RTPricesResourceRESTService {
     public void init() {
     	marketList.add(new MarketDataMaineRT(locationRepository.findByName("Portland"), rtPriceResource));
     	marketList.add(new MarketDataMassachussettsRT(locationRepository.findByName("Boston"), rtPriceResource));
+    	marketList.add(new MarketDataVirginiaRT(locationRepository.findByName("Richmond"), rtPriceResource));
+    	marketList.add(new MarketDataMichiganRT(locationRepository.findByName("Brighton"), rtPriceResource));
+    	marketList.add(new MarketDataPennsylvaniaRT(locationRepository.findByName("Hatfield"), rtPriceResource));
+    	marketList.add(new MarketDataWisconsinRT(locationRepository.findByName("Madison"), rtPriceResource));
+    	marketList.add(new MarketDataOhioRT(locationRepository.findByName("Georgetown"), rtPriceResource));
     }
     
     

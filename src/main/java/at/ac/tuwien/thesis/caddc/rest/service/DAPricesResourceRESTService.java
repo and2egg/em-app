@@ -28,6 +28,7 @@ import javax.ws.rs.core.Response;
 import at.ac.tuwien.thesis.caddc.data.market.MarketData;
 import at.ac.tuwien.thesis.caddc.data.market.da.MarketDataBelgiumDA;
 import at.ac.tuwien.thesis.caddc.data.market.da.MarketDataFinlandDA;
+import at.ac.tuwien.thesis.caddc.data.market.da.MarketDataGermanyDA;
 import at.ac.tuwien.thesis.caddc.data.market.da.MarketDataMaineDA;
 import at.ac.tuwien.thesis.caddc.data.market.da.MarketDataMassachussettsDA;
 import at.ac.tuwien.thesis.caddc.data.market.da.MarketDataSwedenDA;
@@ -71,11 +72,10 @@ public class DAPricesResourceRESTService {
     @PostConstruct
     public void init() {
     	marketList.add(new MarketDataFinlandDA(locationRepository.findByName("Hamina"), daPriceResource));
-    	marketList.add(new MarketDataSwedenDA(locationRepository.findByName("Stockholm"), daPriceResource));
+    	marketList.add(new MarketDataBelgiumDA(locationRepository.findByName("St. Ghislain"), daPriceResource));
+    	marketList.add(new MarketDataGermanyDA(locationRepository.findByName("Potsdam"), daPriceResource));
     	marketList.add(new MarketDataMaineDA(locationRepository.findByName("Portland"), daPriceResource));
     	marketList.add(new MarketDataMassachussettsDA(locationRepository.findByName("Boston"), daPriceResource));
-    	marketList.add(new MarketDataBelgiumDA(locationRepository.findByName("St. Ghislain"), daPriceResource));
-//    	marketList.add(new MarketDataBelgiumDA(locationRepository.findByName("Potsdam"), daPriceResource));
     }
     
     

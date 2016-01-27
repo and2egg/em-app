@@ -1,11 +1,14 @@
 package at.ac.tuwien.thesis.caddc.model.handler;
 
 import java.text.DateFormat;
+import java.text.NumberFormat;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.TimeZone;
 
 import at.ac.tuwien.thesis.caddc.model.Location;
@@ -26,36 +29,27 @@ public abstract class EnergyPriceHandler {
 	
 	
 	protected Integer parsePrice(String price) {
-    	Integer finalPrice;
-		boolean negative = false;
-		if(price.contains("-")) {
-			negative = true;
-		}
-		// if price is given without comma, save the price
-		// multiplied by 100 (to include cents)
-		if(!price.contains(".") && !price.contains(",")) {
-			finalPrice = Integer.parseInt(price) * 100;
-		}
-		else {
-			String[] priceParts = null;
-			if(price.contains(","))
-    			priceParts = price.split(",");
-    		if(price.contains("."))
-    			priceParts = price.split("\\.");
-    		
-    		// value after comma
-    		if(priceParts[1].length() == 1) {
-    			priceParts[1] = priceParts[1] + "0";
-    		}
-    		
-    		int priceBeforeComma = Integer.parseInt(priceParts[0])*100;
-    		int priceAfterComma = Integer.parseInt(priceParts[1]);
-    		finalPrice = priceBeforeComma + priceAfterComma; // price in integer, multiplied by 100
-    		if(negative)
-    			finalPrice *= -1;
-		}
+    	Integer finalPrice = null;
+		Double pr = parsePriceFormat(price);
+	    if(pr != null) {
+	    	finalPrice = (int)Math.round(pr * 100);
+	    }
 		return finalPrice;
     }
+	
+	
+	private Double parsePriceFormat(String price) {
+		NumberFormat format = NumberFormat.getInstance(getLocale());
+		try {
+			return format.parse(price).doubleValue();
+		} catch (ParseException e) {
+			System.err.println(getClass().getSimpleName()+": Could not parse price "+price);
+		}
+		return null;
+	}
+	
+	
+	protected abstract Locale getLocale();
 	
 	/**
 	 * Checks whether the given date is the date where DST time starts, at the given location

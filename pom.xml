@@ -136,6 +136,13 @@
 			<version>1.8.2</version>
 		</dependency>
 		
+		<!-- Open source csv reader -->
+		<dependency>
+			<groupId>com.opencsv</groupId>
+			<artifactId>opencsv</artifactId>
+			<version>3.3</version>
+		</dependency>
+		
 		<!-- Joda Time for java Time Handling -->
 		<dependency>
 			<groupId>joda-time</groupId>

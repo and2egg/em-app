@@ -25,6 +25,10 @@ public class EnergyPriceManager {
 			handler = new EnergyPriceHandlerISONE();
 		if(location.getEm().getId().equals(EnergyMarketType.EMARKET_BELPEX))
 			handler = new EnergyPriceHandlerBelgium();
+		if(location.getId().equals(LocationType.LOCATION_POTSDAM))
+			handler = new EnergyPriceHandlerGermany();
+		if(location.getEm().getId().equals(EnergyMarketType.EMARKET_PJM))
+			handler = new EnergyPriceHandlerPJM();
 		
 		return handler.parseEnergyPriceData(priceData, location, lastDate, debug);
 	}

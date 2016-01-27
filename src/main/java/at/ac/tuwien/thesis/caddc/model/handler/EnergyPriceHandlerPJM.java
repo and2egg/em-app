@@ -20,7 +20,7 @@ import at.ac.tuwien.thesis.caddc.util.DateParser;
 /**
  * 
  */
-public class EnergyPriceHandlerBelgium extends EnergyPriceHandler {
+public class EnergyPriceHandlerPJM extends EnergyPriceHandler {
 	
 	
 
@@ -37,6 +37,7 @@ public class EnergyPriceHandlerBelgium extends EnergyPriceHandler {
 		boolean dstOn = false;
 		boolean dstOff = false;
 		
+    	
     	for(int i = 0; i < priceData.size(); i++) {
     		String[] split = priceData.get(i).split(";");
     		if(split.length != 3) {
@@ -70,10 +71,10 @@ public class EnergyPriceHandlerBelgium extends EnergyPriceHandler {
     		
     		// Location specific import changes
 			if(isDSTDateOff(d, location)) {
-				if(dstOff  &&  hour == 2) {
+				if(dstOff  &&  hour == 1) {
 					dstOff = false;
 				}
-				else if(hour == 2) {
+				else if(hour == 1) {
 					cal.set(Calendar.HOUR_OF_DAY, hour-1);
 					cal.add(Calendar.HOUR_OF_DAY, 1);
 					dstOff = true;

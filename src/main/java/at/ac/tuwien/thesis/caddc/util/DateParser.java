@@ -15,6 +15,7 @@ public class DateParser {
 	private static final HashMap<String, String> validDateFormats = new HashMap<String, String>() {{
 	    put("^\\d{1,2}-.{3}-\\d{4}$", "dd-MMM-yyyy");
 	    put("^\\d{1,2}-\\d{1,2}-\\d{4}$", "dd-MM-yyyy");
+	    put("^\\d{1,2}\\.\\d{1,2}\\.\\d{4}$", "dd.MM.yyyy");
 	    put("^\\d{4}-\\d{1,2}-\\d{1,2}$", "yyyy-MM-dd");
 	    put("^\\d{1,2}/\\d{1,2}/\\d{4}$", "MM/dd/yyyy");
 	    put("^\\d{8}$", "yyyyMMdd");
@@ -23,6 +24,7 @@ public class DateParser {
 	private static final HashMap<String, String> validDateTimeFormats = new HashMap<String, String>() {{
 	    put("^\\d{1,2}-.{3}-\\d{4}$", "dd-MMM-yyyy HH:mm:ss");
 	    put("^\\d{1,2}-\\d{1,2}-\\d{4}$", "dd-MM-yyyy HH:mm:ss");
+	    put("^\\d{1,2}\\.\\d{1,2}\\.\\d{4}$", "dd.MM.yyyy HH:mm:ss");
 	    put("^\\d{4}-\\d{1,2}-\\d{1,2}$", "yyyy-MM-dd HH:mm:ss");
 	    put("^\\d{1,2}/\\d{1,2}/\\d{4}$", "MM/dd/yyyy HH:mm:ss");
 	    put("^\\d{8}$", "yyyyMMdd HHmmss");

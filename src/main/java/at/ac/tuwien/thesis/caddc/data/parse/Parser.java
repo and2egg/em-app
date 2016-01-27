@@ -10,6 +10,8 @@ import at.ac.tuwien.thesis.caddc.data.parse.exception.ParseException;
  */
 public interface Parser {
 	
+	final String SEPARATOR = ";";
+	
 	/**
 	 * Method to parse prices to a list of Strings from a given Resource
 	 * @param resource the resource from which to parse prices

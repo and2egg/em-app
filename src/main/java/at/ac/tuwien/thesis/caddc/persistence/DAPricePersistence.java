@@ -73,7 +73,7 @@ public class DAPricePersistence {
         	daPrice.setPrice(priceType.getPrice());
         	daPrice.setTimelag(priceType.getTimeLag());
         	
-//        	saveDAPrice(daPrice);
+        	saveDAPrice(daPrice);
 		}
     }
     
