@@ -58,6 +58,14 @@ public class LocationRepository {
         	return null;
         }
     }
+    
+    public List<Location> findAll() {
+        CriteriaBuilder cb = em.getCriteriaBuilder();
+        CriteriaQuery<Location> criteria = cb.createQuery(Location.class);
+        Root<Location> location = criteria.from(Location.class);
+        criteria.select(location).orderBy(cb.asc(location.get("id")));
+        return em.createQuery(criteria).getResultList();
+    }
 
     public List<Location> findAllOrderedByName() {
         CriteriaBuilder cb = em.getCriteriaBuilder();

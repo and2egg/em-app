@@ -31,8 +31,9 @@ public class TimeZoneDSTHandler {
 		Date[] europe2014 = new Date[] { DateParser.parseDate("2014-03-30"), DateParser.parseDate("2014-10-26") };
 		Date[] europe2015 = new Date[] { DateParser.parseDate("2015-03-29"), DateParser.parseDate("2015-10-25") };
 		
-		Long[] euLocations = new Long[] {	LocationType.LOCATION_HAMINA, LocationType.LOCATION_STOCKHOLM, 
-											LocationType.LOCATION_ST_GHISLAIN, LocationType.LOCATION_POTSDAM };
+		Long[] euLocations = new Long[] {	LocationType.LOCATION_HAMINA, 
+											LocationType.LOCATION_ST_GHISLAIN, LocationType.LOCATION_POTSDAM,
+											LocationType.LOCATION_STOCKHOLM };
 		
 		putLocationsAtDST(dstDates2012, euLocations, europe2012);
 		putLocationsAtDST(dstDates2013, euLocations, europe2013);

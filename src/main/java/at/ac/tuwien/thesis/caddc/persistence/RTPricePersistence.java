@@ -72,7 +72,7 @@ public class RTPricePersistence {
         	rtPrice.setPrice(priceType.getPrice());
         	rtPrice.setTimelag(priceType.getTimeLag());
         	
-//        	saveRTPrice(rtPrice);
+        	saveRTPrice(rtPrice);
 		}
     }
     

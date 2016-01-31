@@ -1,11 +1,14 @@
 package at.ac.tuwien.thesis.caddc.rest.service;
 
+import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -24,6 +27,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
 
 import at.ac.tuwien.thesis.caddc.data.market.MarketData;
 import at.ac.tuwien.thesis.caddc.data.market.da.MarketDataBelgiumDA;
@@ -34,11 +38,15 @@ import at.ac.tuwien.thesis.caddc.data.market.da.MarketDataMassachussettsDA;
 import at.ac.tuwien.thesis.caddc.data.market.da.MarketDataSwedenDA;
 import at.ac.tuwien.thesis.caddc.model.DAPrice;
 import at.ac.tuwien.thesis.caddc.model.Location;
+import at.ac.tuwien.thesis.caddc.model.type.EnergyPrice;
 import at.ac.tuwien.thesis.caddc.persistence.DAPricePersistence;
 import at.ac.tuwien.thesis.caddc.persistence.DAPriceRepository;
 import at.ac.tuwien.thesis.caddc.persistence.LocationRepository;
 import at.ac.tuwien.thesis.caddc.persistence.exception.ImportDataException;
 import at.ac.tuwien.thesis.caddc.util.Currency;
+import at.ac.tuwien.thesis.caddc.util.DateParser;
+import at.ac.tuwien.thesis.caddc.util.DateUtils;
+import at.ac.tuwien.thesis.caddc.util.FormatUtils;
 
 /**
  * Price Resource REST Service
@@ -62,6 +70,9 @@ public class DAPricesResourceRESTService {
     @Inject
     private DAPricePersistence daPriceResource;
     
+    @Inject
+    private LocationResourceRESTService locationService;
+    
     
     private List<MarketData> marketList = new ArrayList<MarketData>();
     
@@ -72,10 +83,11 @@ public class DAPricesResourceRESTService {
     @PostConstruct
     public void init() {
     	marketList.add(new MarketDataFinlandDA(locationRepository.findByName("Hamina"), daPriceResource));
-    	marketList.add(new MarketDataBelgiumDA(locationRepository.findByName("St. Ghislain"), daPriceResource));
+    	marketList.add(new MarketDataBelgiumDA(locationRepository.findByName("St.Ghislain"), daPriceResource));
     	marketList.add(new MarketDataGermanyDA(locationRepository.findByName("Potsdam"), daPriceResource));
     	marketList.add(new MarketDataMaineDA(locationRepository.findByName("Portland"), daPriceResource));
     	marketList.add(new MarketDataMassachussettsDA(locationRepository.findByName("Boston"), daPriceResource));
+    	marketList.add(new MarketDataSwedenDA(locationRepository.findByName("Stockholm"), daPriceResource));
     }
     
     
@@ -103,7 +115,8 @@ public class DAPricesResourceRESTService {
     /**
      * Import energy market data per location and time range
      * example: http://localhost:8081/em-app/rest/daprices/import/1/2014/2014
-     * @param locationId the location Id for which to retrieve energy prices
+     * @param locationId if -1 import data from all registered locations, 
+     * 		else the location Id denotes for which location to retrieve energy prices
      * @param yearFrom the year from which to import energy prices
      * @param yearTo the year up to which to import energy prices
      * @return a Response object indicating if the request has been successful
@@ -143,7 +156,7 @@ public class DAPricesResourceRESTService {
     
     /**
      * Retrieve day ahead prices from the location with the given id
-     * and within a start- and enddate, based on the local timezone
+     * and within a start- and enddate, based on the local timezone in JSON format
      * example: http://localhost:8081/em-app/rest/daprices/price/localTZ/1/2014-07-11/2014-07-12
      * @param locationId the id of the location where the query should be executed
      * 					if -1 then all stored locations are queried
@@ -166,49 +179,36 @@ public class DAPricesResourceRESTService {
     	System.out.println("startDate = "+startDate.toString());
     	System.out.println("endDate = "+endDate.toString());
     	
-    	Calendar start = Calendar.getInstance(TimeZone.getTimeZone(location.getTimeZone()));
-    	Calendar end = Calendar.getInstance(TimeZone.getTimeZone(location.getTimeZone()));
+    	TimeZone tz = TimeZone.getTimeZone(location.getTimeZone());
     	
-    	// Check date formats
-    	String format = "";
-    	if(startDate.length() == 10) {
-    		format = "yyyy-MM-dd";
-    	} else if(startDate.length() == 19) {
-    		format = "yyyy-MM-dd HH:mm:ss";
+    	Date sDate = DateParser.parseDate(startDate);
+    	Date eDate = DateParser.parseDate(endDate);
+    	
+    	if(sDate == null || eDate == null) {
+    		String errMsg = "One or both of dates "+startDate+" and "+endDate+" could not be parsed";
+    		System.err.println(errMsg);
+			return Response.status(Response.Status.CONFLICT).entity(errMsg).build();
     	}
-    	SimpleDateFormat sdfStart = new SimpleDateFormat(format);
     	
-    	if(endDate.length() == 10) {
-    		format = "yyyy-MM-dd";
-    	} else if(endDate.length() == 19) {
-    		format = "yyyy-MM-dd HH:mm:ss";
-    	}
-    	SimpleDateFormat sdfEnd = new SimpleDateFormat(format);
-    	try {
-    		// Parse dates
-    		sdfStart.parse(startDate);
-    		sdfEnd.parse(endDate);
-			
-			Calendar s = sdfStart.getCalendar();
-			Calendar e = sdfEnd.getCalendar();
-			System.out.println("S DATE = "+s.getTime());
-			
-			start.set(s.get(Calendar.YEAR), s.get(Calendar.MONTH), s.get(Calendar.DAY_OF_MONTH), 
-					s.get(Calendar.HOUR_OF_DAY), s.get(Calendar.MINUTE), s.get(Calendar.SECOND));
-	    	start.set(Calendar.MILLISECOND, 0);
-	    	
-	    	end.set(e.get(Calendar.YEAR), e.get(Calendar.MONTH), e.get(Calendar.DAY_OF_MONTH), 
-					e.get(Calendar.HOUR_OF_DAY), e.get(Calendar.MINUTE), e.get(Calendar.SECOND));
-	    	end.set(Calendar.MILLISECOND, 0);
-	    	
-	    	System.out.println("START DATE = "+start.getTime());
-		} catch (ParseException e) {
-			System.err.println("Error parsing date: "+e.getLocalizedMessage());
-			return Response.status(Response.Status.CONFLICT).entity("Error parsing date: "+e.getLocalizedMessage()).build();
-		}
+    	Calendar s = Calendar.getInstance();
+		Calendar e = Calendar.getInstance();
+		s.setTime(sDate);
+		e.setTime(eDate);
+		System.out.println("S DATE = "+s.getTime());
+		
+		Calendar start = Calendar.getInstance(tz);
+    	Calendar end = Calendar.getInstance(tz);
+		
+		start.set(s.get(Calendar.YEAR), s.get(Calendar.MONTH), s.get(Calendar.DAY_OF_MONTH), 
+				s.get(Calendar.HOUR_OF_DAY), s.get(Calendar.MINUTE), s.get(Calendar.SECOND));
+    	start.set(Calendar.MILLISECOND, 0);
     	
-    	System.out.println("start time = "+start.getTime());
-    	System.out.println("end time = "+end.getTime());
+    	end.set(e.get(Calendar.YEAR), e.get(Calendar.MONTH), e.get(Calendar.DAY_OF_MONTH), 
+				e.get(Calendar.HOUR_OF_DAY), e.get(Calendar.MINUTE), e.get(Calendar.SECOND));
+    	end.set(Calendar.MILLISECOND, 0);
+    	
+    	System.out.println("start time (localTZ) = "+start.getTime());
+    	System.out.println("end time (localTZ) = "+end.getTime());
     	
     	List<DAPrice> prices = null;
     	String output = "";
@@ -228,17 +228,25 @@ public class DAPricesResourceRESTService {
     			price.setPrice(Currency.convertToDollar(price.getPrice()));
     		}
     	}
+    	
+    	DateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+    	formatter.setTimeZone(tz);
+    	
+    	List<EnergyPrice> finalPrices = new ArrayList<EnergyPrice>();
+    	for(DAPrice price: prices) {
+    		finalPrices.add(new EnergyPrice(formatter.format(price.getBiddingDate()), price.getFinalPrice()));
+    	}
     	System.out.println(output);
-		return Response.status(200).entity(prices).build();
+		return Response.status(200).entity(finalPrices).build();
     }
     
     
     /**
-     * Retrieve day ahead prices from the location with the given id
-     * and within a start- and enddate, based on current local time
-     * example: http://localhost:8081/em-app/rest/daprices/price/1/2014-07-11/2014-07-12?transformPrice=true
-     * @param locationId the id of the location where the query should be executed
-     * 					if -1 then all stored locations are queried
+     * Retrieve day ahead prices from possibly multiple locations with the given ids
+     * within a start- and enddate, based on current local time in JSON format
+     * example: http://localhost:8081/em-app/rest/daprices/price/1,2,4/2014-07-11/2014-07-12?transformPrice=true
+     * @param locationIds the ids of the location where the query should be executed
+     * 					if -1 then all locations containing day ahead data are queried
      * @param startDateString the startdate of the query (Dateformat: yyyy-MM-dd or yyyy-MM-dd HH:mm:ss)
      * @param endDateString the enddate of the query (Dateformat: yyyy-MM-dd or yyyy-MM-dd HH:mm:ss)
      * @param transformPrice a boolean value to indicate whether the prices should be transformed
@@ -246,80 +254,84 @@ public class DAPricesResourceRESTService {
      * @return Response to indicate whether or not the query was successful
      */
     @GET
-    @Path("/price/{loc_id}/{startDate}/{endDate}")
+    @Path("/price/{loc_ids}/{startDate}/{endDate}")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response retrieveDAPrices(@PathParam("loc_id") Long locationId, @PathParam("startDate") String startDateString, 
+    public Response retrieveDAPrices(@PathParam("loc_ids") String locationIds, @PathParam("startDate") String startDateString, 
     								@PathParam("endDate") String endDateString, @DefaultValue("true") @QueryParam("transformPrice") Boolean transformPrice) {
-    	Location location = null;
-    	if(locationId != -1) {
-    		location = locationRepository.findById(locationId);
-        	if(location == null) 
-        		return Response.status(Response.Status.BAD_REQUEST).entity("DA Price save: Invalid location").build();
-
-        	System.out.println("Location = "+location.toString());
+    	
+    	@SuppressWarnings("unchecked")
+		List<Location> locations = (List<Location>) locationService.getDALocations(locationIds).getEntity();
+    	
+    	if(locations.size() == 0) {
+    		return Response.status(Response.Status.BAD_REQUEST).entity("retrieveDAPrices: Invalid location ids").build();
     	}
     	
-    	Calendar start = Calendar.getInstance();
-    	Calendar end = Calendar.getInstance();
+    	Date sDate = DateParser.parseDate(startDateString);
+    	Date eDate = DateParser.parseDate(endDateString);
     	
-    	// Check date formats
-    	String format = "";
-    	if(startDateString.length() == 10) {
-    		format = "yyyy-MM-dd";
-    	} else if(startDateString.length() == 19) {
-    		format = "yyyy-MM-dd HH:mm:ss";
+    	if(sDate == null || eDate == null) {
+    		String errMsg = "One or both of dates "+startDateString+" and "+endDateString+" could not be parsed";
+    		System.err.println(errMsg);
+			return Response.status(Response.Status.CONFLICT).entity(errMsg).build();
     	}
-    	SimpleDateFormat sdfStart = new SimpleDateFormat(format);
     	
-    	if(endDateString.length() == 10) {
-    		format = "yyyy-MM-dd";
-    	} else if(endDateString.length() == 19) {
-    		format = "yyyy-MM-dd HH:mm:ss";
-    	}
-    	SimpleDateFormat sdfEnd = new SimpleDateFormat(format);
-    	try {
-    		// Parse dates
-    		sdfStart.parse(startDateString);
-    		sdfEnd.parse(endDateString);
+    	Calendar s = Calendar.getInstance();
+		Calendar e = Calendar.getInstance();
+		s.setTime(sDate);
+		e.setTime(eDate);
+		
+		TimeZone tz = TimeZone.getTimeZone("UTC");
+		
+		DateFormat formatter = new SimpleDateFormat(DateUtils.DATE_FORMAT);
+    	formatter.setTimeZone(tz);
+		
+		Calendar start = Calendar.getInstance(tz);
+    	Calendar end = Calendar.getInstance(tz);
 			
-			Calendar s = sdfStart.getCalendar();
-			Calendar e = sdfEnd.getCalendar();
-			
-			start.set(s.get(Calendar.YEAR), s.get(Calendar.MONTH), s.get(Calendar.DAY_OF_MONTH), 
-					s.get(Calendar.HOUR_OF_DAY), s.get(Calendar.MINUTE), s.get(Calendar.SECOND));
-	    	start.set(Calendar.MILLISECOND, 0);
-	    	
-	    	end.set(e.get(Calendar.YEAR), e.get(Calendar.MONTH), e.get(Calendar.DAY_OF_MONTH), 
-					e.get(Calendar.HOUR_OF_DAY), e.get(Calendar.MINUTE), e.get(Calendar.SECOND));
-	    	end.set(Calendar.MILLISECOND, 0);
-		} catch (ParseException e) {
-			System.err.println("Error parsing date: "+e.getLocalizedMessage());
-			return Response.status(Response.Status.CONFLICT).entity("Error parsing date: "+e.getLocalizedMessage()).build();
-		}
+		start.set(s.get(Calendar.YEAR), s.get(Calendar.MONTH), s.get(Calendar.DAY_OF_MONTH), 
+				s.get(Calendar.HOUR_OF_DAY), s.get(Calendar.MINUTE), s.get(Calendar.SECOND));
+    	start.set(Calendar.MILLISECOND, 0);
     	
-    	System.out.println("start time = "+start.getTime());
-    	System.out.println("end time = "+end.getTime());
+    	end.set(e.get(Calendar.YEAR), e.get(Calendar.MONTH), e.get(Calendar.DAY_OF_MONTH), 
+				e.get(Calendar.HOUR_OF_DAY), e.get(Calendar.MINUTE), e.get(Calendar.SECOND));
+    	end.set(Calendar.MILLISECOND, 0);
     	
-    	List<DAPrice> prices = null;
+    	System.out.println("start time = "+formatter.format(start.getTime()));
+    	System.out.println("end time = "+formatter.format(end.getTime()));
+    	
     	String output = "";
     	
-    	if(locationId == -1) {
-    		prices = daPriceRepository.findByDate(start.getTime(), end.getTime());
-    		output = "Retrieved da prices from all locations "
-    				+ "from "+startDateString+" to "+endDateString+", dataset length: "+prices.size();
+    	List<List<DAPrice>> listOfPrices = new ArrayList<List<DAPrice>>();
+    	
+    	for(Location loc : locations) {
+    		List<DAPrice> prices = daPriceRepository.findByDateAndLocation(start.getTime(), end.getTime(), loc.getId());
+    		listOfPrices.add(prices);
     	}
-    	else {
-    		prices = daPriceRepository.findByDateAndLocation(start.getTime(), end.getTime(), locationId);
-    		output = "Retrieved da prices from location id "+locationId+" "
-    				+ "from "+startDateString+" to "+endDateString+", dataset length: "+prices.size();
+    	
+    	// check if time series have the same length
+    	if(!checkLengthOfPriceTimeSeries(listOfPrices)) {
+    		return Response.status(Status.PRECONDITION_FAILED).entity("Precondition failed: Length of price time"
+    																	+ " series is not equal").build();
     	}
-    	if(!Currency.isInDollar(locationId) && Boolean.valueOf(transformPrice)) {
-    		for(DAPrice price: prices) {
-    			price.setPrice(Currency.convertToDollar(price.getPrice()));
-    		}
+
+    	Map<String, List<EnergyPrice>> mapLocationToPrices = new LinkedHashMap<String, List<EnergyPrice>>();
+    	
+    	for(List<DAPrice> prices : listOfPrices) {
+    		List<EnergyPrice> finalPrices = new ArrayList<EnergyPrice>();
+        	for(DAPrice price: prices) {
+        		if(!Currency.isInDollar(price.getLocation().getId()) && Boolean.valueOf(transformPrice)) {
+        			price.setPrice(Currency.convertToDollar(price.getPrice()));
+        		}
+        		finalPrices.add(new EnergyPrice(formatter.format(price.getBiddingDate()), price.getFinalPrice()));
+        	}
+        	mapLocationToPrices.put(prices.get(0).getLocation().getName(), finalPrices);
     	}
+    	
+    	output = "Retrieved da prices from location with ids "+locationIds+" "
+				+ "from "+startDateString+" to "+endDateString+", dataset length: "+listOfPrices.get(0).size();
+    	
     	System.out.println(output);
-		return Response.status(200).entity(prices).build();
+		return Response.status(200).entity(mapLocationToPrices).build();
     }
     
     
@@ -333,57 +345,100 @@ public class DAPricesResourceRESTService {
      * @param endDate the enddate of the query (Dateformat: yyyy-MM-dd or yyyy-MM-dd HH:mm:ss)
      * @param transformPrice a boolean value to indicate whether the prices should be transformed
      * 				(converted to a unified currency, e.g. dollars)
-     * @return Response to indicate whether or not the query was successful
+     * @return Response containing a string representation of CSV data
      */
-    @SuppressWarnings("unchecked")
-	@GET
+    @GET
     @Path("/price/csv/localTZ/{loc_id}/{startDate}/{endDate}")
     @Produces(MediaType.APPLICATION_JSON)
     public Response retrieveDAPricesCSVLocalTZ(@PathParam("loc_id") Long locationId, @PathParam("startDate") String startDate, 
     										@PathParam("endDate") String endDate, @DefaultValue("true") @QueryParam("transformPrice") Boolean transformPrice) {
     	Response response = retrieveDAPricesLocalTZ(locationId, startDate, endDate, transformPrice);
-    	List<DAPrice> prices = (List<DAPrice>)response.getEntity();
-    	StringBuilder builder = new StringBuilder();
-    	for(DAPrice price : prices) {
-    		builder.append(price.getBiddingDate());
-    		builder.append(",");
-    		builder.append(price.getPrice().doubleValue() / 100.0);
-    		builder.append(System.lineSeparator());
-    	}
-    	String csv = builder.toString();
-    	return Response.status(200).entity(csv).build();
+    	return Response.status(200).entity(retrieveCSV(response)).build();
     }
     
     
     /**
-     * Retrieve day ahead prices in csv format from the location with the given id
-     * and within a start- and enddate, based on current local time
-     * example: http://localhost:8081/em-app/rest/daprices/price/csv/1/2014-07-07 00:00:00/2014-07-20 23:00:00?transformPrice=true
-     * @param locationId the id of the location where the query should be executed
-     * 					if -1 then all stored locations are queried
+     * Retrieve day ahead prices from possibly multiple locations with the given ids
+     * within a start- and enddate, based on current local time in CSV format
+     * example: http://localhost:8081/em-app/rest/daprices/price/csv/1,2,4/2014-07-11/2014-07-12?transformPrice=true
+     * @param locationIds the ids of the location where the query should be executed
+     * 					if -1 then all locations containing day ahead data are queried
      * @param startDate the startdate of the query (Dateformat: yyyy-MM-dd or yyyy-MM-dd HH:mm:ss)
      * @param endDate the enddate of the query (Dateformat: yyyy-MM-dd or yyyy-MM-dd HH:mm:ss)
      * @param transformPrice a boolean value to indicate whether the prices should be transformed
      * 				(converted to a unified currency, e.g. dollars)
-     * @return Response to indicate whether or not the query was successful
+     * @return Response containing a string representation of CSV data
      */
-    @SuppressWarnings("unchecked")
-	@GET
-    @Path("/price/csv/{loc_id}/{startDate}/{endDate}")
+    @GET
+    @Path("/price/csv/{loc_ids}/{startDate}/{endDate}")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response retrieveDAPricesCSV(@PathParam("loc_id") Long locationId, @PathParam("startDate") String startDate, 
+    public Response retrieveDAPricesCSV(@PathParam("loc_ids") String locationIds, @PathParam("startDate") String startDate, 
     									@PathParam("endDate") String endDate, @DefaultValue("true") @QueryParam("transformPrice") Boolean transformPrice) {
-    	Response response = retrieveDAPrices(locationId, startDate, endDate, transformPrice);
-    	List<DAPrice> prices = (List<DAPrice>)response.getEntity();
+    	Response response = retrieveDAPrices(locationIds, startDate, endDate, transformPrice);
+    	return Response.status(200).entity(retrieveCSV(response)).build();
+    }
+    
+    
+    /**
+     * Retrieve a string of prices in CSV format from the given reponse
+     * containing a list of EnergyPrice objects
+     * @param response the response to parse
+     * @return a string representation of a CSV file for the given response
+     */
+	@SuppressWarnings("unchecked")
+	private String retrieveCSV(Response response) {
+		Map<String, List<EnergyPrice>> mapLocationToPrices = (Map<String, List<EnergyPrice>>) response.getEntity();
     	StringBuilder builder = new StringBuilder();
-    	for(DAPrice price : prices) {
-    		builder.append(price.getBiddingDate());
-    		builder.append(",");
-    		builder.append(price.getPrice().doubleValue() / 100.0);
+    	
+    	// Generate CSV header
+    	builder.append("Date");
+    	for(String location : mapLocationToPrices.keySet()) {
+    		builder.append(FormatUtils.CSV_SEPARATOR);
+    		builder.append(location);
+    	}
+    	builder.append(System.lineSeparator());
+    	
+    	List<List<EnergyPrice>> listOfPrices = new ArrayList<List<EnergyPrice>>();
+    	Iterator<List<EnergyPrice>> it = mapLocationToPrices.values().iterator();
+    	while(it.hasNext()) {
+    		listOfPrices.add(it.next());
+    	}
+    	
+    	// take first price series and iterate over list
+    	// (length of time series should be the same for each series)
+    	List<EnergyPrice> series = listOfPrices.get(0);
+    	
+    	// Generate CSV
+    	for(int i = 0; i < series.size(); i++) {
+    		builder.append(series.get(i).getDate());
+    		
+    		for(List<EnergyPrice> prices : listOfPrices) {
+        		builder.append(FormatUtils.CSV_SEPARATOR);
+        		builder.append(prices.get(i).getPrice());
+        	}    		
     		builder.append(System.lineSeparator());
     	}
-    	String csv = builder.toString();
-    	return Response.status(200).entity(csv).build();
+    	
+    	return builder.toString();
+    }
+    
+    
+	/**
+	 * Check if all contained lists of energy prices are of same length
+	 * @param listOfPrices
+	 * @return true if each price series is of same length, false otherwise
+	 */
+    private boolean checkLengthOfPriceTimeSeries(List<List<DAPrice>> listOfPrices) {
+    	int priceLength = listOfPrices.get(0).size();
+    	for(List<DAPrice> prices : listOfPrices) {
+    		if(prices.size() != priceLength) {
+    			System.err.println("checkLengthOfPriceTimeSeries: the length of price time series ("
+    					+prices.get(0).getLocation().getName()+","+prices.size()+") is different from ("
+    					+listOfPrices.get(0).get(0).getLocation().getName()+","+listOfPrices.get(0).size()+")");
+    			return false;
+    		}
+    	}
+    	return true;
     }
     
 }

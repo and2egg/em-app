@@ -33,6 +33,7 @@ import at.ac.tuwien.thesis.caddc.model.Location;
 import at.ac.tuwien.thesis.caddc.persistence.LocationRepository;
 import at.ac.tuwien.thesis.caddc.service.RManager;
 import at.ac.tuwien.thesis.caddc.util.DateParser;
+import at.ac.tuwien.thesis.caddc.util.DateUtils;
 
 /**
  * R Manager REST Service
@@ -49,9 +50,12 @@ public class RManagerResourceRESTService {
 
     @Inject
     private LocationRepository locationRepository;
+    
+    @Inject
+    private LocationResourceRESTService locationService;
 
     @Inject
-    private DAPricesResourceRESTService pricesRestService;
+    private DAPricesResourceRESTService daPriceService;
     
     @Inject
     private RManager rManager;
@@ -159,7 +163,7 @@ public class RManagerResourceRESTService {
     public Response generateModel(@PathParam("modelName") String modelName, @PathParam("loc_id") Long locationId, @PathParam("startDate") String startTraining, 
     								@PathParam("endDate") String endTraining, @DefaultValue("true") @QueryParam("transformPrice") Boolean transformPrice) {
     	String result;
-    	Response priceResponse = pricesRestService.retrieveDAPricesCSV(locationId, startTraining, endTraining, transformPrice);
+    	Response priceResponse = daPriceService.retrieveDAPricesCSV(String.valueOf(locationId), startTraining, endTraining, transformPrice);
     	String csvData = priceResponse.getEntity().toString();
     	
     	try {
@@ -274,34 +278,30 @@ public class RManagerResourceRESTService {
     @Produces(MediaType.APPLICATION_JSON)
     public Response getMultipleForecastsCsv(@PathParam("loc_ids") String locationIds, @PathParam("training_period") Integer trainingsPeriod,  
     										@PathParam("startDate") String startDate, @PathParam("endDate") String endDate) {
-    	String result = "";
+    	String error = null;
     	String csvData = "";
     	String values[] = null;
     	List<Date> dates = getDates(startDate, endDate);
+    	
+    	@SuppressWarnings("unchecked")
+		List<Location> locations = (List<Location>) locationService.getLocations(locationIds).getEntity();
+    	
     	try {
-    		String[] locs = locationIds.split(",");
-    		String[] locationNames = new String[locs.length];
+    		
     		List<String[]> fcList = new ArrayList<String[]>();
-    		for(int i = 0; i < locs.length; i++) {
-    			Location loc = locationRepository.findById(Long.valueOf(locs[i]));
-    			locationNames[i] = loc.getName();
-    			values = rManager.getForecasts(Long.valueOf(locs[i]), trainingsPeriod, startDate, endDate);
-    			fcList.add(values);
-    		}
-    		
     		StringBuilder builder = new StringBuilder();
-    		
-    		for(int l = 0; l < locationNames.length; l++) {
+    		for(Location loc : locations) {
+    			// setting up CSV header
     			builder.append(",");
-    			builder.append(locationNames[l]);
+    			builder.append(loc.getName());
+    			values = rManager.getForecasts(Long.valueOf(loc.getId()), trainingsPeriod, startDate, endDate);
+    			fcList.add(values);
     		}
     		builder.append(System.lineSeparator());
     		
-    		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     		// add dummy values for the first line (date is not forecasted)
     		Date date = dates.get(0);
-			String dateString = sdf.format(date);
-			builder.append(dateString);
+			builder.append(DateUtils.formatDate(date));
     		for(String[] meanValues : fcList) {
 	    		builder.append(",");
 	    		builder.append(meanValues[0]);
@@ -311,8 +311,7 @@ public class RManagerResourceRESTService {
     		int rows = fcList.get(0).length;
     		for(int i = 0; i < rows; i++) {
     			date = dates.get(i+1);
-    			dateString = sdf.format(date);
-    			builder.append(dateString);
+    			builder.append(DateUtils.formatDate(date));
         		
     	    	for(String[] meanValues : fcList) {
     	    		builder.append(",");
@@ -323,14 +322,17 @@ public class RManagerResourceRESTService {
     		csvData = builder.toString();
 		} catch (RserveException e) {
 			e.printStackTrace();
-			result = e.getMessage();
+			error = e.getMessage();
 		} catch (REXPMismatchException e) {
 			e.printStackTrace();
-			result = e.getMessage();
+			error = e.getMessage();
 		} catch (REngineException e) {
 			e.printStackTrace();
-			result = e.getMessage();
+			error = e.getMessage();
 		}
+    	if(error != null) {
+        	return Response.serverError().entity(error).build();
+    	}
     	String output = csvData;
     	return Response.status(200).entity(output).build();
     }

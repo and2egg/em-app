@@ -15,8 +15,6 @@ import at.ac.tuwien.thesis.caddc.model.Location;
 import at.ac.tuwien.thesis.caddc.model.type.EnergyMarketType;
 import at.ac.tuwien.thesis.caddc.model.type.EnergyPriceType;
 import at.ac.tuwien.thesis.caddc.model.type.LocationType;
-import at.ac.tuwien.thesis.caddc.model.type.LocationTypeFactory;
-import at.ac.tuwien.thesis.caddc.model.type.LocationTypeFinland;
 import at.ac.tuwien.thesis.caddc.util.DateParser;
 
 /**
@@ -25,6 +23,15 @@ import at.ac.tuwien.thesis.caddc.util.DateParser;
 public abstract class EnergyPriceHandler {
 	
 	
+	/**
+	 * Process basic parsed energy prices in strings, retrieve EnergyPriceType containing
+	 * Date, Price and timelag
+	 * @param priceData the parsed energy price data as strings, separated by ParseSeparator
+	 * @param location the location to associate with the energy prices
+	 * @param lastDate the last date of energy prices stored for this location 
+	 * @param debug flag to set whether to print debug output
+	 * @return a list of EnergyPriceType containing Date, Price and timelag
+	 */
 	public abstract List<EnergyPriceType> parseEnergyPriceData(List<String> priceData, Location location, Date lastDate, boolean debug);
 	
 	

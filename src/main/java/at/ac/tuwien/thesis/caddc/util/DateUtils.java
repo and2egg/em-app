@@ -1,5 +1,6 @@
 package at.ac.tuwien.thesis.caddc.util;
 
+import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
@@ -9,6 +10,17 @@ import java.util.TimeZone;
  * 
  */
 public class DateUtils {
+	
+	
+	public static final String DATE_FORMAT = "yyyy-MM-dd HH:mm:ss";
+	
+	private static DateFormat df = new SimpleDateFormat(DATE_FORMAT);
+	
+	
+	public static String formatDate(Date date) {
+		return df.format(date);
+	}
+	
 	
 	public static Date getCurrentDateWithTimeZone(String timeZone) {
 		

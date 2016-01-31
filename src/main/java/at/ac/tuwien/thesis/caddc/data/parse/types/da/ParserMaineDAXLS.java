@@ -41,6 +41,10 @@ public class ParserMaineDAXLS implements Parser {
 		// iterate through every line and add to csv
 		for(String price : priceList) {
 			String[] split = price.split(";");
+			if(split.length < 2) {
+				System.err.println(getClass().getSimpleName()+": split length is "+split.length);
+				continue;
+			}
 			int hour = (int)Double.parseDouble(split[1]); // parse hour
 			hour --; // reduce hour by one to get hours from 0-23 instead of 1-24
 			String result = split[0] + ";" + String.valueOf(hour) + ";" + split[2]; // Date;Hour;Price

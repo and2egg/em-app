@@ -16,7 +16,7 @@ public class Currency {
 	
 	
 	public static boolean isInDollar(Long locationId) {
-		if(locationId == 1 || locationId == 2 || locationId == 5 || locationId == 6) {
+		if(locationId == 1 || locationId == 2 || locationId == 3) {
 			return false;
 		} else {
 			return true;

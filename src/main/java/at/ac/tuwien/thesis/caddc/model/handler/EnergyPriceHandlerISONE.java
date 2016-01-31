@@ -13,8 +13,6 @@ import at.ac.tuwien.thesis.caddc.model.Location;
 import at.ac.tuwien.thesis.caddc.model.type.EnergyMarketType;
 import at.ac.tuwien.thesis.caddc.model.type.EnergyPriceType;
 import at.ac.tuwien.thesis.caddc.model.type.LocationType;
-import at.ac.tuwien.thesis.caddc.model.type.LocationTypeFactory;
-import at.ac.tuwien.thesis.caddc.model.type.LocationTypeFinland;
 import at.ac.tuwien.thesis.caddc.util.DateParser;
 
 /**
@@ -49,14 +47,6 @@ public class EnergyPriceHandlerISONE extends EnergyPriceHandler {
     		String price = split[2];
     		
     		finalPrice = parsePrice(price);
-    		
-    		if(debug) {
-    			// debug output
-        		if(i < 25) {
-        			System.out.println("price for location "+location.getId()+": "+dateString+", "+timeString+", "+price);
-        			System.out.println("price for location "+location.getId()+": "+dateString+", "+timeString+", "+finalPrice);
-        		}
-    		}
     		
     		Date d = DateParser.parseDate(dateString);
     		temp.setTime(d);
@@ -95,11 +85,21 @@ public class EnergyPriceHandlerISONE extends EnergyPriceHandler {
 				}
 			}
     		
+			// skip saving data for dates before the last saved date
+    		if(lastDate != null  &&  !cal.getTime().after(lastDate)) {
+    			continue;
+    		}
+    		
     		// getTimeInMillis() will always return number of milliseconds since 1970 for UTC time
     		timeLag = (int) (timeZone.getOffset(cal.getTimeInMillis()) / EnergyMarketType.MIN_DST_TIME);    	
     		
     		// debug output
     		if(debug) {
+    			
+    			if(i < 25) {
+        			System.out.println("price for location "+location.getId()+": "+dateString+", "+timeString+", "+price);
+        			System.out.println("price for location "+location.getId()+": "+dateString+", "+timeString+", "+finalPrice);
+        		}
     			
     			if((isDSTDateOn(d, location) || isDSTDateOff(d, location))  
     									&&  hour < 6) {
@@ -109,11 +109,6 @@ public class EnergyPriceHandlerISONE extends EnergyPriceHandler {
         			System.out.println("price for location "+location.getId()+": "+dateString+", "+timeString+", "+finalPrice+", "+timeLag
         					+", "+formatter.format(cal.getTime()) + ", "+cal.getTimeInMillis());
     			}
-    		}
-    		
-    		// skip saving data for dates before the last saved date
-    		if(lastDate != null  &&  !cal.getTime().after(lastDate)) {
-    			continue;
     		}
     		
     		EnergyPriceType energyPrice = new EnergyPriceType();

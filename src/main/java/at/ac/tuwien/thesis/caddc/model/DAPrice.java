@@ -113,6 +113,17 @@ public class DAPrice implements Serializable {
 	public void setPrice(Integer price) {
 		this.price = price;
 	}
+	
+	/**
+	 * Get final energy price (converted to double)
+	 * @return the energy price as double value
+	 */
+	public Double getFinalPrice() {
+		if(price != null) { 
+			return price.doubleValue() / 100.0;
+		}
+		return null;
+	}
 
 	/**
 	 * @return the interval

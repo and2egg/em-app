@@ -29,6 +29,8 @@ public class EnergyPriceManager {
 			handler = new EnergyPriceHandlerGermany();
 		if(location.getEm().getId().equals(EnergyMarketType.EMARKET_PJM))
 			handler = new EnergyPriceHandlerPJM();
+		if(location.getId().equals(LocationType.LOCATION_STOCKHOLM))
+			handler = new EnergyPriceHandlerSweden();
 		
 		return handler.parseEnergyPriceData(priceData, location, lastDate, debug);
 	}

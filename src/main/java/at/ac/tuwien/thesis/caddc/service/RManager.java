@@ -81,8 +81,8 @@ public class RManager {
 	 * @param startDateString a string denoting the start date of the list of forecasts
 	 * @param endDateString a string denoting the end date of the list of forecasts
 	 * @return a String array containing the concatenated series of mean forecast values
-	 * 			of all models considered by the parameter filters (one forecast has 
-	 * 			exactly 24 values i.e. one day, therefore a concatenation results in a seamless 
+	 * 			of all models considered by the parameter filters (one model has forecasts for
+	 * 			exactly 24 hours i.e. one day, therefore a concatenation of values results in a seamless 
 	 * 			series of forecast values)
 	 * @throws REXPMismatchException is thrown when a datatype mismatch occurred
 	 * @throws REngineException is thrown when something has gone wrong on the R connection
