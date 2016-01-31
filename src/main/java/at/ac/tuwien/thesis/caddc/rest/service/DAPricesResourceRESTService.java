@@ -155,37 +155,35 @@ public class DAPricesResourceRESTService {
   
     
     /**
-     * Retrieve day ahead prices from the location with the given id
-     * and within a start- and enddate, based on the local timezone in JSON format
-     * example: http://localhost:8081/em-app/rest/daprices/price/localTZ/1/2014-07-11/2014-07-12
-     * @param locationId the id of the location where the query should be executed
-     * 					if -1 then all stored locations are queried
-     * @param startDate the startdate of the query (Dateformat: yyyy-MM-dd or yyyy-MM-dd HH:mm:ss)
-     * @param endDate the enddate of the query (Dateformat: yyyy-MM-dd or yyyy-MM-dd HH:mm:ss)
+     * Retrieve day ahead prices from possibly multiple locations with the given ids
+     * within a start- and enddate, based on the respective local timezone in JSON format
+     * example: http://localhost:8081/em-app/rest/daprices/price/localTZ/1,2,4/2014-07-11/2014-07-12?transformPrice=true
+     * @param locationIds the ids of the location where the query should be executed
+     * 					if -1 then all locations containing day ahead data are queried
+     * @param startDateString the startdate of the query (Dateformat: yyyy-MM-dd or yyyy-MM-dd HH:mm:ss)
+     * @param endDateString the enddate of the query (Dateformat: yyyy-MM-dd or yyyy-MM-dd HH:mm:ss)
      * @param transformPrice a boolean value to indicate whether the prices should be transformed
      * 				(converted to a unified currency, e.g. dollars)
-     * @return Response to indicate whether or not the query was successful
+     * @return Response containing a map of locations to list of EnergyPrices
      */
     @GET
-    @Path("/price/localTZ/{loc_id}/{startDate}/{endDate}")
+    @Path("/price/localTZ/{loc_ids}/{startDate}/{endDate}")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response retrieveDAPricesLocalTZ(@PathParam("loc_id") Long locationId, @PathParam("startDate") String startDate, 
-    										@PathParam("endDate") String endDate, @DefaultValue("true") @QueryParam("transformPrice") Boolean transformPrice) {
-    	Location location = locationRepository.findById(locationId);
-    	if(location == null) 
-    		return Response.status(Response.Status.BAD_REQUEST).entity("DA Price save: Invalid location").build();
-
-    	System.out.println("Location = "+location.toString());
-    	System.out.println("startDate = "+startDate.toString());
-    	System.out.println("endDate = "+endDate.toString());
+    public Response retrieveDAPricesLocalTZ(@PathParam("loc_ids") String locationIds, @PathParam("startDate") String startDateString, 
+    										@PathParam("endDate") String endDateString, @DefaultValue("true") @QueryParam("transformPrice") Boolean transformPrice) {
     	
-    	TimeZone tz = TimeZone.getTimeZone(location.getTimeZone());
+    	@SuppressWarnings("unchecked")
+		List<Location> locations = (List<Location>) locationService.getDALocations(locationIds).getEntity();
     	
-    	Date sDate = DateParser.parseDate(startDate);
-    	Date eDate = DateParser.parseDate(endDate);
+    	if(locations.size() == 0) {
+    		return Response.status(Response.Status.BAD_REQUEST).entity("retrieveDAPrices: Invalid location ids").build();
+    	}
+    	
+    	Date sDate = DateParser.parseDate(startDateString);
+    	Date eDate = DateParser.parseDate(endDateString);
     	
     	if(sDate == null || eDate == null) {
-    		String errMsg = "One or both of dates "+startDate+" and "+endDate+" could not be parsed";
+    		String errMsg = "One or both of dates "+startDateString+" and "+endDateString+" could not be parsed";
     		System.err.println(errMsg);
 			return Response.status(Response.Status.CONFLICT).entity(errMsg).build();
     	}
@@ -194,56 +192,46 @@ public class DAPricesResourceRESTService {
 		Calendar e = Calendar.getInstance();
 		s.setTime(sDate);
 		e.setTime(eDate);
-		System.out.println("S DATE = "+s.getTime());
 		
-		Calendar start = Calendar.getInstance(tz);
-    	Calendar end = Calendar.getInstance(tz);
-		
-		start.set(s.get(Calendar.YEAR), s.get(Calendar.MONTH), s.get(Calendar.DAY_OF_MONTH), 
-				s.get(Calendar.HOUR_OF_DAY), s.get(Calendar.MINUTE), s.get(Calendar.SECOND));
-    	start.set(Calendar.MILLISECOND, 0);
+		List<List<DAPrice>> listOfPrices = processLocalTimeZones(locations, s, e);
     	
-    	end.set(e.get(Calendar.YEAR), e.get(Calendar.MONTH), e.get(Calendar.DAY_OF_MONTH), 
-				e.get(Calendar.HOUR_OF_DAY), e.get(Calendar.MINUTE), e.get(Calendar.SECOND));
-    	end.set(Calendar.MILLISECOND, 0);
-    	
-    	System.out.println("start time (localTZ) = "+start.getTime());
-    	System.out.println("end time (localTZ) = "+end.getTime());
-    	
-    	List<DAPrice> prices = null;
-    	String output = "";
-    	
-    	if(locationId == -1) {
-    		prices = daPriceRepository.findByDate(start.getTime(), end.getTime());
-    		output = "Retrieved da prices in local TZ from all locations "
-    				+ "from "+startDate+" to "+endDate+", dataset length: "+prices.size();
+    	// check if time series have the same length
+    	if(!checkLengthOfPriceTimeSeries(listOfPrices)) {
+    		return Response.status(Status.PRECONDITION_FAILED).entity("Precondition failed: Length of price time"
+    																	+ " series is not equal").build();
     	}
-    	else {
-    		prices = daPriceRepository.findByDateAndLocation(start.getTime(), end.getTime(), locationId);
-    		output = "Retrieved da prices in local TZ from location id "+locationId+" "
-    				+ "from "+startDate+" to "+endDate+", dataset length: "+prices.size();
-    	}
-    	if(!Currency.isInDollar(locationId) && Boolean.valueOf(transformPrice)) {
-    		for(DAPrice price: prices) {
-    			price.setPrice(Currency.convertToDollar(price.getPrice()));
-    		}
+
+    	Map<String, List<EnergyPrice>> mapLocationToPrices = new LinkedHashMap<String, List<EnergyPrice>>();
+    	
+    	DateFormat formatter = new SimpleDateFormat(DateUtils.DATE_FORMAT);
+    	
+    	for(List<DAPrice> prices : listOfPrices) {
+    		// set the right local timezone for the current location
+    		TimeZone tz = TimeZone.getTimeZone(prices.get(0).getLocation().getTimeZone());
+    		formatter.setTimeZone(tz);
+    		
+    		// the final formatted prices for this price time series
+    		List<EnergyPrice> finalPrices = new ArrayList<EnergyPrice>();
+        	for(DAPrice price: prices) {
+        		if(!Currency.isInDollar(price.getLocation().getId()) && Boolean.valueOf(transformPrice)) {
+        			price.setPrice(Currency.convertToDollar(price.getPrice()));
+        		}
+        		finalPrices.add(new EnergyPrice(formatter.format(price.getBiddingDate()), price.getFinalPrice()));
+        	}
+        	mapLocationToPrices.put(prices.get(0).getLocation().getName(), finalPrices);
     	}
     	
-    	DateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-    	formatter.setTimeZone(tz);
+    	String output = "Retrieved da prices in local TZ from location with ids "+locationIds+" "
+				+ "from "+startDateString+" to "+endDateString+", dataset length: "+listOfPrices.get(0).size();
     	
-    	List<EnergyPrice> finalPrices = new ArrayList<EnergyPrice>();
-    	for(DAPrice price: prices) {
-    		finalPrices.add(new EnergyPrice(formatter.format(price.getBiddingDate()), price.getFinalPrice()));
-    	}
     	System.out.println(output);
-		return Response.status(200).entity(finalPrices).build();
+		return Response.status(200).entity(mapLocationToPrices).build();
     }
     
     
     /**
      * Retrieve day ahead prices from possibly multiple locations with the given ids
-     * within a start- and enddate, based on current local time in JSON format
+     * within a start- and enddate, based on UTC time in JSON format
      * example: http://localhost:8081/em-app/rest/daprices/price/1,2,4/2014-07-11/2014-07-12?transformPrice=true
      * @param locationIds the ids of the location where the query should be executed
      * 					if -1 then all locations containing day ahead data are queried
@@ -251,7 +239,7 @@ public class DAPricesResourceRESTService {
      * @param endDateString the enddate of the query (Dateformat: yyyy-MM-dd or yyyy-MM-dd HH:mm:ss)
      * @param transformPrice a boolean value to indicate whether the prices should be transformed
      * 				(converted to a unified currency, e.g. dollars)
-     * @return Response to indicate whether or not the query was successful
+     * @return Response containing a map of locations to list of EnergyPrices
      */
     @GET
     @Path("/price/{loc_ids}/{startDate}/{endDate}")
@@ -336,11 +324,11 @@ public class DAPricesResourceRESTService {
     
     
     /**
-     * Retrieve day ahead prices in csv format from the location with the given id
-     * and within a start- and enddate, based on the local timezone
-     * example: http://localhost:8081/em-app/rest/daprices/price/csv/localTZ/1/2014-07-11/2014-07-12?transformPrice=true
-     * @param locationId the id of the location where the query should be executed
-     * 					if -1 then all stored locations are queried
+     * Retrieve day ahead prices from possibly multiple locations with the given ids
+     * within a start- and enddate, based on the respective local time zone in CSV format
+     * example: http://localhost:8081/em-app/rest/daprices/price/csv/localTZ/1,2,4/2014-07-11/2014-07-12?transformPrice=true
+     * @param locationIds the ids of the location where the query should be executed
+     * 					if -1 then all locations containing day ahead data are queried
      * @param startDate the startdate of the query (Dateformat: yyyy-MM-dd or yyyy-MM-dd HH:mm:ss)
      * @param endDate the enddate of the query (Dateformat: yyyy-MM-dd or yyyy-MM-dd HH:mm:ss)
      * @param transformPrice a boolean value to indicate whether the prices should be transformed
@@ -348,11 +336,11 @@ public class DAPricesResourceRESTService {
      * @return Response containing a string representation of CSV data
      */
     @GET
-    @Path("/price/csv/localTZ/{loc_id}/{startDate}/{endDate}")
+    @Path("/price/csv/localTZ/{loc_ids}/{startDate}/{endDate}")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response retrieveDAPricesCSVLocalTZ(@PathParam("loc_id") Long locationId, @PathParam("startDate") String startDate, 
+    public Response retrieveDAPricesCSVLocalTZ(@PathParam("loc_ids") String locationIds, @PathParam("startDate") String startDate, 
     										@PathParam("endDate") String endDate, @DefaultValue("true") @QueryParam("transformPrice") Boolean transformPrice) {
-    	Response response = retrieveDAPricesLocalTZ(locationId, startDate, endDate, transformPrice);
+    	Response response = retrieveDAPricesLocalTZ(locationIds, startDate, endDate, transformPrice);
     	return Response.status(200).entity(retrieveCSV(response)).build();
     }
     
@@ -376,6 +364,45 @@ public class DAPricesResourceRESTService {
     									@PathParam("endDate") String endDate, @DefaultValue("true") @QueryParam("transformPrice") Boolean transformPrice) {
     	Response response = retrieveDAPrices(locationIds, startDate, endDate, transformPrice);
     	return Response.status(200).entity(retrieveCSV(response)).build();
+    }
+    
+    
+    /**
+     * Get energy prices for locations at local time zones (e.g. each series starting locally at midnight)
+     * @param locations the locations to process
+     * @param startDate the start date of the query
+     * @param endDate the end date of the query
+     * @return a list of lists of DA Prices, one for each location
+     */
+    private List<List<DAPrice>> processLocalTimeZones(List<Location> locations, Calendar startDate, Calendar endDate) {
+    	
+    	List<List<DAPrice>> listOfPrices = new ArrayList<List<DAPrice>>();
+    	
+    	for(Location loc : locations) {
+    		TimeZone tz = TimeZone.getTimeZone(loc.getTimeZone());
+    		
+    		DateFormat formatter = new SimpleDateFormat(DateUtils.DATE_FORMAT);
+        	formatter.setTimeZone(tz);
+    		
+    		Calendar start = Calendar.getInstance(tz);
+        	Calendar end = Calendar.getInstance(tz);
+    		
+    		start.set(startDate.get(Calendar.YEAR), startDate.get(Calendar.MONTH), startDate.get(Calendar.DAY_OF_MONTH), 
+    				startDate.get(Calendar.HOUR_OF_DAY), startDate.get(Calendar.MINUTE), startDate.get(Calendar.SECOND));
+        	start.set(Calendar.MILLISECOND, 0);
+        	
+        	end.set(endDate.get(Calendar.YEAR), endDate.get(Calendar.MONTH), endDate.get(Calendar.DAY_OF_MONTH), 
+    				endDate.get(Calendar.HOUR_OF_DAY), endDate.get(Calendar.MINUTE), endDate.get(Calendar.SECOND));
+        	end.set(Calendar.MILLISECOND, 0);
+        	
+        	System.out.println("start time (localTZ) = "+start.getTime());
+        	System.out.println("end time (localTZ) = "+end.getTime());
+        	
+        	List<DAPrice> prices = daPriceRepository.findByDateAndLocation(start.getTime(), end.getTime(), loc.getId());
+    		listOfPrices.add(prices);
+    	}
+    	
+    	return listOfPrices;
     }
     
     
