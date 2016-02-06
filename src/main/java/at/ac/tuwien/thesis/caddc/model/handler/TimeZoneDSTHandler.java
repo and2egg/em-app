@@ -33,8 +33,10 @@ public class TimeZoneDSTHandler {
 		
 		Long[] euLocations = new Long[] {	LocationType.LOCATION_HAMINA, 
 											LocationType.LOCATION_ST_GHISLAIN, LocationType.LOCATION_POTSDAM,
-											LocationType.LOCATION_STOCKHOLM };
+//											LocationType.LOCATION_STOCKHOLM 
+											};
 		
+		// put all eu locations into the map of the respective year, mapping IDs to Date arrays
 		putLocationsAtDST(dstDates2012, euLocations, europe2012);
 		putLocationsAtDST(dstDates2013, euLocations, europe2013);
 		putLocationsAtDST(dstDates2014, euLocations, europe2014);
@@ -49,6 +51,7 @@ public class TimeZoneDSTHandler {
 				LocationType.LOCATION_RICHMOND, LocationType.LOCATION_BRIGHTON, LocationType.LOCATION_HATFIELD, 
 				LocationType.LOCATION_MADISON, LocationType.LOCATION_GEORGETOWN };
 		
+		// put all us locations into the map of the respective year, mapping IDs to Date arrays
 		putLocationsAtDST(dstDates2012, usLocations, usa2012);
 		putLocationsAtDST(dstDates2013, usLocations, usa2013);
 		putLocationsAtDST(dstDates2014, usLocations, usa2014);

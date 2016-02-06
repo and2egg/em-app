@@ -87,7 +87,7 @@ public class DAPricesResourceRESTService {
     	marketList.add(new MarketDataGermanyDA(locationRepository.findByName("Potsdam"), daPriceResource));
     	marketList.add(new MarketDataMaineDA(locationRepository.findByName("Portland"), daPriceResource));
     	marketList.add(new MarketDataMassachussettsDA(locationRepository.findByName("Boston"), daPriceResource));
-    	marketList.add(new MarketDataSwedenDA(locationRepository.findByName("Stockholm"), daPriceResource));
+//    	marketList.add(new MarketDataSwedenDA(locationRepository.findByName("Stockholm"), daPriceResource));
     }
     
     
@@ -142,7 +142,8 @@ public class DAPricesResourceRESTService {
     			return Response.status(503).entity("Request failed: Retrieving data for all locations for years "+yearFrom+" to "+yearTo).build();
     		}
     		else {
-    			return Response.status(503).entity("Request failed: Retrieving data for years "+yearFrom+" to "+yearTo+" for location with ID "+locationId).build();
+    			e.printStackTrace();
+    			return Response.status(503).entity(e.getLocalizedMessage()+" Request failed: Retrieving data for years "+yearFrom+" to "+yearTo+" for location with ID "+locationId).build();
     		}
 		}
     	if(locationId.equals(Long.valueOf(-1L))) {
@@ -414,6 +415,10 @@ public class DAPricesResourceRESTService {
      */
 	@SuppressWarnings("unchecked")
 	private String retrieveCSV(Response response) {
+		
+		if(response.getEntity() instanceof String) {
+			return response.getEntity().toString();
+		}
 		Map<String, List<EnergyPrice>> mapLocationToPrices = (Map<String, List<EnergyPrice>>) response.getEntity();
     	StringBuilder builder = new StringBuilder();
     	

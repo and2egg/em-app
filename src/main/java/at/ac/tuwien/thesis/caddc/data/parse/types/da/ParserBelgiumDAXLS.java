@@ -59,7 +59,7 @@ public class ParserBelgiumDAXLS implements Parser {
 						result += (i-1) + ";" + price; // encoding hour as i-1
 					}
 					else {
-						result += i + ";" + price;
+						result += i + ";" + price; // SWITCH to DST -> one hour more!
 					}
 				}
 				// if one additional hour is added -> DST deactivated
@@ -69,6 +69,9 @@ public class ParserBelgiumDAXLS implements Parser {
 						transformedPrices.add(dstChange);
 						
 						result += (i-1) + ";" + price; // price at hour 3
+					}
+					else if(i == 25) {
+						continue;
 					}
 					else {
 						result += (i-1) + ";" + price;

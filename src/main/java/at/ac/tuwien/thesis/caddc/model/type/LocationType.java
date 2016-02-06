@@ -33,7 +33,8 @@ public abstract class LocationType {
 	
 	public static boolean isDayAheadLocation(Long id) {
 		if(id.equals(LOCATION_HAMINA) || id.equals(LOCATION_ST_GHISLAIN) || id.equals(LOCATION_POTSDAM)
-				 || id.equals(LOCATION_PORTLAND) || id.equals(LOCATION_BOSTON) || id.equals(LOCATION_STOCKHOLM)) {
+				 || id.equals(LOCATION_PORTLAND) || id.equals(LOCATION_BOSTON) ) {
+//				 || id.equals(LOCATION_STOCKHOLM)  // exclude, just test data
 			
 			return true;
 		}

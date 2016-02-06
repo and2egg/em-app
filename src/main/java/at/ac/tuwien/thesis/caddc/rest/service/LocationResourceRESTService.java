@@ -118,7 +118,7 @@ public class LocationResourceRESTService {
     	List<Location> locations = new ArrayList<Location>();
     	String[] locIds = locationIds.split(",");
     	
-    	if(Arrays.asList(locIds).contains(LocationType.LOCATION_ALL)) {
+    	if(Arrays.asList(locIds).contains(String.valueOf(LocationType.LOCATION_ALL))) {
     		locations = locationRepository.findAll();
     	}
     	else {
@@ -154,7 +154,7 @@ public class LocationResourceRESTService {
     	List<Location> locations = new ArrayList<Location>();
     	String[] locIds = locationIds.split(",");
     	
-    	if(Arrays.asList(locIds).contains(LocationType.LOCATION_ALL)) {
+    	if(Arrays.asList(locIds).contains(String.valueOf(LocationType.LOCATION_ALL))) {
     		return getAllLocationsForDAMarkets();
     	}
     	else {
@@ -190,7 +190,7 @@ public class LocationResourceRESTService {
     	List<Location> locations = new ArrayList<Location>();
     	String[] locIds = locationIds.split(",");
     	
-    	if(Arrays.asList(locIds).contains(LocationType.LOCATION_ALL)) {
+    	if(Arrays.asList(locIds).contains(String.valueOf(LocationType.LOCATION_ALL))) {
     		return getAllLocationsForRTMarkets();
     	}
     	else {

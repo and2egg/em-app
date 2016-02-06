@@ -54,19 +54,12 @@ public class ParserPJMRTCSV implements Parser {
 				realPrice = split[i];
 				hour = i-1;
 				if(split.length < 25  &&  hour >= 2) {
+					// missing entry at hour 2
 					hour = i;
 				}
-				else if(split.length > 25) {
+				else if(split.length > 25  &&  hour >= 2) {
 					// duplicate entry at hour 1
-					if(hour == 1) {
-						StringBuilder result = new StringBuilder();
-						result.append(date);
-						result.append(Parser.SEPARATOR);
-						result.append(hour);
-						result.append(Parser.SEPARATOR);
-						result.append(realPrice);
-						prices.add(result.toString());
-					}
+					hour = i-2;
 				}
 				StringBuilder result = new StringBuilder();
 				result.append(date);

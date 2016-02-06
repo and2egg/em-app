@@ -27,7 +27,7 @@ insert into location (id,name,timezone,em_id) values(7,'Brighton','America/New_Y
 insert into location (id,name,timezone,em_id) values(8,'Hatfield','America/New_York',5);
 insert into location (id,name,timezone,em_id) values(9,'Madison','America/Chicago',5);
 insert into location (id,name,timezone,em_id) values(10,'Georgetown','America/New_York',5);
-insert into location (id,name,timezone,em_id) values(11,'Stockholm','Europe/Stockholm',1);
+--insert into location (id,name,timezone,em_id) values(11,'Stockholm','Europe/Stockholm',1);
 
 
 --------------------
