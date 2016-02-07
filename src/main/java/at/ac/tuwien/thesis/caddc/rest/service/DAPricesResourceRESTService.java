@@ -142,8 +142,7 @@ public class DAPricesResourceRESTService {
     			return Response.status(503).entity("Request failed: Retrieving data for all locations for years "+yearFrom+" to "+yearTo).build();
     		}
     		else {
-    			e.printStackTrace();
-    			return Response.status(503).entity(e.getLocalizedMessage()+" Request failed: Retrieving data for years "+yearFrom+" to "+yearTo+" for location with ID "+locationId).build();
+    			return Response.status(503).entity("Request failed: Retrieving data for years "+yearFrom+" to "+yearTo+" for location with ID "+locationId).build();
     		}
 		}
     	if(locationId.equals(Long.valueOf(-1L))) {
@@ -418,6 +417,9 @@ public class DAPricesResourceRESTService {
 		
 		if(response.getEntity() instanceof String) {
 			return response.getEntity().toString();
+		}
+		if(!(response.getEntity() instanceof Map)) {
+			return "Not parseable response: "+response.getEntity().toString();
 		}
 		Map<String, List<EnergyPrice>> mapLocationToPrices = (Map<String, List<EnergyPrice>>) response.getEntity();
     	StringBuilder builder = new StringBuilder();

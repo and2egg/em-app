@@ -1,5 +1,7 @@
 package at.ac.tuwien.thesis.caddc.rest.service;
 
+import java.io.File;
+import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -10,6 +12,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TimeZone;
 import java.util.logging.Logger;
 
 import javax.enterprise.context.RequestScoped;
@@ -24,12 +27,16 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
 
 import org.rosuda.REngine.REXPMismatchException;
 import org.rosuda.REngine.REngineException;
 import org.rosuda.REngine.Rserve.RserveException;
 
+import at.ac.tuwien.thesis.caddc.model.type.TimeSeriesType;
+import at.ac.tuwien.thesis.caddc.model.type.EnergyPriceType;
 import at.ac.tuwien.thesis.caddc.model.Location;
+import at.ac.tuwien.thesis.caddc.model.type.LocationType;
 import at.ac.tuwien.thesis.caddc.persistence.LocationRepository;
 import at.ac.tuwien.thesis.caddc.service.RManager;
 import at.ac.tuwien.thesis.caddc.util.DateParser;
@@ -58,6 +65,9 @@ public class RManagerResourceRESTService {
     private DAPricesResourceRESTService daPriceService;
     
     @Inject
+    private RTPricesResourceRESTService rtPriceService;
+    
+    @Inject
     private RManager rManager;
 
 
@@ -78,6 +88,8 @@ public class RManagerResourceRESTService {
 		} catch (REXPMismatchException e) {
 			e.printStackTrace();
 			result = e.getMessage();
+		} finally {
+			rManager.closeRConnection();
 		}
     	String output = "R result: "+result;
     	return Response.status(200).entity(output).build();
@@ -149,6 +161,7 @@ public class RManagerResourceRESTService {
     /**
      * Generate an ARIMA model given a modelName, locationId, and start and enddates
      * for the trainingsdata
+     * example: http://localhost:8081/em-app/rest/r/generatemodel/da_model_1_14d_20140720/1/2014-07-07/2014-07-20
      * @param modelName the name of the model which should be unique and recognizable
      * @param locationId the id of the location for which to generate the model
      * @param startTraining the startdate of the trainingsdata (Dateformat: yyyy-MM-dd or yyyy-MM-dd HH:mm:ss)
@@ -167,13 +180,173 @@ public class RManagerResourceRESTService {
     	String csvData = priceResponse.getEntity().toString();
     	
     	try {
-    		result = rManager.generateModel(modelName, csvData);
+    		result = rManager.generateArimaModel(modelName, csvData);
 		} catch (RserveException e) {
 			e.printStackTrace();
 			result = e.getMessage();
 		} catch (REXPMismatchException e) {
 			e.printStackTrace();
 			result = e.getMessage();
+		} finally {
+			rManager.closeRConnection();
+		}
+    	String output = "R result: "+result;
+    	return Response.status(200).entity(output).build();
+    }
+    
+    
+    /**
+     * Run a simulation calculating accuracy measures for models over a defined time range
+     * example: http://localhost:8081/em-app/rest/r/simulation/da/1/2014-07-07 00:00/2014-08-08/2w/1w/1w
+     * @param priceType the type of energy prices to evaluate ("da" or "rt")
+     * @param locationId the id of the location for which to evaluate models
+     * @param simulationStart the start date of the simulation (Dateformat: yyyy-MM-dd or yyyy-MM-dd HH:mm)
+     * @param simulationEnd the end date of the simulation (Dateformat: yyyy-MM-dd or yyyy-MM-dd HH:mm)
+     * @param trainingsPeriod the trainingsperiod for model evaluation (e.g. "14d", "2w")
+     * @param testPeriod the testperiod for model evaluation (e.g. "4d", "1w")
+     * @param intervalPeriod the interval between simulation time stamps (e.g. "1d", "1w")
+     * @param transformPrice a boolean value to indicate whether the prices should be transformed
+     * 				(converted to a unified currency, e.g. dollars)
+     * @return Response to indicate whether the simulation could be completed successfully
+     */
+    @GET
+    @Path("/simulation/{type}/{loc_id}/{simulationStart}/{simulationEnd}/{trainingsPeriod}/{testPeriod}/{intervalPeriod}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response runSimulation(@PathParam("type") String priceType, @PathParam("loc_id") Long locationId, 
+    								@PathParam("simulationStart") String simulationStart, @PathParam("simulationEnd") String simulationEnd,
+    								@PathParam("trainingsPeriod") String trainingsPeriod, @PathParam("testPeriod") String testPeriod, 
+    								@PathParam("intervalPeriod") String intervalPeriod, 
+    								@DefaultValue("true") @QueryParam("transformPrice") Boolean transformPrice) {
+    	
+    	TimeSeriesType typeTraining = TimeSeriesType.convertTimePeriod(trainingsPeriod);
+    	TimeSeriesType typeTest= TimeSeriesType.convertTimePeriod(testPeriod);
+    	TimeSeriesType typeInterval= TimeSeriesType.convertTimePeriod(intervalPeriod);
+    	
+    	TimeZone tz = TimeZone.getTimeZone("UTC");
+		
+		DateFormat formatter = new SimpleDateFormat(DateUtils.DATE_FORMAT_NO_SECONDS);
+		DateFormat compactFormatter = new SimpleDateFormat(DateUtils.DATE_FORMAT_COMPACT);
+    	formatter.setTimeZone(tz);
+		
+		Calendar cal = Calendar.getInstance(tz);
+		Calendar calIterator = Calendar.getInstance(tz);
+		Calendar calSimulationEnd = Calendar.getInstance(tz);
+    	Date s = DateParser.parseDate(simulationStart);
+    	Date e = DateParser.parseDate(simulationEnd);
+    	Calendar start = Calendar.getInstance();
+    	Calendar end = Calendar.getInstance();
+    	start.setTime(s);
+    	end.setTime(e);
+    	
+		cal.set(start.get(Calendar.YEAR), start.get(Calendar.MONTH), start.get(Calendar.DAY_OF_MONTH), 
+				start.get(Calendar.HOUR_OF_DAY), start.get(Calendar.MINUTE), start.get(Calendar.SECOND));
+    	cal.set(Calendar.MILLISECOND, 0);
+    	
+    	calSimulationEnd.set(end.get(Calendar.YEAR), end.get(Calendar.MONTH), end.get(Calendar.DAY_OF_MONTH), 
+				end.get(Calendar.HOUR_OF_DAY), end.get(Calendar.MINUTE), end.get(Calendar.SECOND));
+    	calSimulationEnd.set(Calendar.MILLISECOND, 0);
+    	
+    	calIterator = (Calendar) cal.clone();
+    	calIterator.add(typeTraining.getTimeUnit(), typeTraining.getTimeInterval());
+    	calIterator.add(typeTest.getTimeUnit(), typeTest.getTimeInterval());
+    	calIterator.add(Calendar.HOUR_OF_DAY, -1);
+    	
+    	String trainingStart, trainingEnd, testStart, testEnd;
+    	
+    	String simulationName = priceType+"_sim_"+locationId+"_"+trainingsPeriod+"_"+testPeriod+"_"+intervalPeriod;
+    	createFolder("simulation", simulationName);
+    	
+    	int iterationCount = 0;
+    	
+    	while ( calIterator.before(calSimulationEnd) ) {
+    		
+    		trainingStart = formatter.format(cal.getTime());
+    		String tStart = compactFormatter.format(cal.getTime());
+    		
+    		Calendar sTraining = (Calendar) cal.clone();
+        	
+        	cal.add(typeTraining.getTimeUnit(), typeTraining.getTimeInterval());
+        	testStart = formatter.format(cal.getTime());
+        	
+        	cal.add(Calendar.HOUR_OF_DAY, -1);
+        	trainingEnd = formatter.format(cal.getTime());
+        	
+        	cal.add(typeTest.getTimeUnit(), typeTest.getTimeInterval());
+        	testEnd = formatter.format(cal.getTime());
+        	
+        	String instanceName = simulationName+"_"+tStart;
+        	
+        	System.out.println("Starting simulation instance "+instanceName);
+        	
+        	evaluateModels(instanceName, priceType, locationId, 
+        					trainingStart, trainingEnd, testStart, testEnd, transformPrice);
+        	
+        	cal = sTraining;
+        	cal.add(typeInterval.getTimeUnit(), typeInterval.getTimeInterval());
+        	calIterator.add(typeInterval.getTimeUnit(), typeInterval.getTimeInterval());
+        	
+        	iterationCount++;
+    	}
+	    
+    	String output = "Simulation finished successfully for location id "+locationId+", simulation start: "+simulationStart
+    				+", simulation end: "+simulationEnd+", trainings period: "+trainingsPeriod+", test period: "+testPeriod
+    				+", interval period: "+intervalPeriod+", total iteration count: "+iterationCount;
+    	return Response.status(200).entity(output).build();
+    }
+    
+    
+    /**
+     * Evaluate forecasting model accuracy for the given training and test time ranges
+     * example: http://localhost:8081/em-app/rest/r/evaluatemodels/da_sim_1_2w_1w_1w/da/1/2014-07-07/2014-07-20%2023:00/2014-07-21/2014-07-27%2023:00
+     * @param simulationName the name of the simulation run which should be unique and recognizable
+     * 			it is generic and should consist of the priceType, locationId, trainingsPeriod, testPeriod and intervalPeriod
+     * 			example: da_sim_1_2w_1w_1w (see method runSimulation)
+     * @param priceType the type of energy prices to evaluate ("da" or "rt")
+     * @param locationId the id of the location for which to evaluate models
+     * @param startTraining the startdate of the trainingsdata (Dateformat: yyyy-MM-dd or yyyy-MM-dd HH:mm)
+     * @param endTraining the enddate of the trainingsdata (Dateformat: yyyy-MM-dd or yyyy-MM-dd HH:mm)
+     * @param startTest the startdate of the testdata (Dateformat: yyyy-MM-dd or yyyy-MM-dd HH:mm)
+     * @param endTest the enddate of the testdata (Dateformat: yyyy-MM-dd or yyyy-MM-dd HH:mm)
+     * @param transformPrice a boolean value to indicate whether the prices should be transformed
+     * 				(converted to a unified currency, e.g. dollars)
+     * @return Response to indicate whether or not the model generation was successful
+     */
+    @GET
+    @Path("/evaluatemodels/{simulationName}/{type}/{loc_id}/{startTraining}/{endTraining}/{startTest}/{endTest}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response evaluateModels(@PathParam("simulationName") String simulationName, 
+    								@PathParam("type") String priceType, @PathParam("loc_id") Long locationId, 
+    								@PathParam("startTraining") String startTraining, @PathParam("endTraining") String endTraining,
+    								@PathParam("startTest") String startTest, @PathParam("endTest") String endTest, 
+    								@DefaultValue("true") @QueryParam("transformPrice") Boolean transformPrice) {
+    	String result;
+    	Response pricesTraining = null;
+    	Response pricesTest = null;
+    	
+    	if(priceType.equals(EnergyPriceType.DA_TYPE) && LocationType.isDayAheadLocation(locationId)) {
+    		pricesTraining = daPriceService.retrieveDAPricesCSVLocalTZ(String.valueOf(locationId), startTraining, endTraining, transformPrice);
+        	pricesTest = daPriceService.retrieveDAPricesCSVLocalTZ(String.valueOf(locationId), startTest, endTest, transformPrice);
+    	}
+    	else if(priceType.equals(EnergyPriceType.RT_TYPE) && LocationType.isRealTimeLocation(locationId)) {
+    		pricesTraining = rtPriceService.retrieveRTPricesCSVLocalTZ(String.valueOf(locationId), startTraining, endTraining, transformPrice);
+        	pricesTest = rtPriceService.retrieveRTPricesCSVLocalTZ(String.valueOf(locationId), startTest, endTest, transformPrice);
+    	}
+    	else {
+    		return Response.status(Status.BAD_REQUEST).entity("evaluateModels: priceType ("+priceType+") and locationId ("+locationId+") do not match").build();
+    	}
+    	String csvTraining = pricesTraining.getEntity().toString();
+    	String csvTest = pricesTest.getEntity().toString();
+
+    	try {
+    		result = rManager.evaluateModels(simulationName, csvTraining, csvTest);
+		} catch (RserveException e) {
+			e.printStackTrace();
+			result = e.getMessage();
+		} catch (REXPMismatchException e) {
+			e.printStackTrace();
+			result = e.getMessage();
+		} finally {
+			rManager.closeRConnection();
 		}
     	String output = "R result: "+result;
     	return Response.status(200).entity(output).build();
@@ -198,6 +371,8 @@ public class RManagerResourceRESTService {
 		} catch (REXPMismatchException e) {
 			e.printStackTrace();
 			result = e.getMessage();
+		} finally {
+			rManager.closeRConnection();
 		}
     	String output = "R result: "+result;
     	return Response.status(200).entity(output).build();
@@ -231,6 +406,8 @@ public class RManagerResourceRESTService {
 		} catch (REngineException e) {
 			e.printStackTrace();
 			result = e.getMessage();
+		} finally {
+			rManager.closeRConnection();
 		}
     	String output = "Forecast result: "+result+"\n"+Arrays.toString(fcValues);
     	return Response.status(200).entity(output).build();
@@ -257,6 +434,8 @@ public class RManagerResourceRESTService {
 		} catch (REngineException e) {
 			e.printStackTrace();
 			result = e.getMessage();
+		} finally {
+			rManager.closeRConnection();
 		}
     	String output = "R result: "+result;
     	return Response.status(200).entity(output).build();
@@ -329,6 +508,8 @@ public class RManagerResourceRESTService {
 		} catch (REngineException e) {
 			e.printStackTrace();
 			error = e.getMessage();
+		} finally {
+			rManager.closeRConnection();
 		}
     	if(error != null) {
         	return Response.serverError().entity(error).build();
@@ -367,4 +548,20 @@ public class RManagerResourceRESTService {
 	    dates.add(calendar.getTime());
 	    return dates;
 	}
+    
+    
+    /**
+     * Create a new folder if it doesn't exist within a base directory
+     * @param baseDirectory a base directory relative to the "root" data directory
+     * @param name the name of the directory to create
+     */
+    private void createFolder(String baseDirectory, String name) {
+    	String path = getClass().getClassLoader().getResource("data").getPath(); // folder "rscripts" in resource directory
+    	path = path + "/" + baseDirectory + "/" + name;
+	    path = path.substring(1); // remove leading slash
+	    File dir = new File(path);
+	    if(!dir.exists()) {
+	    	dir.mkdir();
+	    }
+    }
 }

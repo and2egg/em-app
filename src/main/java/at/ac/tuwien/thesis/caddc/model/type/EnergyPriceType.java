@@ -7,6 +7,9 @@ import java.util.Date;
  */
 public class EnergyPriceType {
 	
+	public static final String DA_TYPE = "da";
+	public static final String RT_TYPE = "rt";
+	
 	/**
 	 * IntervalType to specify different data sampling intervals
 	 * e.g. hourly (1 hour), every 5 minutes (5 minute) ...

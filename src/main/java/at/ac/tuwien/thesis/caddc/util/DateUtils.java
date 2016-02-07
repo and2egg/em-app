@@ -13,6 +13,8 @@ public class DateUtils {
 	
 	
 	public static final String DATE_FORMAT = "yyyy-MM-dd HH:mm:ss";
+	public static final String DATE_FORMAT_NO_SECONDS = "yyyy-MM-dd HH:mm";
+	public static final String DATE_FORMAT_COMPACT = "yyyyMMdd";
 	
 	private static DateFormat df = new SimpleDateFormat(DATE_FORMAT);
 	

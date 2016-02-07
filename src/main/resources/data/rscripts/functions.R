@@ -8,6 +8,9 @@ loadLibraries <- function()
   library(TSA) # import periodogram etc. 
   library(car) # import qqPlot
   library(xts) # import periodicity and time functions
+  library(ggplot2) # import of extended graphics library
+  library(RCurl) # get lib for retrieving data from URLs
+  library(stringr) # remove white space from string
 }
 
 
@@ -17,7 +20,7 @@ loadLibraries <- function()
 #' @param title the title of the plot
 #' @param xlab label for x-axis
 #' @param ylab label for y-axis
-plotModelAgainstErrors <- function(model, title="Model vs. Residuals", xlab="Time", ylab="Value") {
+plotModelVsResiduals <- function(model, title="Model vs. Residuals", xlab="Time", ylab="Value") {
   # plot the result
   plot(model$x, 
        main=title, 
@@ -66,32 +69,18 @@ pacf_sig <- function(series, main="PACF Series", ci=0.95, lag.max=28, plot=TRUE,
 }
 
 
-
-#' function to retrieve the maximum frequency from a given dataset
-#' --------------------
-#' retrieve the maximum detected frequency (seasonal cycle) if it exists. 
-#' In case no seasonality exists the period is 1. 
-#' Uses the highest frequency visible in the periodogram
-#' of the data to retrieve the periodicity
-#' @param data the dataset to examine
-#' @param output boolean value to indicate whether results should be printed
-#' @param plot boolean value to indicate whether results should be plotted
-#' @return the maximum determined frequency in the data
-getMaxPeriod <- function(data, output=FALSE, plot=FALSE)
+#' getCSV: retrieve data frame from csv input
+#' ----------------
+#' @param csvString a string containing the contents of a CSV file
+#' @param header boolean value to indicate whether the CSV data contains a header
+#' @return a dataframe corresponding to the contents of the CSV
+getCSV <- function(csvString, header=TRUE)
 {
-  # create a periodogram of the data
-  perdgram <- periodogram(data, plot=plot)
-  # get the position of the maximum spec value
-  pos <- match(max(perdgram$spec),perdgram$spec)
-  # access the frequency that occured most often
-  freq <- perdgram$freq[pos]
-  # transform the frequency into the period length
-  period <- 1 / freq
-  if(output)
-  {
-    print(paste("Estimated period:",period))
-  }
-  return(period)
+  con <- textConnection(csvString)
+  dataDF <- read.csv(con, header = header, sep = ",", quote = "\"",
+                     dec = ".", fill = TRUE, comment.char = "")
+  close(con)
+  return (dataDF)
 }
 
 
@@ -112,13 +101,14 @@ getMaxPeriods <- function(data, numPeriods=4, round=TRUE, output=FALSE, plot=FAL
   perdgram <- periodogram(data, plot=plot)
   # Empirically set threshold for white noise
   whiteNoiseTH <- 50
+  # check maximum amplitude against whiteNoiseTH
   if(max(perdgram$spec) < whiteNoiseTH)
   {
     return(c(1))
   }
   # get the occurrences of the most frequent periodicities
   sorted_spec <- sort(perdgram$spec, decreasing=TRUE)
-  top_freq <- vector(length=numPeriods)
+  top_freq <- numeric(length=numPeriods)
   for (i in 1:numPeriods)
   {
     # get the position of the next sorted spec value in the original vector
@@ -147,19 +137,20 @@ getMaxPeriods <- function(data, numPeriods=4, round=TRUE, output=FALSE, plot=FAL
 #' If the target period is NULL or is not among the most frequent periods
 #' a vector with the most common periods is returned
 #' @param data the dataset to examine for seasonalities
-#' @param target_period the target period to search for
+#' @param targetPeriod the target period to search for
+#' @param numTopPeriods the number of most common periods to retrieve from the data
 #' @param output boolean value to indicate whether results should be printed
 #' @param plot boolean value to indicate whether results should be plotted
-getPeriodsWithTarget <- function(data, target_period=24, output=FALSE, plot=FALSE)
+getPeriodsWithTarget <- function(data, targetPeriod=24, numTopPeriods=4, output=FALSE, plot=FALSE)
 {
-  periods <- getMaxPeriods(data, output=output, plot=plot)
-  if(is.null(target_period)) {
-    return(periods) # return most common periods
+  periods <- getMaxPeriods(data, numPeriods=numTopPeriods, output=output, plot=plot)
+  if(is.null(targetPeriod)) {
+    return(c(periods,1)) # return most common periods plus one (no period)
   }
-  if(target_period %in% periods) {
-    return(c(target_period))
+  if(targetPeriod %in% periods) {
+    return(c(targetPeriod))
   } else {
-    return(periods)
+    return(c(periods,1)) # return most common periods plus one (no period
   }
 }
 
@@ -224,7 +215,7 @@ automatedBoxTest <- function(model, lag=NULL, fitdf=NULL,
   
   if(output) 
   {
-    print(paste("Ljung box test with lag",h,"and fitdf of",params))
+    print(paste("Ljung box test with lag (df)",h,"and fitdf (#model params) of",params))
   }
   
   # do actual box test
@@ -234,39 +225,40 @@ automatedBoxTest <- function(model, lag=NULL, fitdf=NULL,
 }
 
 
-#' generate_model: function for automatic model generation based on given data values
+#' generateARIMAModel: function for automatic model generation based on given data values
 #' -------------------
-#' estimates the occurring frequency in the data, builds and evaluates
-#' the model and does a boxcox transformation if necessary 
-#' (when data does not appear to have stationary variance)
+#' estimates the occurring frequency in the data,  
+#' builds and evaluates the model
 #' @param data the data series to generate the model upon
-#' @param target_period the target period to search for within the periodogram of the dataset
-#' @param w_aicc weight for the aicc utility value
-#' @param w_ljung weight for the ljung box test p utility value
-#' @param boxcox boolean value to indicate whether a boxcox transform should be done
+#' @param targetPeriod the target period to search for within the periodogram of the dataset
+#' @param periods if not null take this periods to build time series objects
+#' @param numTopPeriods the number of most common periods to retrieve from the data
+#' @param wAicc weight for the aicc utility value
+#' @param wLjung weight for the ljung box test p utility value
 #' @param approximation boolean value to indicate whether model generation should be approximated (faster)
 #' @param stepwise boolean value to indicate whether model search should be done stepwise (faster)
 #' @param output boolean value to indicate whether results should be printed
 #' @param plot boolean value to indicate whether results should be plotted
-generate_model <- function(data, target_period=NULL, w_aicc=0.7,
-                           w_ljung=0.3, boxcox=TRUE, approximation=TRUE, stepwise=TRUE, output=FALSE, plot=FALSE)
+generateARIMAModel <- function(data, targetPeriod=NULL, periods=NULL, numTopPeriods=4, wAicc=0.7,
+                           wLjung=0.3, approximation=TRUE, stepwise=TRUE, output=FALSE, plot=FALSE)
 {
   series <- data
-  # retrieves the target period if available, otherwise 1
-  periods <- getPeriodsWithTarget(series, target_period=target_period, output=output, plot=plot)
+  
+  if(is.null(periods))
+  {
+    # retrieves the target period if available, otherwise 1
+    periods <- getPeriodsWithTarget(series, targetPeriod=targetPeriod, output=output, plot=plot)
+  }
   
   # generate list objects
   series_ts <- vector(mode="list", length=length(periods))
   lambda_ts <- vector(mode="list", length=length(periods))
   auto.fit <- vector(mode="list", length=length(periods))
-  auto.fit.lambda <- vector(mode="list", length=length(periods))
   box_t <- vector(mode="list", length=length(periods))
-  box_t_lambda <- vector(mode="list", length=length(periods))
   
   # time series and lambda parameter generation
   for(i in 1:length(periods)) {
     series_ts[[i]] = ts(series, frequency=periods[[i]])
-    lambda_ts[[i]] = BoxCox.lambda(series_ts[[i]])
   }
   
   # model generation and box tests
@@ -279,29 +271,8 @@ generate_model <- function(data, target_period=NULL, w_aicc=0.7,
     box_t[[i]] <- automatedBoxTest(auto.fit[[i]], type="Ljung", output=output)
   }
   
-  if(boxcox == TRUE) {
-    # boxcox transformations (if applicable)
-    for(i in 1:length(periods)) {
-      # if lambda = 1 the model will not be changed
-      if(lambda_ts[[i]] != 1)
-      {
-        if(output) {
-          print("------------------")
-          print(paste("Creating model ",i," (with BoxCox transformation)",sep=""))
-        }
-        auto.fit.lambda[[i]] <- auto.arima(series_ts[[i]], lambda=lambda_ts[[i]], approximation=approximation, stepwise=stepwise)
-        box_t_lambda[[i]] <- automatedBoxTest(auto.fit.lambda[[i]], type="Ljung", output=output)
-      }
-      else {
-        if(output) {
-          print(paste("Not creating model ",i," (lambda == 1)",sep=""))
-        }
-      }
-    }
-  }
- 
-  models <- append(auto.fit, auto.fit.lambda)
-  boxtests <- append(box_t, box_t_lambda)
+  models <- auto.fit
+  boxtests <- box_t
   
   aicc.values <- numeric()
   p.values <- numeric()
@@ -341,7 +312,7 @@ generate_model <- function(data, target_period=NULL, w_aicc=0.7,
     if(!is.na(aicc.values[i]) && !is.na(p.values)) {
       aicc.utility[i] <- 1 / (abs(AICmin - aicc.values[i]) + 2) # calculate aicc utility value
       p.utility[i] <- (p.values[i] - box_test_TH) / (1 - box_test_TH) # calculate box test utility value
-      result.utility[i] <- w_aicc * aicc.utility[i] + w_ljung * p.utility[i] # calculate result utility value
+      result.utility[i] <- wAicc * aicc.utility[i] + wLjung * p.utility[i] # calculate result utility value
     }
   }
   
@@ -349,21 +320,12 @@ generate_model <- function(data, target_period=NULL, w_aicc=0.7,
   idx <- which.max(result.utility)
   resultModel <- models[[idx]]
   resultTest <- boxtests[[idx]]
-  
-  if(is.null(resultModel$lambda)) {
-    boxcoxTransformed <- FALSE
-  } else {
-    boxcoxTransformed <- TRUE
-  }
+  resultPeriod <- periods[[idx]]
   
   if(output)
   {
     print("------------------")
     print("Utility values")
-    print("AICc values")
-    print(aicc.values)
-    print("Ljung Box p-values")
-    print(p.values)
     print("AICc utility values")
     print(aicc.utility)
     print("Ljung Box test utility values")
@@ -374,38 +336,96 @@ generate_model <- function(data, target_period=NULL, w_aicc=0.7,
     
     print("Resulting model:")
     print("------------------")
-    print(paste("BoxCox transformed = ",boxcoxTransformed,", Estimated period = ",period, sep=""))
+    print(paste("BoxCox transformed = FALSE, Estimated period = ",resultPeriod, sep=""))
     print(resultModel$coef)
     print(paste("model parameters (aic,aicc,bic):",resultModel$aic,resultModel$aicc,resultModel$bic))
     print(paste("Ljung box test p-value:",resultTest$p.value))
     print("===================================================")
   }
   
-  return(resultModel)
+  return(list(resultModel,resultPeriod))
 }
 
 
-#' iterated_box_test: (currently not used) function to generate box tests between a 
-#' defined minimum and maximum lag
-#' -----------------
-#' @return the box test object that exhibited the largest p-value
-iterated_box_test <- function(x, lag.min=10, lag.max=80, type = c("Box-Pierce", "Ljung-Box"), fitdf=0)
+#' evaluateModels: function for automatic model evaluation
+#' -------------------
+#' Calls the function to evaluate forecasting models based on the provided 
+#' trainings and test data
+#' @param priceDFTraining a data frame (read from csv) to provide training data
+#' @param priceDFTest a data frame (read from csv) to provide test data
+evaluateModels <- function(priceDFTraining, priceDFTest, output=FALSE)
 {
-  lag_vec <- lag.min:lag.max
-  len <- length(lag_vec)
-  results <- vector("list", len)
-  max.p.value <- 0
-  max.i.pos <- 0
-  for (i in 1:len)
-  {
-    results[[i]] <- Box.test(x, lag=lag_vec[i], fitdf=fitdf, type=type)
-    if(results[[i]]$p.value > max.p.value)
-    {
-      max.p.value <- results[[i]]$p.value
-      max.i.pos <- i
-    }
+  if(output) {
+    print("Start model evaluation")
   }
-  return(results[[max.i.pos]])
+  pricesTraining <- priceDFTraining[,-1]
+  pricesTest <- priceDFTest[,-1]
+  
+  result <- fcModelEvaluation(pricesTraining, pricesTest, output=output)
+  
+  return (result)
+}
+
+
+#' fcModelEvaluation: function for automatic generation of forecast accuracy measures
+#' -------------------
+#' Iterates through a list of defined models, generates the models based on 
+#' the given trainings data, and computes accuracy measures for all models based on
+#' the given test data
+#' @param pricesTraining a list of energy prices used for model training
+#' @param pricesTest a list of energy prices for testing model accuracy
+fcModelEvaluation <- function(pricesTraining, pricesTest, output=FALSE)
+{
+  if(output) {
+    print("Generating ARIMA model ...")
+  }
+  resultArima <- generateARIMAModel(pricesTraining, targetPeriod = 24)
+  modelArima <- resultArima[[1]]
+  period <- resultArima[[2]]
+  
+  if(output) {
+    print("ARIMA model generated")
+    print("Generate models based on created time series ...")
+  }
+  
+  pricesTraining_ts <- ts(pricesTraining, frequency = period)
+  
+  modelMean <- meanf(pricesTraining_ts)
+  modelSes <- HoltWinters(pricesTraining_ts, beta=FALSE, gamma=FALSE)
+  modelHolt <- HoltWinters(pricesTraining_ts, beta=TRUE, gamma=FALSE)
+  modelHoltWinters <- NULL
+  if(period > 1)
+    modelHoltWinters <- HoltWinters(pricesTraining_ts, beta=TRUE, gamma=TRUE)
+  modelTbats <- tbats(pricesTraining_ts)
+  
+  if(output) {
+    print("Finished model generation")
+    print("Getting accuracy measures ...")
+  }
+  
+  modelList <- list(modelMean, modelSes, modelHolt, modelHoltWinters, modelArima, modelTbats)
+  
+  accuracyList <- list()
+  
+  fcHorizonList <- list(1,3,6,12,18,24,36,48,96,168)
+  
+  for(i in 1:length(modelList)) {
+    model <- modelList[[i]]
+    accuracyModelList <- list()
+    for(j in 1:length(fcHorizonList)) {
+      fcHorizon <- fcHorizonList[[j]]
+      accuracyModelList[[j]] <- accuracy(forecast(model, h=fcHorizon), pricesTest)
+    }
+    accuracyList[[i]] <- accuracyModelList
+  }
+  
+  if(output) {
+    print("Accuracy measures saved")
+  }
+  
+  resultList <- list(modelList,accuracyList)
+  
+  return(resultList)
 }
 
 
