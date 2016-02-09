@@ -353,6 +353,8 @@ generateARIMAModel <- function(data, targetPeriod=NULL, periods=NULL, numTopPeri
 #' trainings and test data
 #' @param priceDFTraining a data frame (read from csv) to provide training data
 #' @param priceDFTest a data frame (read from csv) to provide test data
+#' @param output logical, indicates whether progress information and results
+#'        should be printed to console
 evaluateModels <- function(priceDFTraining, priceDFTest, output=FALSE)
 {
   if(output) {
@@ -374,6 +376,8 @@ evaluateModels <- function(priceDFTraining, priceDFTest, output=FALSE)
 #' the given test data
 #' @param pricesTraining a list of energy prices used for model training
 #' @param pricesTest a list of energy prices for testing model accuracy
+#' @param output logical, indicates whether progress information and results
+#'        should be printed to console
 fcModelEvaluation <- function(pricesTraining, pricesTest, output=FALSE)
 {
   if(output) {
@@ -385,7 +389,7 @@ fcModelEvaluation <- function(pricesTraining, pricesTest, output=FALSE)
   
   if(output) {
     print("ARIMA model generated")
-    print("Generate models based on created time series ...")
+    print(paste0("Generate models based on created time series with period ",period))
   }
   
   pricesTraining_ts <- ts(pricesTraining, frequency = period)
@@ -394,8 +398,12 @@ fcModelEvaluation <- function(pricesTraining, pricesTest, output=FALSE)
   modelSes <- HoltWinters(pricesTraining_ts, beta=FALSE, gamma=FALSE)
   modelHolt <- HoltWinters(pricesTraining_ts, beta=TRUE, gamma=FALSE)
   modelHoltWinters <- NULL
-  if(period > 1)
+  if(period > 1  &&  period*2 <= length(pricesTraining)) {
+    if(output) {
+      print("Generating HoltWinters ...")
+    }
     modelHoltWinters <- HoltWinters(pricesTraining_ts, beta=TRUE, gamma=TRUE)
+  }
   modelTbats <- tbats(pricesTraining_ts)
   
   if(output) {

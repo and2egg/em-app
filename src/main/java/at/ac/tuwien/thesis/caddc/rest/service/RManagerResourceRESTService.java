@@ -196,6 +196,43 @@ public class RManagerResourceRESTService {
     
     
     /**
+     * Get simulation results for a previously run simulation
+     * example: http://localhost:8081/em-app/rest/r/simulationresults/da_sim_1_2w_1w_1w?aggregated=false
+     * @param simulationName the name of the simulation run which should be unique and recognizable
+     * 			it is generic and should consist of the priceType, locationId, trainingsPeriod, testPeriod and intervalPeriod
+     * 			example: da_sim_1_2w_1w_1w (see method runSimulation)
+     * @param aggregated a boolean value to indicate whether the data should be returned in 
+ * 					aggregated form (by calculating the mean)
+     * @return Response to indicate whether or not the model generation was successful
+     */
+    @GET
+    @Path("/simulationresults/{simulationName}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response getSimulationResults(@PathParam("simulationName") String simulationName,
+    						@DefaultValue("true") @QueryParam("aggregated") Boolean aggregated) {
+    	
+    	String result;
+
+    	try {
+    		result = rManager.getSimulationResults(simulationName, aggregated);
+		} catch (RserveException e) {
+			e.printStackTrace();
+			result = e.getMessage();
+		} catch (REXPMismatchException e) {
+			e.printStackTrace();
+			result = e.getMessage();
+		} catch (REngineException e) {
+			e.printStackTrace();
+			result = e.getMessage();
+		} finally {
+			rManager.closeRConnection();
+		}
+    	String output = "R result: "+result;
+    	return Response.status(200).entity(output).build();
+    }
+    
+    
+    /**
      * Run a simulation calculating accuracy measures for models over a defined time range
      * example: http://localhost:8081/em-app/rest/r/simulation/da/1/2014-07-07 00:00/2014-08-08/2w/1w/1w
      * @param priceType the type of energy prices to evaluate ("da" or "rt")

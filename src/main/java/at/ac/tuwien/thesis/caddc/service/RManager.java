@@ -43,23 +43,26 @@ public class RManager {
 	
 	
 	public void initRConnection() throws RserveException, REXPMismatchException {
-		System.out.println("Initialize Rserve connection...");
 		
-		c = new RConnection(server, port);
+		if(!init) {
+			System.out.println("Initialize Rserve connection...");
+			
+			c = new RConnection(server, port);
 
-	    String path = getClass().getClassLoader().getResource("data").getPath(); // folder "rscripts" in resource directory
-	    path = path.substring(1); // remove leading slash
-	    
-	    c.eval("setwd(\""+path+"\")");
-	    c.eval("source(\"rscripts/functions.R\")");
-	    
-	    init = true;
+		    String path = getClass().getClassLoader().getResource("data").getPath(); // folder "rscripts" in resource directory
+		    path = path.substring(1); // remove leading slash
+		    
+		    c.eval("setwd(\""+path+"\")");
+		    c.eval("source(\"rscripts/functions.R\")");
+		    
+		    init = true;
+		}
 	}
 	
 	public void closeRConnection() {
-		System.out.println("Closing Rserve connection...");
 		init = false;
 		if(c != null) {
+			System.out.println("Closing Rserve connection...");
 			c.close();
 		}
 	}
@@ -235,6 +238,152 @@ public class RManager {
 		
 		return modelNames;
 	}
+	
+	
+	/**
+	 * Get simulation results for a simulation, optionally aggregated by forecast error measure
+	 * Saves the results in an R data frame
+	 * @param simulationName the name of the simulation to get results for
+	 * @param aggregated boolean value to indicate whether results should be aggregated (by mean calculation
+	 * 			of forecast error measures)
+	 * @return a String indicating the status of the results
+	 * @throws REXPMismatchException
+	 * @throws REngineException
+	 */
+	public String getSimulationResults(String simulationName, boolean aggregated) throws REXPMismatchException, REngineException {
+		
+		initRConnection();
+		
+		String[] names = c.eval("list.files(path=\"simulation/"+simulationName+"\")").asStrings();
+	    Arrays.sort(names);
+	    System.out.println("list of simulation files, size = "+names.length);
+	    
+	    String run = names[0];
+    	String rName = run.substring(0, run.lastIndexOf("."));
+    	
+//    	RList l = c.eval("load(\"simulation/"+simulationName+"/"+rName+"\")").asList();
+//    	int numberModels = l.at(0).asList().size();
+    	int numberModels = 6;
+    	
+    	System.out.println("number of models = "+numberModels);
+    	
+    	// load all simulation runs into memory
+    	for(int i = 0; i < names.length; i++) {
+	    	String r = names[i];
+	    	c.eval("load(\"simulation/"+simulationName+"/"+r+"\")");
+    	}
+    	
+    	String[] accMeasures = new String[] { "ME", "RMSE", "MAE", "MPE", "MAPE" };
+	    String[] fcHorizons = new String[] { "1","3","6","12","18","24","36","48","96","168" };
+	    String trainingSet = "Training set";
+	    String testSet = "Test set";
+	    String trainPrefix = "train_";
+	    String testPrefix = "test_";
+    	
+    	c.eval("accModelList <- list()");
+    	
+    	for(int model = 1; model <= numberModels; model++) {
+    		
+    		System.out.println("Process model "+model);
+    		
+    		c.eval("fcHorizonList <- list()");
+    		
+    		for(int h = 1; h <= fcHorizons.length; h++) {
+    			
+    			System.out.println("Get forecast horizon "+h);
+    			
+    			// create error measure variables
+    		    c.eval("train_ME <- numeric()");
+    		    c.eval("train_RMSE <- numeric()");
+    		    c.eval("train_MAE <- numeric()");
+    		    c.eval("train_MPE <- numeric()");
+    		    c.eval("train_MAPE <- numeric()");
+    		    
+    		    c.eval("test_ME <- numeric()");
+    		    c.eval("test_RMSE <- numeric()");
+    		    c.eval("test_MAE <- numeric()");
+    		    c.eval("test_MPE <- numeric()");
+    		    c.eval("test_MAPE <- numeric()");
+    		    
+    		    
+    		    for(int i = 0; i < names.length; i++) {
+    		    	String r = names[i];
+//    		    	c.eval("load(\"simulation/"+simulationName+"/"+r+"\")");
+    		    	
+    		    	String name = r.substring(0, r.lastIndexOf("."));
+    		    	c.eval("acc <- "+name+"[[2]][["+model+"]][["+h+"]]");
+//    		    	int numAccMeasures = c.eval("length(acc)/2").asInteger();
+    		    	int numAccMeasures = 5;
+    		    	
+			    	String vectorTrain, vectorTest;
+			    	int index = i+1;
+			    	
+			    	
+			    	// get accuracy measures
+			    	for(int acc = 0; acc < numAccMeasures; acc++) {
+			    		
+			    		String accMeasure = accMeasures[acc];
+			    		vectorTrain = trainPrefix + accMeasure;
+				    	c.eval("value <- acc[\""+trainingSet+"\",\""+accMeasure+"\"]");
+				    	c.eval(vectorTrain + "["+index+"] <- value");
+				    	
+				    	vectorTest = testPrefix + accMeasure;	
+				    	c.eval("value <- acc[\""+testSet+"\",\""+accMeasure+"\"]");
+				    	c.eval(vectorTest + "["+index+"] <- value");
+				    	
+			    	}
+			    	
+    		    }
+    			
+    		    // create data frame
+    		    StringBuilder trainingAccuracyList = new StringBuilder();
+    		    StringBuilder testAccuracyList = new StringBuilder();
+    		    // create list of error measure variables (see above)
+    		    for(String accMeasure : accMeasures) {
+    		    	trainingAccuracyList.append(trainPrefix);
+    		    	trainingAccuracyList.append(accMeasure);
+    		    	trainingAccuracyList.append(",");
+    		    	
+    		    	testAccuracyList.append(testPrefix);
+    		    	testAccuracyList.append(accMeasure);
+    		    	testAccuracyList.append(",");
+    		    }
+    		    
+    		    String trainingAccVectors = trainingAccuracyList.toString();
+    		    String testAccVectors = testAccuracyList.toString();
+    		    testAccVectors = testAccVectors.substring(0, testAccVectors.length()-1);
+    		    
+    		    String createDataFrame = "resultDF <- data.frame(" + trainingAccVectors + testAccVectors + ")";
+    		    c.eval(createDataFrame);
+    		    
+    		    if(aggregated) {
+        			c.eval("fcHorizonList[["+h+"]] <- colMeans(resultDF, na.rm = TRUE)");
+        		}
+        		else {
+        			c.eval("fcHorizonList[["+h+"]] <- resultDF");
+        		}
+    			
+    		}
+    		
+    		c.eval("accModelList[["+model+"]] <- fcHorizonList");
+    		
+    	}
+    	
+    	c.eval(simulationName + " <- list()");
+    	c.eval(simulationName + "[[1]] <- accModelList");
+
+    	if(aggregated) {
+    		c.eval("save("+simulationName+", file=\"simulationResults/aggregated/"+simulationName+".RData\")");
+    	}
+    	else {
+    		c.eval("save("+simulationName+", file=\"simulationResults/"+simulationName+".RData\")");
+    	}
+    	
+    	closeRConnection();
+    	
+    	return "Retrieved simulation results for simulation "+simulationName;
+	}
+	    
 	
 	/**
 	 * Method to generate an R ARIMA model based on the given data
