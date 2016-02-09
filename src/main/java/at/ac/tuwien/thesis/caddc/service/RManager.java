@@ -355,6 +355,7 @@ public class RManager {
     		    
     		    String createDataFrame = "resultDF <- data.frame(" + trainingAccVectors + testAccVectors + ")";
     		    c.eval(createDataFrame);
+    		    c.eval("resultDF[mapply(is.infinite, resultDF)] <- NA");
     		    
     		    if(aggregated) {
         			c.eval("fcHorizonList[["+h+"]] <- colMeans(resultDF, na.rm = TRUE)");
