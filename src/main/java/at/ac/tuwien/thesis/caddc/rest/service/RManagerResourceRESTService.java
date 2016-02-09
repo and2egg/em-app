@@ -233,6 +233,58 @@ public class RManagerResourceRESTService {
     
     
     /**
+     * Get simulation results for a previously run simulation
+     * example: http://localhost:8081/em-app/rest/r/runsimulations/2014-07-07 00:00/2014-08-08/da_sim_1_2w_1w_1w,rt_sim_6_4w_1w_1w,rt_sim_4_3w_1w_2w
+     * @param simulationNames a comma separated list of simulation names with the predefined format
+     * 			<priceType>_sim_<locationId>_<trainingsPeriod>_<testPeriod>_<intervalPeriod>
+     * 			example: da_sim_1_2w_1w_1w (see also method runSimulation)
+     * @param simulationStart the common start date of the simulations (Dateformat: yyyy-MM-dd or yyyy-MM-dd HH:mm)
+     * @param simulationEnd the common end date of the simulations (Dateformat: yyyy-MM-dd or yyyy-MM-dd HH:mm)
+     * 
+     * @param aggregated a boolean value to indicate whether the data should be returned in 
+ * 					aggregated form (by calculating the mean)
+     * @return Response to indicate whether or not the model generation was successful
+     */
+    @GET
+    @Path("/runsimulations/{simulationStart}/{simulationEnd}/{simulationNames}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response runSimulations(@PathParam("simulationNames") String simulationNames, 
+    					@PathParam("simulationStart") String simulationStart, @PathParam("simulationEnd") String simulationEnd,
+						@DefaultValue("true") @QueryParam("transformPrice") Boolean transformPrice) {
+    	
+    	String[] splitNames = simulationNames.split(",");
+    	
+    	System.out.println("Run simulations for simulation names "+simulationNames);
+    	
+    	for(String simulationName : splitNames) {
+    		
+    		String[] s = simulationName.split("_");
+    		
+    		if(s.length != 6) {
+    			System.out.println("runSimulations: ParserError: simulationName "+simulationName+" is invalid");
+    			continue;
+    		}
+    		
+    		String priceType = s[0];
+    		Long locationId = Long.valueOf(s[2]);
+    		String trainingsPeriod = s[3];
+    		String testPeriod = s[4];
+    		String intervalPeriod = s[5];
+    		
+    		runSimulation(priceType, locationId, simulationStart, simulationEnd, 
+    				trainingsPeriod, testPeriod, intervalPeriod, transformPrice);
+    		
+    	}
+    	
+    	String output = "Successfully completed simulations: "+ System.lineSeparator();
+    	for(String simName: splitNames) {
+    		output += simName + System.lineSeparator();
+    	}
+    	return Response.status(200).entity(output).build();
+    }
+    
+    
+    /**
      * Run a simulation calculating accuracy measures for models over a defined time range
      * example: http://localhost:8081/em-app/rest/r/simulation/da/1/2014-07-07 00:00/2014-08-08/2w/1w/1w
      * @param priceType the type of energy prices to evaluate ("da" or "rt")
