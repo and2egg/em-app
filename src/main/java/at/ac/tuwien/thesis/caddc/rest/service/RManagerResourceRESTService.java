@@ -103,6 +103,8 @@ public class RManagerResourceRESTService {
      * @param trainingsPeriod the training period for the model in days, e.g. 14 days for 2 weeks
      * @param startDateString the starting date for which to generate models (Dateformat: yyyy-MM-dd or yyyy-MM-dd HH:mm:ss)
      * @param endDateString the end date for which to generate models (Dateformat: yyyy-MM-dd or yyyy-MM-dd HH:mm:ss)
+     * @param enforceTarget a boolean value to indicate whether setting the target period for price time series
+     * 			should be enforced (target period is 24 by default)
      * @return a Response indicating the status (success/failure) of the calculation 
      */
     @GET
@@ -110,7 +112,9 @@ public class RManagerResourceRESTService {
     @Produces(MediaType.APPLICATION_JSON)
     public Response generateModels(@PathParam("loc_id") Long locationId, @PathParam("training_period") Integer trainingsPeriod, 
     						@PathParam("startDate") String startDateString, @PathParam("endDate") String endDateString, 
-    						@DefaultValue("true") @QueryParam("transformPrice") Boolean transformPrice) {
+    						@DefaultValue("true") @QueryParam("transformPrice") Boolean transformPrice,
+    						@DefaultValue("false") @QueryParam("enforceTarget") Boolean enforceTarget) {
+    	
     	Date start = DateParser.parseDate(startDateString);
     	Date end = DateParser.parseDate(endDateString);
     	
@@ -149,7 +153,7 @@ public class RManagerResourceRESTService {
     		// the training period in days and the date at the end of the trainingsperiod
     		String modelName = "da_model" + "_" + locationId.intValue() + "_" + trainingsPeriod + "d_" + modelDate;
     		System.out.println("modelName "+modelName);
-    		generateModel(modelName, locationId, dStart, dEnd, transformPrice);
+    		generateModel(modelName, locationId, dStart, dEnd, transformPrice, enforceTarget);
     		calStart.add(Calendar.DATE, 1);
     		models++;
     	}
@@ -168,19 +172,22 @@ public class RManagerResourceRESTService {
      * @param endDate the enddate of the trainingsdata (Dateformat: yyyy-MM-dd or yyyy-MM-dd HH:mm:ss)
      * @param transformPrice a boolean value to indicate whether the prices should be transformed
      * 				(converted to a unified currency, e.g. dollars)
+     * @param enforceTarget a boolean value to indicate whether setting the target period for price time series
+     * 			should be enforced (target period is 24 by default)
      * @return Response to indicate whether or not the model generation was successful
      */
     @GET
     @Path("/generatemodel/{modelName}/{loc_id}/{startDate}/{endDate}")
     @Produces(MediaType.APPLICATION_JSON)
     public Response generateModel(@PathParam("modelName") String modelName, @PathParam("loc_id") Long locationId, @PathParam("startDate") String startTraining, 
-    								@PathParam("endDate") String endTraining, @DefaultValue("true") @QueryParam("transformPrice") Boolean transformPrice) {
+    								@PathParam("endDate") String endTraining, @DefaultValue("true") @QueryParam("transformPrice") Boolean transformPrice,
+    								@DefaultValue("false") @QueryParam("enforceTarget") Boolean enforceTarget) {
     	String result;
     	Response priceResponse = daPriceService.retrieveDAPricesCSV(String.valueOf(locationId), startTraining, endTraining, transformPrice);
     	String csvData = priceResponse.getEntity().toString();
     	
     	try {
-    		result = rManager.generateArimaModel(modelName, csvData);
+    		result = rManager.generateArimaModel(modelName, csvData, enforceTarget);
 		} catch (RserveException e) {
 			e.printStackTrace();
 			result = e.getMessage();
@@ -235,22 +242,23 @@ public class RManagerResourceRESTService {
     /**
      * Get simulation results for a previously run simulation
      * example: http://localhost:8081/em-app/rest/r/runsimulations/2014-07-07 00:00/2014-08-08/da_sim_1_2w_1w_1w,rt_sim_6_4w_1w_1w,rt_sim_4_3w_1w_2w
+     * @param simulationStart the common start date of the simulations (Dateformat: yyyy-MM-dd or yyyy-MM-dd HH:mm)
+     * @param simulationEnd the common end date of the simulations (Dateformat: yyyy-MM-dd or yyyy-MM-dd HH:mm)
      * @param simulationNames a comma separated list of simulation names with the predefined format
      * 			<priceType>_sim_<locationId>_<trainingsPeriod>_<testPeriod>_<intervalPeriod>
      * 			example: da_sim_1_2w_1w_1w (see also method runSimulation)
-     * @param simulationStart the common start date of the simulations (Dateformat: yyyy-MM-dd or yyyy-MM-dd HH:mm)
-     * @param simulationEnd the common end date of the simulations (Dateformat: yyyy-MM-dd or yyyy-MM-dd HH:mm)
-     * 
-     * @param aggregated a boolean value to indicate whether the data should be returned in 
- * 					aggregated form (by calculating the mean)
+     * @param transformPrice a boolean value to indicate whether the prices should be transformed
+     * 				(converted to a unified currency, e.g. dollars)
+     * @param debugOutput boolean value to indicate whether debug outputs should be printed
      * @return Response to indicate whether or not the model generation was successful
      */
     @GET
     @Path("/runsimulations/{simulationStart}/{simulationEnd}/{simulationNames}")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response runSimulations(@PathParam("simulationNames") String simulationNames, 
-    					@PathParam("simulationStart") String simulationStart, @PathParam("simulationEnd") String simulationEnd,
-						@DefaultValue("true") @QueryParam("transformPrice") Boolean transformPrice) {
+    public Response runSimulations(@PathParam("simulationStart") String simulationStart, @PathParam("simulationEnd") String simulationEnd,
+    					@PathParam("simulationNames") String simulationNames, 
+						@DefaultValue("true") @QueryParam("transformPrice") Boolean transformPrice,
+						@DefaultValue("false") @QueryParam("debugOutput") Boolean debugOutput) {
     	
     	String[] splitNames = simulationNames.split(",");
     	
@@ -272,7 +280,7 @@ public class RManagerResourceRESTService {
     		String intervalPeriod = s[5];
     		
     		runSimulation(priceType, locationId, simulationStart, simulationEnd, 
-    				trainingsPeriod, testPeriod, intervalPeriod, transformPrice);
+    				trainingsPeriod, testPeriod, intervalPeriod, transformPrice, debugOutput);
     		
     	}
     	
@@ -296,6 +304,7 @@ public class RManagerResourceRESTService {
      * @param intervalPeriod the interval between simulation time stamps (e.g. "1d", "1w")
      * @param transformPrice a boolean value to indicate whether the prices should be transformed
      * 				(converted to a unified currency, e.g. dollars)
+     * @param debugOutput boolean value to indicate whether debug outputs should be printed
      * @return Response to indicate whether the simulation could be completed successfully
      */
     @GET
@@ -305,7 +314,8 @@ public class RManagerResourceRESTService {
     								@PathParam("simulationStart") String simulationStart, @PathParam("simulationEnd") String simulationEnd,
     								@PathParam("trainingsPeriod") String trainingsPeriod, @PathParam("testPeriod") String testPeriod, 
     								@PathParam("intervalPeriod") String intervalPeriod, 
-    								@DefaultValue("true") @QueryParam("transformPrice") Boolean transformPrice) {
+    								@DefaultValue("true") @QueryParam("transformPrice") Boolean transformPrice,
+    								@DefaultValue("false") @QueryParam("debugOutput") Boolean debugOutput) {
     	
     	TimeSeriesType typeTraining = TimeSeriesType.convertTimePeriod(trainingsPeriod);
     	TimeSeriesType typeTest= TimeSeriesType.convertTimePeriod(testPeriod);
@@ -368,7 +378,7 @@ public class RManagerResourceRESTService {
         	System.out.println("Starting simulation instance "+instanceName);
         	
         	evaluateModels(instanceName, priceType, locationId, 
-        					trainingStart, trainingEnd, testStart, testEnd, transformPrice);
+        					trainingStart, trainingEnd, testStart, testEnd, transformPrice, debugOutput);
         	
         	cal = sTraining;
         	cal.add(typeInterval.getTimeUnit(), typeInterval.getTimeInterval());
@@ -398,6 +408,7 @@ public class RManagerResourceRESTService {
      * @param endTest the enddate of the testdata (Dateformat: yyyy-MM-dd or yyyy-MM-dd HH:mm)
      * @param transformPrice a boolean value to indicate whether the prices should be transformed
      * 				(converted to a unified currency, e.g. dollars)
+     * @param debugOutput boolean value to indicate whether debug outputs should be printed
      * @return Response to indicate whether or not the model generation was successful
      */
     @GET
@@ -407,7 +418,9 @@ public class RManagerResourceRESTService {
     								@PathParam("type") String priceType, @PathParam("loc_id") Long locationId, 
     								@PathParam("startTraining") String startTraining, @PathParam("endTraining") String endTraining,
     								@PathParam("startTest") String startTest, @PathParam("endTest") String endTest, 
-    								@DefaultValue("true") @QueryParam("transformPrice") Boolean transformPrice) {
+    								@DefaultValue("true") @QueryParam("transformPrice") Boolean transformPrice,
+    								@DefaultValue("false") @QueryParam("debugOutput") Boolean debugOutput) {
+    	
     	String result;
     	Response pricesTraining = null;
     	Response pricesTest = null;
@@ -427,13 +440,16 @@ public class RManagerResourceRESTService {
     	String csvTest = pricesTest.getEntity().toString();
 
     	try {
-    		result = rManager.evaluateModels(simulationName, csvTraining, csvTest);
+    		result = rManager.evaluateModels(simulationName, csvTraining, csvTest, debugOutput);
 		} catch (RserveException e) {
 			e.printStackTrace();
-			result = e.getMessage();
+			result = e.getLocalizedMessage();
 		} catch (REXPMismatchException e) {
 			e.printStackTrace();
-			result = e.getMessage();
+			result = e.getLocalizedMessage();
+		} catch(Exception e) {
+			e.printStackTrace();
+			result = e.getLocalizedMessage();
 		} finally {
 			rManager.closeRConnection();
 		}

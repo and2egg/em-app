@@ -32,7 +32,7 @@ public class Scheduler {
 		
 		daPriceService.importMarketDataPerLocation(LOCATION_HELSINKI, 2015, 2015);
 		
-		rManagerService.generateModels(LOCATION_HELSINKI, 14, "2014-07-07", "2014-07-10", true);
+		rManagerService.generateModels(LOCATION_HELSINKI, 14, "2014-07-07", "2014-07-10", true, false);
 		
 		rManagerService.generateForecasts();
 	}
@@ -43,7 +43,7 @@ public class Scheduler {
 		
 		daPriceService.importMarketDataPerLocation(LOCATION_STOCKHOLM, 2015, 2015);
 		
-		rManagerService.generateModels(LOCATION_STOCKHOLM, 14, "2014-07-07", "2014-07-10", true);
+		rManagerService.generateModels(LOCATION_STOCKHOLM, 14, "2014-07-07", "2014-07-10", true, false);
 		
 		rManagerService.generateForecasts();
 	}

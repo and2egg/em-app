@@ -186,6 +186,14 @@
             <artifactId>jboss-ejb-api_3.1_spec</artifactId>
             <scope>provided</scope>
         </dependency>
+        
+        <!-- ejb transactional timeout api (for @TransactionTimeout annotation) -->
+        <dependency>
+		    <groupId>org.jboss.ejb3</groupId>
+		    <artifactId>jboss-ejb3-ext-api</artifactId>
+		    <version>2.0.0</version>
+		    <scope>provided</scope>
+		</dependency>	
 
 
         <!-- JSR-303 (Bean Validation) Implementation -->

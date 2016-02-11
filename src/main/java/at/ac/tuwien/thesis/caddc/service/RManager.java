@@ -12,6 +12,7 @@ import javax.annotation.PreDestroy;
 import javax.ejb.Stateless;
 
 import org.apache.commons.lang3.ArrayUtils;
+import org.jboss.ejb3.annotation.TransactionTimeout;
 import org.rosuda.REngine.REXP;
 import org.rosuda.REngine.REXPMismatchException;
 import org.rosuda.REngine.REngineException;
@@ -255,6 +256,12 @@ public class RManager {
 		initRConnection();
 		
 		String[] names = c.eval("list.files(path=\"simulation/"+simulationName+"\")").asStrings();
+		
+		if(names.length == 0) {
+			closeRConnection();
+			return "getSimulationResults: No simulation with simulationName "+simulationName+" exists";
+		}
+		
 	    Arrays.sort(names);
 	    System.out.println("list of simulation files, size = "+names.length);
 	    
@@ -392,18 +399,21 @@ public class RManager {
 	 * @param csvData csv data as a single string
 	 * @param targetPeriod a specific target period to search for (e.g. 24 to mark a period every 24 hours)
 	 * @param topPeriods the number of periods to investigate in case of missing targetPeriod
+	 * @param maxLimit if not null each generated period exceeding this limit will be set to NA
 	 * @param weightAicc weight for the AICc utility value
 	 * @param weightLjung weight for the Ljung box test p utility value
 	 * @param approximation boolean value indicating whether the model should be approximated (true=faster)
 	 * @param stepwise a boolean value indicating whether a stepwise calculation should be performed (true=faster)
+	 * @param enforceTarget a boolean value indicating whether the given target period should be set as period
+	 * 				even though it might not be found in the data
 	 * @param output a boolean value indicating whether output to the console should be written
 	 * @param plot a boolean value indicating whether the R results should be plotted
 	 * @return a String indicating the result of the calculation
 	 * @throws REXPMismatchException is thrown when a datatype mismatch occurred
 	 * @throws REngineException is thrown when something has gone wrong on the R connection
 	 */
-	public String generateArimaModel(String modelName, String csvData, int targetPeriod, int topPeriods, double weightAicc, double weightLjung,
-						boolean approximation, boolean stepwise, boolean output, boolean plot) throws RserveException, REXPMismatchException {
+	public String generateArimaModel(String modelName, String csvData, int targetPeriod, int topPeriods, Integer maxLimit, double weightAicc, double weightLjung,
+						boolean approximation, boolean stepwise, boolean enforceTarget, boolean output, boolean plot) throws RserveException, REXPMismatchException {
 		initRConnection();
 		
 	    c.eval("loadLibraries()");
@@ -436,16 +446,29 @@ public class RManager {
 	 * Method to generate an R ARIMA model with default values (for faster and yet accurate model generation)
 	 * @param modelName the name under which this model should be saved (without extension)
 	 * @param csvData csv data as a single string
+	 * @param enforceTarget a boolean value indicating whether the given target period should be set as period
+	 * 				even though it might not be found in the data
 	 * @return a String indicating the result of the calculation
 	 * @throws REXPMismatchException is thrown when a datatype mismatch occurred
-	 * @throws REngineException is thrown when something has gone wrong on the R connection
+	 * @throws RserveException is thrown when something has gone wrong on the R connection
 	 */
-	public String generateArimaModel(String modelName, String csvData) throws RserveException, REXPMismatchException {
-		return generateArimaModel(modelName, csvData, 24, 4, 0.7, 0.3, true, true, true, false);
+	public String generateArimaModel(String modelName, String csvData, boolean enforceTarget) throws RserveException, REXPMismatchException {
+		return generateArimaModel(modelName, csvData, 24, 4, 168, 0.7, 0.3, true, true, enforceTarget, true, false);
 	}
 	
 	
-	public String evaluateModels(String simulationName, String csvTraining, String csvTest) throws RserveException, REXPMismatchException {
+	/**
+	 * Evaluate all models for a specific training and test period and save the result under the 
+	 * given simulationName (in "simulation" folder)
+	 * @param simulationName the name under which to save the simulation
+	 * @param csvTraining csv training data to train models
+	 * @param csvTest csv test data for model evaluation on test data
+	 * @return a String indicating the status of the simulation
+	 * @throws RserveException is thrown when something has gone wrong on the R connection
+	 * @throws REXPMismatchException is thrown when a datatype mismatch occurred
+	 */
+	@TransactionTimeout(1500)
+	public String evaluateModels(String simulationName, String csvTraining, String csvTest, boolean debugOutput) throws RserveException, REXPMismatchException {
 		boolean close = false;
 		if(!init) {
 			initRConnection();
@@ -462,7 +485,7 @@ public class RManager {
 	    c.assign("csvTest", csvTest);
 	    c.eval("pricesTest <- getCSV(csvTest, header=TRUE)");
 	    
-	    c.eval(simulationName+" <- evaluateModels(pricesTraining, pricesTest, output=TRUE)");
+	    c.eval(simulationName+" <- evaluateModels(pricesTraining, pricesTest, output=TRUE, extendedOutput="+String.valueOf(debugOutput).toUpperCase()+")");
 	    
 	    String folder = simulationName.substring(0, simulationName.lastIndexOf("_"));
 	    c.eval("save("+simulationName+", file=\"simulation/"+folder+"/"+simulationName+".RData\")");

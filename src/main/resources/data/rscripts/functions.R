@@ -14,6 +14,12 @@ loadLibraries <- function()
 }
 
 
+### globally valid vector names
+fcHorizons <- c("1h","3h","6h","12h","18h","24h","36h","48h","96h","168h")
+accMeasures <- c("ME","RMSE","MAE","MPE","MAPE")
+modelNames <- c("mean","ses","holts","holtwinters","arima","tbats")
+
+
 #' Plot time series vs. residuals of given model
 #' ------------
 #' @param model the model to evaluate
@@ -91,11 +97,12 @@ getCSV <- function(csvString, header=TRUE)
 #' a periodicity of 1 is returned
 #' @param data the dataset to examine
 #' @param numPeriods the number of periods with the most common frequencies that is returned
+#' @param maxLimit if not NULL each generated period exceeding this limit will be set to NA
 #' @param round if resulting periods should be rounded to integers
 #' @param output boolean value to indicate whether results should be printed
 #' @param plot boolean value to indicate whether results should be plotted
 #' @return a vector of numPeriods maximum periods in the data
-getMaxPeriods <- function(data, numPeriods=4, round=TRUE, output=FALSE, plot=FALSE)
+getMaxPeriods <- function(data, numPeriods=4, maxLimit=168, round=TRUE, output=FALSE, plot=FALSE)
 {
   # create a periodogram of the data
   perdgram <- periodogram(data, plot=plot)
@@ -119,11 +126,17 @@ getMaxPeriods <- function(data, numPeriods=4, round=TRUE, output=FALSE, plot=FAL
     {
       top_freq[i] <- round(top_freq[i]) # truncates number to integer
     }
+    if(!is.null(maxLimit) && top_freq[i] > maxLimit) {
+      top_freq[i] <- NA
+    }
   }
+  # remove all NA values from result
+  top_freq <- top_freq[!is.na(top_freq)]
+  
   if(output)
   {
     print ("Most frequent periods:")
-    print (top_freq)
+    print (c(top_freq,1))
   }
   return (top_freq)
 }
@@ -139,18 +152,19 @@ getMaxPeriods <- function(data, numPeriods=4, round=TRUE, output=FALSE, plot=FAL
 #' @param data the dataset to examine for seasonalities
 #' @param targetPeriod the target period to search for
 #' @param numTopPeriods the number of most common periods to retrieve from the data
+#' @param maxLimit if not NULL each generated period exceeding this limit will be set to NA
 #' @param output boolean value to indicate whether results should be printed
 #' @param plot boolean value to indicate whether results should be plotted
-getPeriodsWithTarget <- function(data, targetPeriod=24, numTopPeriods=4, output=FALSE, plot=FALSE)
+getPeriodsWithTarget <- function(data, targetPeriod=24, numTopPeriods=4, maxLimit=168, output=FALSE, plot=FALSE)
 {
-  periods <- getMaxPeriods(data, numPeriods=numTopPeriods, output=output, plot=plot)
+  periods <- getMaxPeriods(data, numPeriods=numTopPeriods, maxLimit=maxLimit, output=output, plot=plot)
   if(is.null(targetPeriod)) {
     return(c(periods,1)) # return most common periods plus one (no period)
   }
   if(targetPeriod %in% periods) {
-    return(c(targetPeriod))
+    return(c(targetPeriod,1)) # add "1" as default period for generating fallback model
   } else {
-    return(c(periods,1)) # return most common periods plus one (no period
+    return(c(periods,1)) # return most common periods plus one (no period)
   }
 }
 
@@ -233,21 +247,26 @@ automatedBoxTest <- function(model, lag=NULL, fitdf=NULL,
 #' @param targetPeriod the target period to search for within the periodogram of the dataset
 #' @param periods if not null take this periods to build time series objects
 #' @param numTopPeriods the number of most common periods to retrieve from the data
+#' @param maxLimit if not NULL each generated period exceeding this limit will be set to NA
 #' @param wAicc weight for the aicc utility value
 #' @param wLjung weight for the ljung box test p utility value
 #' @param approximation boolean value to indicate whether model generation should be approximated (faster)
 #' @param stepwise boolean value to indicate whether model search should be done stepwise (faster)
+#' @param enforceTarget boolean value to indicate whether the target period should be set in any case (if not NULL)
 #' @param output boolean value to indicate whether results should be printed
 #' @param plot boolean value to indicate whether results should be plotted
-generateARIMAModel <- function(data, targetPeriod=NULL, periods=NULL, numTopPeriods=4, wAicc=0.7,
-                           wLjung=0.3, approximation=TRUE, stepwise=TRUE, output=FALSE, plot=FALSE)
+generateARIMAModel <- function(data, targetPeriod=NULL, periods=NULL, numTopPeriods=4, maxLimit=168, wAicc=0.7,
+                           wLjung=0.3, approximation=TRUE, stepwise=TRUE, enforceTarget=FALSE, output=FALSE, plot=FALSE)
 {
   series <- data
   
-  if(is.null(periods))
+  if(enforceTarget == TRUE && !is.null(targetPeriod)) {
+    periods <- c(targetPeriod,1) # add "1" for no-period to compare to a fallback model
+  }
+  else if(is.null(periods))
   {
     # retrieves the target period if available, otherwise 1
-    periods <- getPeriodsWithTarget(series, targetPeriod=targetPeriod, output=output, plot=plot)
+    periods <- getPeriodsWithTarget(series, targetPeriod=targetPeriod, maxLimit=maxLimit, output=output, plot=plot)
   }
   
   # generate list objects
@@ -355,7 +374,9 @@ generateARIMAModel <- function(data, targetPeriod=NULL, periods=NULL, numTopPeri
 #' @param priceDFTest a data frame (read from csv) to provide test data
 #' @param output logical, indicates whether progress information and results
 #'        should be printed to console
-evaluateModels <- function(priceDFTraining, priceDFTest, output=FALSE)
+#' @param extendedOutput logical, indicates whether extended progress information and results
+#'        should be printed to console
+evaluateModels <- function(priceDFTraining, priceDFTest, output=FALSE, extendedOutput=FALSE)
 {
   if(output) {
     print("Start model evaluation")
@@ -363,7 +384,7 @@ evaluateModels <- function(priceDFTraining, priceDFTest, output=FALSE)
   pricesTraining <- priceDFTraining[,-1]
   pricesTest <- priceDFTest[,-1]
   
-  result <- fcModelEvaluation(pricesTraining, pricesTest, output=output)
+  result <- fcModelEvaluation(pricesTraining, pricesTest, output=output, extendedOutput=extendedOutput)
   
   return (result)
 }
@@ -378,12 +399,14 @@ evaluateModels <- function(priceDFTraining, priceDFTest, output=FALSE)
 #' @param pricesTest a list of energy prices for testing model accuracy
 #' @param output logical, indicates whether progress information and results
 #'        should be printed to console
-fcModelEvaluation <- function(pricesTraining, pricesTest, output=FALSE)
+#' @param extendedOutput logical, indicates whether extended progress information and results
+#'        should be printed to console
+fcModelEvaluation <- function(pricesTraining, pricesTest, output=FALSE, extendedOutput=FALSE)
 {
   if(output) {
     print("Generating ARIMA model ...")
   }
-  resultArima <- generateARIMAModel(pricesTraining, targetPeriod = 24)
+  resultArima <- generateARIMAModel(pricesTraining, targetPeriod = 24, output = extendedOutput)
   modelArima <- resultArima[[1]]
   period <- resultArima[[2]]
   
