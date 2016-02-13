@@ -35,7 +35,7 @@ public class Scheduler {
 		
 		rManagerService.generateModels(EnergyPriceType.DA_TYPE, LOCATION_HELSINKI, 14, "2014-07-07", "2014-07-10", "", true, false, false);
 		
-		rManagerService.generateForecasts();
+		rManagerService.generateAllForecasts(EnergyPriceType.DA_TYPE);
 	}
 	
 //	@Schedule(second="0", minute="0", hour="15", timezone="Europe/Stockholm")
@@ -46,7 +46,7 @@ public class Scheduler {
 		
 		rManagerService.generateModels(EnergyPriceType.DA_TYPE, LOCATION_STOCKHOLM, 14, "2014-07-07", "2014-07-10", "", true, false, false);
 		
-		rManagerService.generateForecasts();
+		rManagerService.generateAllForecasts(EnergyPriceType.DA_TYPE);
 	}
 	
 }

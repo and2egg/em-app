@@ -123,8 +123,6 @@ public class RManagerResourceRESTService {
     						@DefaultValue("false") @QueryParam("enforceTarget") Boolean enforceTarget,
     						@DefaultValue("false") @QueryParam("debugOutput") Boolean debugOutput) {
     	
-    	String location = "";
-    	boolean allLocations = false;
 		if(locationIds.equals("-1")) {
 			if(priceType.equals(EnergyPriceType.DA_TYPE)) {
 				locationIds = "1,2,3,4,5";
@@ -132,8 +130,6 @@ public class RManagerResourceRESTService {
 			else if(priceType.equals(EnergyPriceType.RT_TYPE)) {
 				locationIds = "4,5,6,7,8,9,10";
 			}
-			allLocations = true;
-			location = "X";
 		}
     	
     	String[] locSplit = locationIds.split(",");
@@ -145,17 +141,13 @@ public class RManagerResourceRESTService {
 	    		System.err.println("generateModelsBatch: priceType ("+priceType+") and locationId ("+locationId+") do not match");
 	    		continue;
 	    	}
-
-    		if(!allLocations) {
-    			location = locationId;
-    		}
     	    
     	    Date startDate = DateParser.parseDate(startDateString);
     	    Date endDate = DateParser.parseDate(endDateString);
     	    String sDate = DateUtils.formatDate(startDate, DateUtils.DATE_FORMAT_COMPACT);
     	    String eDate = DateUtils.formatDate(endDate, DateUtils.DATE_FORMAT_COMPACT);
     	    String modelBasePath = "models_"+priceType;
-    	    String modelSubDir = priceType + "_model_"+location+"_"+trainingsPeriod+"d_"+sDate+"_"+eDate;
+    	    String modelSubDir = priceType + "_model_"+trainingsPeriod+"d_"+sDate+"_"+eDate;
     	    String modelPath = modelBasePath + "/" + modelSubDir;
     		
     		generateModels(priceType, Long.valueOf(locationId), trainingsPeriod, startDateString, endDateString, 
@@ -603,51 +595,16 @@ public class RManagerResourceRESTService {
     
     
     /**
-     * Method to retrieve a list of forecasts for a given location
-     * example: http://localhost:8081/em-app/rest/r/forecast/1/14/2014-07-07/2014-07-10
-     * @param locationId the locationId for which to get forecasts
-     * @param trainingsPeriod only include the models generated with this training period
-     * @param startDate the start date for which to get forecasts
-     * @param endDate the end date for which to get forecasts
-     * @return a String containing the retrieved forecasts
-     */
-    @GET
-    @Path("/forecast/{loc_id}/{training_period}/{startDate}/{endDate}")
-    @Produces(MediaType.APPLICATION_JSON)
-    public Response getForecasts(@PathParam("loc_id") Long locationId, @PathParam("training_period") Integer trainingsPeriod, 
-    							@PathParam("startDate") String startDate, @PathParam("endDate") String endDate) {
-    	String result = "";
-    	String[] fcValues = null;
-    	try {
-    		fcValues = rManager.getForecasts(locationId, trainingsPeriod, startDate, endDate);
-		} catch (RserveException e) {
-			e.printStackTrace();
-			result = e.getMessage();
-		} catch (REXPMismatchException e) {
-			e.printStackTrace();
-			result = e.getMessage();
-		} catch (REngineException e) {
-			e.printStackTrace();
-			result = e.getMessage();
-		} finally {
-			rManager.closeRConnection();
-		}
-    	String output = "Forecast result: "+result+"\n"+Arrays.toString(fcValues);
-    	return Response.status(200).entity(output).build();
-    }
-    
-    
-    /**
      * Generate forecast data from all currently existing models (files listed in data/models)
      * @return a Response indicating success or failure of forecast generation
      */
     @GET
-    @Path("/forecast/generateAll")
+    @Path("/forecast/generateAll/{type}")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response generateForecasts() {
+    public Response generateAllForecasts(@PathParam("type") String priceType) {
     	String result = "";
     	try {
-			result = rManager.generateForecastsAllModels();
+			result = rManager.generateForecastsAllModels(priceType);
 		} catch (RserveException e) {
 			e.printStackTrace();
 			result = e.getMessage();
@@ -666,6 +623,80 @@ public class RManagerResourceRESTService {
     
     
     /**
+     * Generate forecast data from all models meeting the specified criteria
+     * example: http://localhost:8081/em-app/rest/r/forecast/generate/da/1,2/14/2014-06-20/2014-07-28/
+     * @param priceType the energy price type for which to generate forecasts
+     * @param locationIds the locationIds for which to generate forecasts
+	 * 					if -1 then forecasts are generated for all models
+	 * 						satisfying the other parameters
+     * @param trainingsPeriod the model trainingsperiod to generate forecasts from
+     * @param startDate the start date of the previous batch generation of models
+     * @param endDate the end date of the previous batch generation of models
+     * @return a Response indicating success or failure of forecast generation
+     */
+    @GET
+    @Path("/forecast/generate/{type}/{loc_ids}/{training_period}/{startDate}/{endDate}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response generateForecasts(@PathParam("type") String priceType, @PathParam("loc_ids") String locationIds, 
+										@PathParam("training_period") Integer trainingsPeriod,
+										@PathParam("startDate") String startDate, @PathParam("endDate") String endDate) {
+    	String result = "";
+    	try {
+			result = rManager.generateForecasts(priceType, locationIds, trainingsPeriod, startDate, endDate);
+		} catch (RserveException e) {
+			e.printStackTrace();
+			result = e.getMessage();
+		} catch (REXPMismatchException e) {
+			e.printStackTrace();
+			result = e.getMessage();
+		} catch (REngineException e) {
+			e.printStackTrace();
+			result = e.getMessage();
+		} finally {
+			rManager.closeRConnection();
+		}
+    	String output = "R result: "+result;
+    	return Response.status(200).entity(output).build();
+    }
+    
+    
+    /**
+     * Method to retrieve a list of forecasts for a given location
+     * example: http://localhost:8081/em-app/rest/r/forecast/1/14/2014-07-07/2014-07-10
+     * @param locationId the locationId for which to get forecasts
+     * @param trainingsPeriod only include the models generated with this training period
+     * @param startDate the start date for which to get forecasts
+     * @param endDate the end date for which to get forecasts
+     * @return a String containing the retrieved forecasts
+     */
+    @GET
+    @Path("/forecast/{type}/{loc_id}/{training_period}/{startDate}/{endDate}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response getForecasts(@PathParam("type") String priceType, @PathParam("loc_id") Long locationId, 
+    							@PathParam("training_period") Integer trainingsPeriod, 
+    							@PathParam("startDate") String startDate, @PathParam("endDate") String endDate) {
+    	String result = "";
+    	String[] fcValues = null;
+    	try {
+    		fcValues = rManager.getForecasts(priceType, String.valueOf(locationId), trainingsPeriod, startDate, endDate);
+		} catch (RserveException e) {
+			e.printStackTrace();
+			result = e.getMessage();
+		} catch (REXPMismatchException e) {
+			e.printStackTrace();
+			result = e.getMessage();
+		} catch (REngineException e) {
+			e.printStackTrace();
+			result = e.getMessage();
+		} finally {
+			rManager.closeRConnection();
+		}
+    	String output = "Forecast result: "+result+"\n"+Arrays.toString(fcValues);
+    	return Response.status(200).entity(output).build();
+    }
+    
+    
+    /**
      * Method to retrieve a CSV list of forecasts for possible multiple locations at once
      * This format is perfectly suitable to be read by a csv parser
      * example: http://localhost:8081/em-app/rest/r/forecastAll/1,3,4/14/2014-07-07/2014-07-10
@@ -676,9 +707,10 @@ public class RManagerResourceRESTService {
      * @return a String in csv format containing all of the retrieved forecasts
      */
     @GET
-    @Path("/forecastAll/{loc_ids}/{training_period}/{startDate}/{endDate}")
+    @Path("/forecastAll/{type}/{loc_ids}/{training_period}/{startDate}/{endDate}")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response getMultipleForecastsCsv(@PathParam("loc_ids") String locationIds, @PathParam("training_period") Integer trainingsPeriod,  
+    public Response getMultipleForecastsCsv(@PathParam("type") String priceType, @PathParam("loc_ids") String locationIds, 
+    										@PathParam("training_period") Integer trainingsPeriod,  
     										@PathParam("startDate") String startDate, @PathParam("endDate") String endDate) {
     	String error = null;
     	String csvData = "";
@@ -696,7 +728,7 @@ public class RManagerResourceRESTService {
     			// setting up CSV header
     			builder.append(",");
     			builder.append(loc.getName());
-    			values = rManager.getForecasts(Long.valueOf(loc.getId()), trainingsPeriod, startDate, endDate);
+    			values = rManager.getForecasts(priceType, String.valueOf(loc.getId()), trainingsPeriod, startDate, endDate);
     			fcList.add(values);
     		}
     		builder.append(System.lineSeparator());

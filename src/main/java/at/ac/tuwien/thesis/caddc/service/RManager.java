@@ -21,6 +21,7 @@ import org.rosuda.REngine.Rserve.RConnection;
 import org.rosuda.REngine.Rserve.RserveException;
 
 import at.ac.tuwien.thesis.caddc.model.type.EnergyPriceType;
+import at.ac.tuwien.thesis.caddc.model.type.LocationType;
 import at.ac.tuwien.thesis.caddc.util.DateParser;
 
 /**
@@ -110,7 +111,10 @@ public class RManager {
 	
 	/**
 	 * Get the actual forecast (mean) values from previously calculated forecasts
-	 * @param locationId the location for which to retrieve forecast values
+	 * @param priceType the type of energy price models to retrieve
+	 * @param locationIds the locationIds for which to retrieve the saved forecasts (separated by comma)
+	 * 					if -1 then forecasts for all models contained within simulation 
+	 * 						with given trainingsperiod and start/enddates are returned
 	 * @param trainingsPeriod the trainingsperiod by which to filter the list of forecasts
 	 * @param startDateString a string denoting the start date of the list of forecasts
 	 * @param endDateString a string denoting the end date of the list of forecasts
@@ -121,19 +125,34 @@ public class RManager {
 	 * @throws REXPMismatchException is thrown when a datatype mismatch occurred
 	 * @throws REngineException is thrown when something has gone wrong on the R connection
 	 */
-	public String[] getForecasts(Long locationId, Integer trainingsPeriod, String startDateString, String endDateString) throws REXPMismatchException, REngineException {
+	public String[] getForecasts(String priceType, String locationIds, Integer trainingsPeriod, String startDateString, String endDateString) throws REXPMismatchException, REngineException {
 		initRConnection();
 	    
-		String[] modelNames = getModelList("forecast", locationId, trainingsPeriod, startDateString, endDateString);
-		System.out.println("model list : "+modelNames.length+", names: "+Arrays.toString(modelNames));
+		boolean fullNames = true;
+		
+		String[] fcModelNames = getModelList(priceType, locationIds, trainingsPeriod, 
+											startDateString, endDateString, fullNames, true);
+		
+		System.out.println("model list : "+fcModelNames.length);
 		String[] meanValues = new String[0];
-	    
-	    for(String modelName : modelNames) {
-			c.eval("load(\"forecast/"+modelName+"\")");
-			String name = modelName.substring(0, modelName.lastIndexOf("."));
-			String[] values = c.eval(name+"$mean").asStrings();
-			meanValues = ArrayUtils.addAll(meanValues, values);
+		
+		if(fullNames) {
+			for(String modelName : fcModelNames) {
+				c.eval("load(\""+modelName+"\")");
+				String name = modelName.substring(modelName.lastIndexOf("/")+1, modelName.lastIndexOf("."));
+				String[] values = c.eval(name+"$mean").asStrings();
+				meanValues = ArrayUtils.addAll(meanValues, values);
+			}
 		}
+		else {
+			for(String modelName : fcModelNames) {
+				c.eval("load(\""+modelName+"\")");
+				String name = modelName.substring(0, modelName.lastIndexOf("."));
+				String[] values = c.eval(name+"$mean").asStrings();
+				meanValues = ArrayUtils.addAll(meanValues, values);
+			}
+		}
+	    
 	    closeRConnection();
 	    
 	    return meanValues;
@@ -141,23 +160,27 @@ public class RManager {
 	
 	/**
 	 * Generate forecasts for all currently saved models
+	 * @param priceType the type of energy price models to create forecasts for ("da" or "rt")
 	 * @return a String indicating the result of the calculation
 	 * @throws REXPMismatchException is thrown when a datatype mismatch occurred
 	 * @throws REngineException is thrown when something has gone wrong on the R connection
 	 */
-	public String generateForecastsAllModels() throws REXPMismatchException, REngineException {
+	public String generateForecastsAllModels(String priceType) throws REXPMismatchException, REngineException {
 		initRConnection();
 		
 	    c.eval("library(\"forecast\")");
 	    
-	    String[] modelNames = c.eval("list.files(path=\"models\", recursive=FALSE, include.dirs=FALSE)").asStrings();
+	    String modelPath = "models_"+priceType;
+	    String fcPath = "forecast_"+priceType;
+	    
+	    String[] modelNames = c.eval("list.files(path=\""+modelPath+"\", recursive=TRUE, include.dirs=FALSE)").asStrings();
 	    
 	    for(String modelName : modelNames) {
-			c.eval("load(\"models/"+modelName+"\")");
+			c.eval("load(\""+modelPath+"/"+modelName+"\")");
 			String name = modelName.substring(0, modelName.lastIndexOf("."));
 			String fcName = "fc_"+name;
 			c.eval(fcName+" <- forecast("+name+",h=24)");
-			c.eval("save("+fcName+", file=\"forecast/"+fcName+".RData\")");
+			c.eval("save("+fcName+", file=\""+fcPath+"/"+fcName+".RData\")");
 			System.out.println("Forecast for model "+name+" finished");
 		}
 	    closeRConnection();
@@ -166,7 +189,10 @@ public class RManager {
 	
 	/**
 	 * Generate forecasts based on previously saved models, filtered by given parameters
-	 * @param locationId the location for which to calculate forecasts
+	 * @param priceType the type of energy price models to retrieve
+	 * @param locationIds the locationIds for which to generate forecasts
+	 * 					if -1 then forecasts are generated for all models
+	 * 						satisfying the other parameters
 	 * @param trainingsPeriod the trainingsperiod by which to filter the model list (given in number of days)
 	 * @param startDateString a string denoting the start date of the model list
 	 * @param endDateString a string denoting the end date of the model list
@@ -174,18 +200,41 @@ public class RManager {
 	 * @throws REXPMismatchException is thrown when a datatype mismatch occurred
 	 * @throws REngineException is thrown when something has gone wrong on the R connection
 	 */
-	public String generateForecasts(Long locationId, Integer trainingsPeriod, String startDateString, String endDateString) throws REXPMismatchException, REngineException {
+	public String generateForecasts(String priceType, String locationIds, Integer trainingsPeriod, 
+					String startDateString, String endDateString) throws REXPMismatchException, REngineException {
 		initRConnection();
 	    
 	    c.eval("library(\"forecast\")");
 	    
-	    String[] modelNames = getModelList("models", locationId, trainingsPeriod, startDateString, endDateString);
+	    boolean fullNames = true;
+	    
+	    String[] modelNames = getModelList(priceType, locationIds, trainingsPeriod, startDateString, endDateString, 
+	    												fullNames, false);
+	    
+	    System.out.println("modelnames length = "+modelNames.length);
+	    
+	    String fcBasePath = "forecast_"+priceType;
+	    String path = "";
+	    String name = "";
+	    
 	    for(String modelName : modelNames) {
-			c.eval("load(\"models/"+modelName+"\")");
-			String name = modelName.substring(0, modelName.lastIndexOf("."));
+			c.eval("load(\""+modelName+"\")");
+			if(fullNames) {
+				String[] dirs = modelName.split("/");
+				path = fcBasePath + "/" + "fc_" +dirs[1];
+				name = modelName.substring(modelName.lastIndexOf("/")+1, modelName.lastIndexOf("."));
+			}
+			else {
+				name = modelName.substring(0, modelName.lastIndexOf("."));
+				path = fcBasePath;
+			}
+			
 			String fcName = "fc_"+name;
-			c.eval(fcName+" <- forecast("+name+",h=24)");
-			c.eval("save("+fcName+", file=\"forecast/"+fcName+".RData\")");
+			c.eval("dir.create(\""+path+"\", showWarnings = FALSE)");
+			c.eval(fcName+" <- forecast("+name+"[[1]],h=24)"); // getting the first list element as the 
+																// actual model, the second is the period
+																// (frequency) of the time series
+			c.eval("save("+fcName+", file=\""+path+"/"+fcName+".RData\")");
 		}
 	    closeRConnection();
 	    return "forecasts generated for "+modelNames.length+" models";
@@ -193,18 +242,21 @@ public class RManager {
 	
 	/**
 	 * Method to retrieve a list of models based on given parameters, restrict by location, date range and trainings period
-	 * @param c the currently active RConnection (necessary since only one active connection is allowed on Windows)
-	 * @param modelPath the relative path where the model files are located
-	 * @param locationId the locationId for which to retrieve the saved models
+	 * @param priceType the type of energy price models to retrieve
+	 * @param locationIds the locationIds for which to retrieve the saved models
 	 * @param trainingsPeriod the trainingsperiod by which to filter the model list (given in number of days)
 	 * @param startDateString a string denoting the minimum start date of the resulting model list
 	 * @param endDateString a string denoting the maximum end date of the resulting model list
+	 * @param fullNames boolean value to indicate whether to return the fully qualified file names (parent directories)
+	 * 			relative to the current working directory (getwd())
+	 * @param forecast boolean value to indicate whether to retrieve forecast calculations
+	 * 			or actual models
 	 * @return a list of strings containing all model names filtered by the given parameters
 	 * @throws REXPMismatchException is thrown when a datatype mismatch occurred
 	 * @throws REngineException is thrown when something has gone wrong on the R connection
 	 */
-	private String[] getModelList(String modelPath, Long locationId, Integer trainingsPeriod, 
-									String startDateString, String endDateString) throws REXPMismatchException, REngineException {
+	private String[] getModelList(String priceType, String locationIds, Integer trainingsPeriod, 
+									String startDateString, String endDateString, boolean fullNames, boolean forecast) throws REXPMismatchException, REngineException {
 		
 		Date startDate = DateParser.parseDate(startDateString);
 	    Date endDate = DateParser.parseDate(endDateString);
@@ -213,11 +265,76 @@ public class RManager {
 	    String startStr = sdf.format(startDate);
 	    String endStr = sdf.format(endDate);
 	    
-	    Integer locId = locationId.intValue();
-	    String pattern = ".*_"+locId+"_"+trainingsPeriod+"d_.*"; // get modelnames containing the given location id
-	    														// and trainings period
+//	    int requiredSplitLength = 5;
+//	    int tPeriodIdx = 2;
+//	    int sDateIdx = 3;
+//	    int eDateIdx = 4;
 	    
-	    String[] names = c.eval("list.files(path=\""+modelPath+"\", pattern=\""+pattern+"\")").asStrings();
+	    String modelPath = "models_"+priceType;
+	    if(forecast) {
+	    	modelPath = "forecast_"+priceType;
+//	    	requiredSplitLength = 6;
+//	    	tPeriodIdx++;
+//		    sDateIdx++;
+//		    eDateIdx++;
+	    }
+//	    String[] dirs = c.eval("list.dirs(path = \""+modelPath+"\", full.names = FALSE, recursive = FALSE)").asStrings();
+//	    String basePath = "";
+//	    
+//	    for(String dir : dirs) {
+//	    	String[] ds = dir.split("_");
+//	    	if(ds.length != requiredSplitLength) {
+//	    		System.err.println("Invalid format of directory storing models or forecasts: "+dir);
+//	    		continue;
+//	    	}
+//	    	String tPeriod = ds[tPeriodIdx].substring(0, ds[tPeriodIdx].length()-1);
+//	    	String sDateString = ds[sDateIdx];
+//	    	String eDateString = ds[eDateIdx];
+//	    	
+//	    	if(tPeriod.equals(String.valueOf(trainingsPeriod)) &&
+//	    			sDateString.equals(startDateString) &&
+//	    			eDateString.equals(endDateString)) {
+//	    		
+//	    		basePath = dir;
+//	    	}
+//	    }
+//	    
+//	    if(basePath.isEmpty()) {
+//	    	String name = "models";
+//	    	if(forecast) {
+//	    		name = "forecasts";
+//	    	}
+//	    	System.err.println("No directory for generated "+name+" could be found for trainings period "+trainingsPeriod
+//	    			+", start date "+startDateString+" and end date "+endDateString);
+//    		return new String[]{};
+//	    }
+//	    
+//	    String path = modelPath + "/" + basePath;
+	    
+	    String pattern = ".*_model_";
+	    String patternLocIds = "";
+	    if(locationIds.equals("-1")) {
+	    	patternLocIds = ".*";
+	    }
+	    else {
+	    	String[] locIds = locationIds.split(",");
+	    	patternLocIds = "(";
+	    	
+	    	for(int i = 0; i < locIds.length; i++) {
+	    		if(i > 0) {
+	    			patternLocIds += "|";
+	    		}
+	    		patternLocIds += locIds[i];
+	    	}
+	    	patternLocIds += ")";
+	    }
+	    pattern += patternLocIds + "_" + trainingsPeriod+"d_.*";
+	    
+	    String[] names = c.eval("list.files(   path=\""+modelPath+"\", "
+	    									+ "pattern=\""+pattern+"\", "
+	    									+ "recursive=TRUE, "
+	    									+ "full.names="+String.valueOf(fullNames).toUpperCase()
+	    									+ ")").asStrings();
 	    Arrays.sort(names);
 	    System.out.println("names len = "+names.length);
 	    
@@ -225,14 +342,17 @@ public class RManager {
 	    List<String> result = new ArrayList<String>();
 	    for (int i = 0; i < names.length; i++) {
 	    	String dateStr = names[i].substring(names[i].lastIndexOf("_")+1, names[i].lastIndexOf("."));
-	    	if(dateStr.equals(startStr))
+	    	if(dateStr.equals(startStr)) {
+	    		System.out.println("add models beginning from date "+dateStr);
 	    		add = true;
+	    	}
 	    	if(add) {
 	    		result.add(names[i]);
-	    		System.out.println("add model "+names[i]);
 	    	}
-	    	if(dateStr.equals(endStr))
+	    	if(dateStr.equals(endStr)) {
+	    		System.out.println("add models up to date "+dateStr);
 	    		add = false;
+	    	}
 	    }
 	    
 	    // Save the modelnames in a String array
