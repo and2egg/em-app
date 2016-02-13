@@ -114,7 +114,7 @@ public class RManager {
 	 * @param priceType the type of energy price models to retrieve
 	 * @param locationIds the locationIds for which to retrieve the saved forecasts (separated by comma)
 	 * 					if -1 then forecasts for all models contained within simulation 
-	 * 						with given trainingsperiod and start/enddates are returned
+	 * 						constrained by trainingsperiod and start/enddates are returned
 	 * @param trainingsPeriod the trainingsperiod by which to filter the list of forecasts
 	 * @param startDateString a string denoting the start date of the list of forecasts
 	 * @param endDateString a string denoting the end date of the list of forecasts
@@ -125,7 +125,9 @@ public class RManager {
 	 * @throws REXPMismatchException is thrown when a datatype mismatch occurred
 	 * @throws REngineException is thrown when something has gone wrong on the R connection
 	 */
-	public String[] getForecasts(String priceType, String locationIds, Integer trainingsPeriod, String startDateString, String endDateString) throws REXPMismatchException, REngineException {
+	public String[] getForecasts(String priceType, String locationIds, Integer trainingsPeriod, 
+					String startDateString, String endDateString) throws REXPMismatchException, REngineException {
+		
 		initRConnection();
 	    
 		boolean fullNames = true;
@@ -264,53 +266,12 @@ public class RManager {
 	    SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd");
 	    String startStr = sdf.format(startDate);
 	    String endStr = sdf.format(endDate);
-	    
-//	    int requiredSplitLength = 5;
-//	    int tPeriodIdx = 2;
-//	    int sDateIdx = 3;
-//	    int eDateIdx = 4;
-	    
+
 	    String modelPath = "models_"+priceType;
 	    if(forecast) {
 	    	modelPath = "forecast_"+priceType;
-//	    	requiredSplitLength = 6;
-//	    	tPeriodIdx++;
-//		    sDateIdx++;
-//		    eDateIdx++;
 	    }
-//	    String[] dirs = c.eval("list.dirs(path = \""+modelPath+"\", full.names = FALSE, recursive = FALSE)").asStrings();
-//	    String basePath = "";
-//	    
-//	    for(String dir : dirs) {
-//	    	String[] ds = dir.split("_");
-//	    	if(ds.length != requiredSplitLength) {
-//	    		System.err.println("Invalid format of directory storing models or forecasts: "+dir);
-//	    		continue;
-//	    	}
-//	    	String tPeriod = ds[tPeriodIdx].substring(0, ds[tPeriodIdx].length()-1);
-//	    	String sDateString = ds[sDateIdx];
-//	    	String eDateString = ds[eDateIdx];
-//	    	
-//	    	if(tPeriod.equals(String.valueOf(trainingsPeriod)) &&
-//	    			sDateString.equals(startDateString) &&
-//	    			eDateString.equals(endDateString)) {
-//	    		
-//	    		basePath = dir;
-//	    	}
-//	    }
-//	    
-//	    if(basePath.isEmpty()) {
-//	    	String name = "models";
-//	    	if(forecast) {
-//	    		name = "forecasts";
-//	    	}
-//	    	System.err.println("No directory for generated "+name+" could be found for trainings period "+trainingsPeriod
-//	    			+", start date "+startDateString+" and end date "+endDateString);
-//    		return new String[]{};
-//	    }
-//	    
-//	    String path = modelPath + "/" + basePath;
-	    
+
 	    String pattern = ".*_model_";
 	    String patternLocIds = "";
 	    if(locationIds.equals("-1")) {

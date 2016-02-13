@@ -662,7 +662,7 @@ public class RManagerResourceRESTService {
     
     /**
      * Method to retrieve a list of forecasts for a given location
-     * example: http://localhost:8081/em-app/rest/r/forecast/1/14/2014-07-07/2014-07-10
+     * example: http://localhost:8081/em-app/rest/r/forecast/da/1/14/2014-07-07/2014-07-10
      * @param locationId the locationId for which to get forecasts
      * @param trainingsPeriod only include the models generated with this training period
      * @param startDate the start date for which to get forecasts
@@ -699,7 +699,7 @@ public class RManagerResourceRESTService {
     /**
      * Method to retrieve a CSV list of forecasts for possible multiple locations at once
      * This format is perfectly suitable to be read by a csv parser
-     * example: http://localhost:8081/em-app/rest/r/forecastAll/1,3,4/14/2014-07-07/2014-07-10
+     * example: http://localhost:8081/em-app/rest/r/forecastAll/da/1,3,4/14/2014-07-07/2014-07-10
      * @param locationIds the locationIds to include in the output
      * @param trainingsPeriod only include the models generated with this training period
      * @param startDate the start date for which to get forecasts
@@ -717,21 +717,40 @@ public class RManagerResourceRESTService {
     	String values[] = null;
     	List<Date> dates = getDates(startDate, endDate);
     	
-    	@SuppressWarnings("unchecked")
-		List<Location> locations = (List<Location>) locationService.getLocations(locationIds).getEntity();
+		List<Location> locations = null;
+    	
+    	if(priceType.equals(EnergyPriceType.DA_TYPE)) {
+    		locations = (List<Location>) locationService.getDALocations(locationIds).getEntity();
+    	}
+    	else if(priceType.equals(EnergyPriceType.RT_TYPE)) {
+    		locations = (List<Location>) locationService.getRTLocations(locationIds).getEntity();
+    	}
+    	
     	
     	try {
+    		
+    		boolean anyResults = false;
     		
     		List<String[]> fcList = new ArrayList<String[]>();
     		StringBuilder builder = new StringBuilder();
     		for(Location loc : locations) {
-    			// setting up CSV header
-    			builder.append(",");
-    			builder.append(loc.getName());
     			values = rManager.getForecasts(priceType, String.valueOf(loc.getId()), trainingsPeriod, startDate, endDate);
-    			fcList.add(values);
+    			if(values.length > 0) {
+    				fcList.add(values);
+        			// setting up CSV header
+        			builder.append(",");
+        			builder.append(loc.getName());
+        			anyResults = true;
+    			}
     		}
     		builder.append(System.lineSeparator());
+    		
+    		if(!anyResults) {
+    			String msg = "No forecasts available for location ids "+locationIds+" from "+priceType+" markets, "
+    					+ "start date "+startDate+", end date "+endDate+" and trainingsPeriod "+trainingsPeriod;
+    			System.err.println(msg);
+    			return Response.status(Status.BAD_REQUEST).entity(msg).build();
+    		}
     		
     		// add dummy values for the first line (date is not forecasted)
     		Date date = dates.get(0);
