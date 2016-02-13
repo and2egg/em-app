@@ -97,51 +97,141 @@ public class RManagerResourceRESTService {
     
     
     /**
+     * Method to generate ARIMA models for multiple locations, with the given training period,
+     * and for all dates between the given start and end date strings
+     * example: http://localhost:8081/em-app/rest/r/generatemodelsbatch/da/1,2,4/14/2014-07-07/2014-07-10?debugOutput=true
+     * @param priceType the type of energy prices to evaluate ("da" or "rt")
+     * @param locationIds the location ids of the locations for which to generate the models
+     * 						if -1 then all locations of the given priceType are queried
+     * @param trainingsPeriod the training period for the model in days, e.g. 14 days for 2 weeks
+     * @param startDateString the starting date for which to generate models (Dateformat: yyyy-MM-dd or yyyy-MM-dd HH:mm:ss)
+     * @param endDateString the end date for which to generate models (Dateformat: yyyy-MM-dd or yyyy-MM-dd HH:mm:ss)
+     * @param transformPrice a boolean value to indicate whether the prices should be transformed
+     * 				(converted to a unified currency, e.g. dollars)
+     * @param enforceTarget a boolean value to indicate whether setting the target period for price time series
+     * 			should be enforced (target period is 24 by default)
+     * @param debugOutput boolean value to indicate whether debug outputs should be printed
+     * @return a Response indicating the status (success/failure) of the calculation 
+     */
+    @GET
+    @Path("/generatemodelsbatch/{type}/{loc_ids}/{training_period}/{startDate}/{endDate}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response generateModelsBatch(@PathParam("type") String priceType, @PathParam("loc_ids") String locationIds, 
+    						@PathParam("training_period") Integer trainingsPeriod, 
+    						@PathParam("startDate") String startDateString, @PathParam("endDate") String endDateString, 
+    						@DefaultValue("true") @QueryParam("transformPrice") Boolean transformPrice,
+    						@DefaultValue("false") @QueryParam("enforceTarget") Boolean enforceTarget,
+    						@DefaultValue("false") @QueryParam("debugOutput") Boolean debugOutput) {
+    	
+    	String location = "";
+    	boolean allLocations = false;
+		if(locationIds.equals("-1")) {
+			if(priceType.equals(EnergyPriceType.DA_TYPE)) {
+				locationIds = "1,2,3,4,5";
+			}
+			else if(priceType.equals(EnergyPriceType.RT_TYPE)) {
+				locationIds = "4,5,6,7,8,9,10";
+			}
+			allLocations = true;
+			location = "X";
+		}
+    	
+    	String[] locSplit = locationIds.split(",");
+    	
+    	for(String locationId : locSplit) {
+    		
+    		if(!(priceType.equals(EnergyPriceType.DA_TYPE) && LocationType.isDayAheadLocation(Long.valueOf(locationId))) &&
+	    		!(priceType.equals(EnergyPriceType.RT_TYPE) && LocationType.isRealTimeLocation(Long.valueOf(locationId)))) {
+	    		System.err.println("generateModelsBatch: priceType ("+priceType+") and locationId ("+locationId+") do not match");
+	    		continue;
+	    	}
+
+    		if(!allLocations) {
+    			location = locationId;
+    		}
+    	    
+    	    Date startDate = DateParser.parseDate(startDateString);
+    	    Date endDate = DateParser.parseDate(endDateString);
+    	    String sDate = DateUtils.formatDate(startDate, DateUtils.DATE_FORMAT_COMPACT);
+    	    String eDate = DateUtils.formatDate(endDate, DateUtils.DATE_FORMAT_COMPACT);
+    	    String modelBasePath = "models_"+priceType;
+    	    String modelSubDir = priceType + "_model_"+location+"_"+trainingsPeriod+"d_"+sDate+"_"+eDate;
+    	    String modelPath = modelBasePath + "/" + modelSubDir;
+    		
+    		generateModels(priceType, Long.valueOf(locationId), trainingsPeriod, startDateString, endDateString, 
+    					modelPath, transformPrice, enforceTarget, debugOutput);
+    		
+    	}
+    	
+    	String output = "Successfully generated models for "+priceType+" locations "+locationIds+" for dates "+startDateString+" to "
+    			+ endDateString +" with trainings period of "+trainingsPeriod+" days";
+    	return Response.status(200).entity(output).build();
+    }
+    
+    
+    /**
      * Method to generate ARIMA models for the given location, with the given training period,
      * and for all dates between the given start and end date strings
+     * example: http://localhost:8081/em-app/rest/r/generatemodels/da/1/14/2014-07-07/2014-07-10?debugOutput=true
+     * @param priceType the type of energy prices to evaluate ("da" or "rt")
      * @param locationId the location id of the location for which to generate the models
      * @param trainingsPeriod the training period for the model in days, e.g. 14 days for 2 weeks
      * @param startDateString the starting date for which to generate models (Dateformat: yyyy-MM-dd or yyyy-MM-dd HH:mm:ss)
      * @param endDateString the end date for which to generate models (Dateformat: yyyy-MM-dd or yyyy-MM-dd HH:mm:ss)
+     * @param modelPath the path where the models in this run should be stored (set to default if not set)
+     * @param transformPrice a boolean value to indicate whether the prices should be transformed
+     * 				(converted to a unified currency, e.g. dollars)
      * @param enforceTarget a boolean value to indicate whether setting the target period for price time series
      * 			should be enforced (target period is 24 by default)
+     * @param debugOutput boolean value to indicate whether debug outputs should be printed
      * @return a Response indicating the status (success/failure) of the calculation 
      */
     @GET
-    @Path("/generatemodels/{loc_id}/{training_period}/{startDate}/{endDate}")
+    @Path("/generatemodels/{type}/{loc_id}/{training_period}/{startDate}/{endDate}")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response generateModels(@PathParam("loc_id") Long locationId, @PathParam("training_period") Integer trainingsPeriod, 
+    public Response generateModels(@PathParam("type") String priceType, @PathParam("loc_id") Long locationId, 
+    						@PathParam("training_period") Integer trainingsPeriod, 
     						@PathParam("startDate") String startDateString, @PathParam("endDate") String endDateString, 
+    						@DefaultValue("") @QueryParam("modelPath") String modelPath,
     						@DefaultValue("true") @QueryParam("transformPrice") Boolean transformPrice,
-    						@DefaultValue("false") @QueryParam("enforceTarget") Boolean enforceTarget) {
+    						@DefaultValue("false") @QueryParam("enforceTarget") Boolean enforceTarget,
+    						@DefaultValue("false") @QueryParam("debugOutput") Boolean debugOutput) {
+    	
+    	if(!(priceType.equals(EnergyPriceType.DA_TYPE) && LocationType.isDayAheadLocation(locationId)) &&
+    		!(priceType.equals(EnergyPriceType.RT_TYPE) && LocationType.isRealTimeLocation(locationId))) {
+    		return Response.status(Status.BAD_REQUEST).entity("generateModel: priceType ("+priceType+") and locationId ("+locationId+") do not match").build();
+    	}
     	
     	Date start = DateParser.parseDate(startDateString);
     	Date end = DateParser.parseDate(endDateString);
     	
-    	Calendar calStart = Calendar.getInstance();
-    	Calendar calEnd = Calendar.getInstance();
-    	calStart.setTime(start);
-    	calEnd.setTime(end);
+    	Calendar eLocal = Calendar.getInstance();
+		Calendar sLocal = Calendar.getInstance();
+		
+		sLocal.setTime(start);
+		eLocal.setTime(end);
+
+    	TimeZone tz = TimeZone.getTimeZone("UTC");
+		
+		DateFormat formatter = new SimpleDateFormat(DateUtils.DATE_FORMAT);
+    	formatter.setTimeZone(tz);
     	
-    	calStart.set(calStart.get(Calendar.YEAR), calStart.get(Calendar.MONTH), calStart.get(Calendar.DAY_OF_MONTH), 0, 0, 0);
+    	Calendar calStart = Calendar.getInstance(tz);
+    	Calendar calEnd = Calendar.getInstance(tz);
+    	calStart.set(sLocal.get(Calendar.YEAR), sLocal.get(Calendar.MONTH), sLocal.get(Calendar.DAY_OF_MONTH), 0, 0, 0);
     	calStart.set(Calendar.MILLISECOND, 0);
-    	calEnd.set(calEnd.get(Calendar.YEAR), calEnd.get(Calendar.MONTH), calEnd.get(Calendar.DAY_OF_MONTH), 0, 0, 0);
+    	calEnd.set(eLocal.get(Calendar.YEAR), eLocal.get(Calendar.MONTH), eLocal.get(Calendar.DAY_OF_MONTH), 0, 0, 0);
     	calEnd.set(Calendar.MILLISECOND, 0);
-    	
-    	String format = "yyyy-MM-dd";
     	
     	int models = 0;
     	while(calStart.getTimeInMillis() <= calEnd.getTimeInMillis()) {
-    		Calendar e = Calendar.getInstance();
-    		Calendar s = Calendar.getInstance();
-    		s.setTimeInMillis(calStart.getTimeInMillis());
-    		e.setTimeInMillis(calStart.getTimeInMillis());
+    		Calendar e = (Calendar) calStart.clone();
+    		Calendar s = (Calendar) calStart.clone();
     		s.add(Calendar.DATE, -trainingsPeriod); // go back a defined number of days
     												// for model trainingsdata
     		
-    		SimpleDateFormat sdf = new SimpleDateFormat(format);
-    		String dStart = sdf.format(s.getTime());
-    		String dEnd = sdf.format(e.getTime());
+    		String dStart = formatter.format(s.getTime());
+    		String dEnd = formatter.format(e.getTime());
     		
     		System.out.println("startdate "+dStart);
     		System.out.println("enddate "+dEnd);
@@ -149,45 +239,73 @@ public class RManagerResourceRESTService {
     		SimpleDateFormat sdf2 = new SimpleDateFormat("yyyyMMdd");
     		String modelDate = sdf2.format(e.getTime());
     		
+    		String modelPrefix = "";
+        	if(priceType.equals(EnergyPriceType.DA_TYPE) && LocationType.isDayAheadLocation(locationId)) {
+        		modelPrefix = "da_model";
+        	}
+        	else if(priceType.equals(EnergyPriceType.RT_TYPE) && LocationType.isRealTimeLocation(locationId)) {
+        		modelPrefix = "rt_model";
+        	}
+        	else {
+        		return Response.status(Status.BAD_REQUEST).entity("generateModels: priceType ("+priceType+") and locationId ("+locationId+") do not match").build();
+        	}
     		// Each modelname is created by giving the type (da), the location id, 
     		// the training period in days and the date at the end of the trainingsperiod
-    		String modelName = "da_model" + "_" + locationId.intValue() + "_" + trainingsPeriod + "d_" + modelDate;
+    		String modelName = modelPrefix + "_" + locationId.intValue() + "_" + trainingsPeriod + "d_" + modelDate;
     		System.out.println("modelName "+modelName);
-    		generateModel(modelName, locationId, dStart, dEnd, transformPrice, enforceTarget);
+    		
+    		generateModel(priceType, modelName, locationId, dStart, dEnd, modelPath, transformPrice, enforceTarget, debugOutput);
     		calStart.add(Calendar.DATE, 1);
     		models++;
     	}
-    	String output = "Successfully generated "+models+" models";
+    	String output = "Successfully generated "+models+" "+priceType+" models for dates "+startDateString+" to "
+    			+ endDateString +" with trainings period of "+trainingsPeriod+" days";
     	return Response.status(200).entity(output).build();
     }
     
     
     /**
-     * Generate an ARIMA model given a modelName, locationId, and start and enddates
-     * for the trainingsdata
-     * example: http://localhost:8081/em-app/rest/r/generatemodel/da_model_1_14d_20140720/1/2014-07-07/2014-07-20
+     * Generate an ARIMA model given a modelName, locationId, and start and enddates for the trainingsdata
+     * example: http://localhost:8081/em-app/rest/r/generatemodel/da/da_model_1_14d_20140720/1/2014-07-07/2014-07-20
+     * @param priceType the type of energy prices to evaluate ("da" or "rt")
      * @param modelName the name of the model which should be unique and recognizable
+     * @param modelPath the path where the models in this run should be stored
      * @param locationId the id of the location for which to generate the model
      * @param startTraining the startdate of the trainingsdata (Dateformat: yyyy-MM-dd or yyyy-MM-dd HH:mm:ss)
-     * @param endDate the enddate of the trainingsdata (Dateformat: yyyy-MM-dd or yyyy-MM-dd HH:mm:ss)
+     * @param endTraining the enddate of the trainingsdata (Dateformat: yyyy-MM-dd or yyyy-MM-dd HH:mm:ss)
+     * @param modelPath the path where the models in this run should be stored (set to default if not set)
      * @param transformPrice a boolean value to indicate whether the prices should be transformed
      * 				(converted to a unified currency, e.g. dollars)
      * @param enforceTarget a boolean value to indicate whether setting the target period for price time series
      * 			should be enforced (target period is 24 by default)
+     * @param debugOutput boolean value to indicate whether debug outputs should be printed
      * @return Response to indicate whether or not the model generation was successful
      */
     @GET
-    @Path("/generatemodel/{modelName}/{loc_id}/{startDate}/{endDate}")
+    @Path("/generatemodel/{type}/{modelName}/{loc_id}/{startDate}/{endDate}")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response generateModel(@PathParam("modelName") String modelName, @PathParam("loc_id") Long locationId, @PathParam("startDate") String startTraining, 
-    								@PathParam("endDate") String endTraining, @DefaultValue("true") @QueryParam("transformPrice") Boolean transformPrice,
-    								@DefaultValue("false") @QueryParam("enforceTarget") Boolean enforceTarget) {
+    public Response generateModel(@PathParam("type") String priceType, @PathParam("modelName") String modelName, 
+    								@PathParam("loc_id") Long locationId, 
+    								@PathParam("startDate") String startTraining, @PathParam("endDate") String endTraining,
+    								@DefaultValue("") @QueryParam("modelPath") String modelPath,
+    								@DefaultValue("true") @QueryParam("transformPrice") Boolean transformPrice,
+    								@DefaultValue("false") @QueryParam("enforceTarget") Boolean enforceTarget,
+    								@DefaultValue("false") @QueryParam("debugOutput") Boolean debugOutput) {
     	String result;
-    	Response priceResponse = daPriceService.retrieveDAPricesCSV(String.valueOf(locationId), startTraining, endTraining, transformPrice);
+    	Response priceResponse;
+    	if(priceType.equals(EnergyPriceType.DA_TYPE) && LocationType.isDayAheadLocation(locationId)) {
+    		priceResponse = daPriceService.retrieveDAPricesCSV(String.valueOf(locationId), startTraining, endTraining, transformPrice);
+    	}
+    	else if(priceType.equals(EnergyPriceType.RT_TYPE) && LocationType.isRealTimeLocation(locationId)) {
+    		priceResponse = rtPriceService.retrieveRTPricesCSV(String.valueOf(locationId), startTraining, endTraining, transformPrice);
+    	}
+    	else {
+    		return Response.status(Status.BAD_REQUEST).entity("generateModel: priceType ("+priceType+") and locationId ("+locationId+") do not match").build();
+    	}
     	String csvData = priceResponse.getEntity().toString();
     	
     	try {
-    		result = rManager.generateArimaModel(modelName, csvData, enforceTarget);
+    		result = rManager.generateArimaModel(priceType, modelName, modelPath, csvData, enforceTarget, debugOutput);
 		} catch (RserveException e) {
 			e.printStackTrace();
 			result = e.getMessage();

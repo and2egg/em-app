@@ -7,6 +7,7 @@ import javax.ejb.Schedules;
 import javax.ejb.Stateless;
 import javax.inject.Inject;
 
+import at.ac.tuwien.thesis.caddc.model.type.EnergyPriceType;
 import at.ac.tuwien.thesis.caddc.rest.service.DAPricesResourceRESTService;
 import at.ac.tuwien.thesis.caddc.rest.service.RManagerResourceRESTService;
 
@@ -32,7 +33,7 @@ public class Scheduler {
 		
 		daPriceService.importMarketDataPerLocation(LOCATION_HELSINKI, 2015, 2015);
 		
-		rManagerService.generateModels(LOCATION_HELSINKI, 14, "2014-07-07", "2014-07-10", true, false);
+		rManagerService.generateModels(EnergyPriceType.DA_TYPE, LOCATION_HELSINKI, 14, "2014-07-07", "2014-07-10", "", true, false, false);
 		
 		rManagerService.generateForecasts();
 	}
@@ -43,7 +44,7 @@ public class Scheduler {
 		
 		daPriceService.importMarketDataPerLocation(LOCATION_STOCKHOLM, 2015, 2015);
 		
-		rManagerService.generateModels(LOCATION_STOCKHOLM, 14, "2014-07-07", "2014-07-10", true, false);
+		rManagerService.generateModels(EnergyPriceType.DA_TYPE, LOCATION_STOCKHOLM, 14, "2014-07-07", "2014-07-10", "", true, false, false);
 		
 		rManagerService.generateForecasts();
 	}

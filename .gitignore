@@ -8,3 +8,4 @@ javadoc.xml
 
 # R
 **/*.RData
+*.RData

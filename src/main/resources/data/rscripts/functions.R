@@ -260,13 +260,21 @@ generateARIMAModel <- function(data, targetPeriod=NULL, periods=NULL, numTopPeri
 {
   series <- data
   
-  if(enforceTarget == TRUE && !is.null(targetPeriod)) {
+  if(output) {
+    print(paste0("enforceTarget=",enforceTarget,",targetPeriod=",targetPeriod))
+  }
+  
+  if(enforceTarget && !is.null(targetPeriod)) {
     periods <- c(targetPeriod,1) # add "1" for no-period to compare to a fallback model
   }
   else if(is.null(periods))
   {
     # retrieves the target period if available, otherwise 1
     periods <- getPeriodsWithTarget(series, targetPeriod=targetPeriod, maxLimit=maxLimit, output=output, plot=plot)
+  }
+  
+  if(output) {
+    print(paste0("periods=",periods))
   }
   
   # generate list objects

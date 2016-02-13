@@ -20,6 +20,7 @@ import org.rosuda.REngine.RList;
 import org.rosuda.REngine.Rserve.RConnection;
 import org.rosuda.REngine.Rserve.RserveException;
 
+import at.ac.tuwien.thesis.caddc.model.type.EnergyPriceType;
 import at.ac.tuwien.thesis.caddc.util.DateParser;
 
 /**
@@ -315,8 +316,6 @@ public class RManager {
     		    
     		    for(int i = 0; i < names.length; i++) {
     		    	String r = names[i];
-//    		    	c.eval("load(\"simulation/"+simulationName+"/"+r+"\")");
-    		    	
     		    	String name = r.substring(0, r.lastIndexOf("."));
     		    	c.eval("acc <- "+name+"[[2]][["+model+"]][["+h+"]]");
 //    		    	int numAccMeasures = c.eval("length(acc)/2").asInteger();
@@ -396,6 +395,8 @@ public class RManager {
 	/**
 	 * Method to generate an R ARIMA model based on the given data
 	 * @param modelName the name under which this model should be saved (without extension)
+	 * @param modelPath the path where the models in this run should be stored (set to default when empty)
+	 * @param priceType the type of energy prices to evaluate ("da" or "rt")
 	 * @param csvData csv data as a single string
 	 * @param targetPeriod a specific target period to search for (e.g. 24 to mark a period every 24 hours)
 	 * @param topPeriods the number of periods to investigate in case of missing targetPeriod
@@ -412,8 +413,9 @@ public class RManager {
 	 * @throws REXPMismatchException is thrown when a datatype mismatch occurred
 	 * @throws REngineException is thrown when something has gone wrong on the R connection
 	 */
-	public String generateArimaModel(String modelName, String csvData, int targetPeriod, int topPeriods, Integer maxLimit, double weightAicc, double weightLjung,
-						boolean approximation, boolean stepwise, boolean enforceTarget, boolean output, boolean plot) throws RserveException, REXPMismatchException {
+	public String generateArimaModel(String priceType, String modelName, String modelPath, String csvData, int targetPeriod, 
+									int topPeriods,	Integer maxLimit, double weightAicc, double weightLjung,
+									boolean approximation, boolean stepwise, boolean enforceTarget, boolean output, boolean plot) throws RserveException, REXPMismatchException {
 		initRConnection();
 		
 	    c.eval("loadLibraries()");
@@ -428,14 +430,22 @@ public class RManager {
 	    
 	    c.eval(modelName+" <- generateARIMAModel(pricesTraining, targetPeriod="+targetPeriod+", "
 					    		+ "numTopPeriods="+topPeriods+", "
+					    		+ "maxLimit="+maxLimit+", "
 					    		+ "wAicc="+weightAicc+", "
 					    		+ "wLjung="+weightLjung+", "
 					    		+ "approximation="+String.valueOf(approximation).toUpperCase()+", "
 					    		+ "stepwise="+String.valueOf(stepwise).toUpperCase()+", "
+					    		+ "enforceTarget="+String.valueOf(enforceTarget).toUpperCase()+", "
 					    		+ "output="+String.valueOf(output).toUpperCase()+", "
 					    		+ "plot="+String.valueOf(plot).toUpperCase()+")");
 	    
-	    c.eval("save("+modelName+", file=\"models/"+modelName+".RData\")");
+	    // set to default
+	    if(modelPath.isEmpty()) {
+	    	modelPath = "models_"+priceType;
+	    }
+	    
+	    c.eval("dir.create(\""+modelPath+"\", showWarnings = FALSE)");
+	    c.eval("save("+modelName+", file=\""+modelPath+"/"+modelName+".RData\")");
 	    
 	    closeRConnection();
 	    
@@ -445,15 +455,19 @@ public class RManager {
 	/**
 	 * Method to generate an R ARIMA model with default values (for faster and yet accurate model generation)
 	 * @param modelName the name under which this model should be saved (without extension)
+	 * @param modelPath the path where the models in this run should be stored (set to default when empty)
+	 * @param priceType the type of energy prices to evaluate ("da" or "rt")
 	 * @param csvData csv data as a single string
 	 * @param enforceTarget a boolean value indicating whether the given target period should be set as period
 	 * 				even though it might not be found in the data
+	 * @param debugOutput a boolean value indicating whether additional outputs during model generation should
+	 * 				be printed (R console)
 	 * @return a String indicating the result of the calculation
 	 * @throws REXPMismatchException is thrown when a datatype mismatch occurred
 	 * @throws RserveException is thrown when something has gone wrong on the R connection
 	 */
-	public String generateArimaModel(String modelName, String csvData, boolean enforceTarget) throws RserveException, REXPMismatchException {
-		return generateArimaModel(modelName, csvData, 24, 4, 168, 0.7, 0.3, true, true, enforceTarget, true, false);
+	public String generateArimaModel(String modelName, String modelPath, String priceType, String csvData, boolean enforceTarget, boolean debugOutput) throws RserveException, REXPMismatchException {
+		return generateArimaModel(modelName, modelPath, priceType, csvData, 24, 4, 168, 0.7, 0.3, true, true, enforceTarget, debugOutput, false);
 	}
 	
 	
@@ -463,6 +477,8 @@ public class RManager {
 	 * @param simulationName the name under which to save the simulation
 	 * @param csvTraining csv training data to train models
 	 * @param csvTest csv test data for model evaluation on test data
+	 * @param debugOutput a boolean value indicating whether additional outputs during model evaluation 
+	 * 				should be printed (R console)
 	 * @return a String indicating the status of the simulation
 	 * @throws RserveException is thrown when something has gone wrong on the R connection
 	 * @throws REXPMismatchException is thrown when a datatype mismatch occurred

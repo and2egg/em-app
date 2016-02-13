@@ -13,6 +13,7 @@ public class DateUtils {
 	
 	
 	public static final String DATE_FORMAT = "yyyy-MM-dd HH:mm:ss";
+	public static final String DATE_FORMAT_SHORT = "yyyy-MM-dd";
 	public static final String DATE_FORMAT_NO_SECONDS = "yyyy-MM-dd HH:mm";
 	public static final String DATE_FORMAT_COMPACT = "yyyyMMdd";
 	
@@ -21,6 +22,12 @@ public class DateUtils {
 	
 	public static String formatDate(Date date) {
 		return df.format(date);
+	}
+	
+	
+	public static String formatDate(Date date, String dateFormat) {
+		DateFormat formatter = new SimpleDateFormat(dateFormat);
+		return formatter.format(date);
 	}
 	
 	
