@@ -494,6 +494,7 @@ public class RManager {
 	 * @throws REXPMismatchException is thrown when a datatype mismatch occurred
 	 * @throws REngineException is thrown when something has gone wrong on the R connection
 	 */
+	@TransactionTimeout(1500)
 	public String generateArimaModel(String priceType, String modelName, String modelPath, String csvData, int targetPeriod, 
 									int topPeriods,	Integer maxLimit, double weightAicc, double weightLjung,
 									boolean approximation, boolean stepwise, boolean enforceTarget, boolean output, boolean plot) throws RserveException, REXPMismatchException {

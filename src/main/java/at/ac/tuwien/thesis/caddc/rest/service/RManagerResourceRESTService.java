@@ -304,6 +304,9 @@ public class RManagerResourceRESTService {
 		} catch (REXPMismatchException e) {
 			e.printStackTrace();
 			result = e.getMessage();
+		} catch (Exception e) {
+			e.printStackTrace();
+			result = e.getMessage();
 		} finally {
 			rManager.closeRConnection();
 		}
@@ -627,7 +630,7 @@ public class RManagerResourceRESTService {
      * example: http://localhost:8081/em-app/rest/r/forecast/generate/da/1,2/14/2014-06-20/2014-07-28/
      * @param priceType the energy price type for which to generate forecasts
      * @param locationIds the locationIds for which to generate forecasts
-	 * 					if -1 then forecasts are generated for all models
+	 * 					if -1 then forecasts are generated for all locations
 	 * 						satisfying the other parameters
      * @param trainingsPeriod the model trainingsperiod to generate forecasts from
      * @param startDate the start date of the previous batch generation of models
@@ -762,7 +765,7 @@ public class RManagerResourceRESTService {
     		builder.append(System.lineSeparator());
     		
     		int rows = fcList.get(0).length;
-    		for(int i = 0; i < rows; i++) {
+    		for(int i = 0; i < rows-2; i++) {
     			date = dates.get(i+1);
     			builder.append(DateUtils.formatDate(date));
         		
