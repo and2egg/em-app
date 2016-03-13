@@ -324,7 +324,7 @@ public class RManager {
 	
 	
 	/**
-	 * Get simulation results for a simulation, optionally aggregated by forecast error measure
+	 * Get simulation results (accuracy measures) for a simulation, optionally aggregated by forecast horizons
 	 * Saves the results in an R data frame
 	 * @param simulationName the name of the simulation to get results for
 	 * @param aggregated boolean value to indicate whether results should be aggregated (by mean calculation
@@ -554,6 +554,7 @@ public class RManager {
 	
 	
 	/**
+	 * Run R simulations
 	 * Evaluate all models for a specific training and test period and save the result under the 
 	 * given simulationName (in "simulation" folder)
 	 * @param simulationName the name under which to save the simulation
@@ -566,7 +567,7 @@ public class RManager {
 	 * @throws REXPMismatchException is thrown when a datatype mismatch occurred
 	 */
 	@TransactionTimeout(1500)
-	public String evaluateModels(String simulationName, String csvTraining, String csvTest, boolean debugOutput) throws RserveException, REXPMismatchException {
+	public String modelSimulation(String simulationName, String csvTraining, String csvTest, boolean debugOutput) throws RserveException, REXPMismatchException {
 		boolean close = false;
 		if(!init) {
 			initRConnection();

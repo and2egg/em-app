@@ -316,7 +316,7 @@ public class RManagerResourceRESTService {
     
     
     /**
-     * Get simulation results for a previously run simulation
+     * Get simulation results for a previously run forecast simulation
      * example: http://localhost:8081/em-app/rest/r/simulationresults/da_sim_1_2w_1w_1w?aggregated=false
      * @param simulationName the name of the simulation run which should be unique and recognizable
      * 			it is generic and should consist of the priceType, locationId, trainingsPeriod, testPeriod and intervalPeriod
@@ -354,7 +354,7 @@ public class RManagerResourceRESTService {
     
     /**
      * Get simulation results for a previously run simulation
-     * example: http://localhost:8081/em-app/rest/r/runsimulations/2014-07-07 00:00/2014-08-08/da_sim_1_2w_1w_1w,rt_sim_6_4w_1w_1w,rt_sim_4_3w_1w_2w
+     * example: http://localhost:8081/em-app/rest/r/runsimulations/2014-07-07 00:00/2014-08-08/da_sim_1_2w_1w_1w,rt_sim_6_4w_1w_1w,rt_sim_4_3w_1w_2w?debugOutput=true
      * @param simulationStart the common start date of the simulations (Dateformat: yyyy-MM-dd or yyyy-MM-dd HH:mm)
      * @param simulationEnd the common end date of the simulations (Dateformat: yyyy-MM-dd or yyyy-MM-dd HH:mm)
      * @param simulationNames a comma separated list of simulation names with the predefined format
@@ -553,7 +553,7 @@ public class RManagerResourceRESTService {
     	String csvTest = pricesTest.getEntity().toString();
 
     	try {
-    		result = rManager.evaluateModels(simulationName, csvTraining, csvTest, debugOutput);
+    		result = rManager.modelSimulation(simulationName, csvTraining, csvTest, debugOutput);
 		} catch (RserveException e) {
 			e.printStackTrace();
 			result = e.getLocalizedMessage();

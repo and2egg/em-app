@@ -374,7 +374,7 @@ generateARIMAModel <- function(data, targetPeriod=NULL, periods=NULL, numTopPeri
 }
 
 
-#' evaluateModels: function for automatic model evaluation
+#' evaluateModels: function calculating accuracy measures for all defined models
 #' -------------------
 #' Calls the function to evaluate forecasting models based on the provided 
 #' trainings and test data
@@ -398,7 +398,7 @@ evaluateModels <- function(priceDFTraining, priceDFTest, output=FALSE, extendedO
 }
 
 
-#' fcModelEvaluation: function for automatic generation of forecast accuracy measures
+#' fcModelEvaluation: function for generation of forecast accuracy measures
 #' -------------------
 #' Iterates through a list of defined models, generates the models based on 
 #' the given trainings data, and computes accuracy measures for all models based on
@@ -453,6 +453,9 @@ fcModelEvaluation <- function(pricesTraining, pricesTest, output=FALSE, extended
     accuracyModelList <- list()
     for(j in 1:length(fcHorizonList)) {
       fcHorizon <- fcHorizonList[[j]]
+      if(i == 1) {
+        model <- meanf(pricesTraining_ts, h=fcHorizon)
+      }
       accuracyModelList[[j]] <- accuracy(forecast(model, h=fcHorizon), pricesTest)
     }
     accuracyList[[i]] <- accuracyModelList
