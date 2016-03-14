@@ -567,7 +567,7 @@ public class RManager {
 	 * @throws REXPMismatchException is thrown when a datatype mismatch occurred
 	 */
 	@TransactionTimeout(1500)
-	public String modelSimulation(String simulationName, String csvTraining, String csvTest, boolean debugOutput) throws RserveException, REXPMismatchException {
+	public String evaluateModels(String simulationName, String csvTraining, String csvTest, boolean debugOutput) throws RserveException, REXPMismatchException {
 		boolean close = false;
 		if(!init) {
 			initRConnection();

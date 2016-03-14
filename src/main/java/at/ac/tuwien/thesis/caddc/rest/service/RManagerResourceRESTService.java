@@ -553,7 +553,7 @@ public class RManagerResourceRESTService {
     	String csvTest = pricesTest.getEntity().toString();
 
     	try {
-    		result = rManager.modelSimulation(simulationName, csvTraining, csvTest, debugOutput);
+    		result = rManager.evaluateModels(simulationName, csvTraining, csvTest, debugOutput);
 		} catch (RserveException e) {
 			e.printStackTrace();
 			result = e.getLocalizedMessage();
