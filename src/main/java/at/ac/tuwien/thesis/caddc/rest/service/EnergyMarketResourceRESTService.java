@@ -1,6 +1,5 @@
 package at.ac.tuwien.thesis.caddc.rest.service;
 
-import java.util.Calendar;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -19,17 +18,12 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import org.rosuda.REngine.REXPMismatchException;
-import org.rosuda.REngine.Rserve.RserveException;
 
-import at.ac.tuwien.thesis.caddc.model.DAPrice;
 import at.ac.tuwien.thesis.caddc.model.EnergyMarket;
 import at.ac.tuwien.thesis.caddc.model.Location;
-import at.ac.tuwien.thesis.caddc.persistence.DAPriceRepository;
 import at.ac.tuwien.thesis.caddc.persistence.EnergyMarketPersistence;
 import at.ac.tuwien.thesis.caddc.persistence.EnergyMarketRepository;
 import at.ac.tuwien.thesis.caddc.persistence.LocationRepository;
-import at.ac.tuwien.thesis.caddc.service.RManager;
 
 /**
  * Energy Market REST Service
@@ -54,13 +48,8 @@ public class EnergyMarketResourceRESTService {
     private LocationRepository locationRepository;
     
     @Inject
-    private DAPriceRepository daPriceRepository;
-    
-    @Inject
     private EnergyMarketPersistence energyMarketResource;
     
-    @Inject
-    private RManager rManager;
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)

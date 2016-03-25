@@ -1,24 +1,20 @@
 package at.ac.tuwien.thesis.caddc.rest.service;
 
 import java.text.DateFormat;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.TimeZone;
 import java.util.logging.Logger;
 
 import javax.annotation.PostConstruct;
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
-import javax.validation.ConstraintViolation;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -35,7 +31,6 @@ import at.ac.tuwien.thesis.caddc.data.market.da.MarketDataFinlandDA;
 import at.ac.tuwien.thesis.caddc.data.market.da.MarketDataGermanyDA;
 import at.ac.tuwien.thesis.caddc.data.market.da.MarketDataMaineDA;
 import at.ac.tuwien.thesis.caddc.data.market.da.MarketDataMassachussettsDA;
-import at.ac.tuwien.thesis.caddc.data.market.da.MarketDataSwedenDA;
 import at.ac.tuwien.thesis.caddc.model.DAPrice;
 import at.ac.tuwien.thesis.caddc.model.Location;
 import at.ac.tuwien.thesis.caddc.model.type.EnergyPrice;

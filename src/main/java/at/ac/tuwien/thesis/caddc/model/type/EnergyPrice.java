@@ -1,7 +1,5 @@
 package at.ac.tuwien.thesis.caddc.model.type;
 
-import java.util.Date;
-
 /**
  * 
  */

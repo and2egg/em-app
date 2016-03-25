@@ -2,14 +2,13 @@ package at.ac.tuwien.thesis.caddc.service;
 
 import java.util.Date;
 
-import javax.ejb.Schedule;
-import javax.ejb.Schedules;
 import javax.ejb.Stateless;
 import javax.inject.Inject;
 
 import at.ac.tuwien.thesis.caddc.model.type.EnergyPriceType;
 import at.ac.tuwien.thesis.caddc.rest.service.DAPricesResourceRESTService;
 import at.ac.tuwien.thesis.caddc.rest.service.RManagerResourceRESTService;
+import at.ac.tuwien.thesis.caddc.rest.service.RTPricesResourceRESTService;
 
 @Stateless
 public class Scheduler {
@@ -19,6 +18,9 @@ public class Scheduler {
 	
 	@Inject
 	DAPricesResourceRESTService daPriceService;
+	
+	@Inject
+	RTPricesResourceRESTService rtPriceService;
 	
 	@Inject
 	RManagerResourceRESTService rManagerService;

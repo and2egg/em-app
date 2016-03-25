@@ -1,21 +1,13 @@
 package at.ac.tuwien.thesis.caddc.model.handler;
 
-import java.text.DateFormat;
 import java.text.NumberFormat;
 import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
-import java.util.TimeZone;
-
 import at.ac.tuwien.thesis.caddc.model.Location;
-import at.ac.tuwien.thesis.caddc.model.type.EnergyMarketType;
 import at.ac.tuwien.thesis.caddc.model.type.EnergyPriceType;
 import at.ac.tuwien.thesis.caddc.model.type.LocationType;
-import at.ac.tuwien.thesis.caddc.util.DateParser;
 
 /**
  * 

@@ -1,15 +1,8 @@
 package at.ac.tuwien.thesis.caddc.data.market;
 
 import java.util.Date;
-import java.util.List;
-
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
-
 import at.ac.tuwien.thesis.caddc.data.fetch.exception.FetchDataException;
-import at.ac.tuwien.thesis.caddc.data.format.Resource;
 import at.ac.tuwien.thesis.caddc.data.parse.exception.ParseException;
-import at.ac.tuwien.thesis.caddc.data.resource.ResourceManager;
 import at.ac.tuwien.thesis.caddc.data.resource.ResourceManagerDA;
 import at.ac.tuwien.thesis.caddc.data.resource.types.ResourceType;
 import at.ac.tuwien.thesis.caddc.model.Location;
@@ -49,6 +42,7 @@ public abstract class MarketDataDA extends MarketData {
 	 * Get the preferred resource type for this MarketData Instance
 	 * @return the preferred resource type
 	 */
+	@Override
 	public ResourceType getResourceType() {
 		return resourceManager.getFirstDAResource();
 	}
@@ -57,6 +51,7 @@ public abstract class MarketDataDA extends MarketData {
 	 * Get a specific resource type for this MarketData Instance
 	 * @return the preferred resource type
 	 */
+	@Override
 	public ResourceType getResourceType(Integer index) {
 		return resourceManager.getDAResource(index);
 	}
@@ -66,6 +61,7 @@ public abstract class MarketDataDA extends MarketData {
 	 * @param year the year for which to save the energy prices
 	 * @throws ImportDataException is thrown when data import failed
 	 */
+	@Override
 	public void importPrices(Integer year) throws ImportDataException {
 		Date currentDate = DateUtils.getCurrentDateWithTimeZone(getLocation().getTimeZone());
 		Date maxDate = daPriceResource.findMaxDate(getLocation());

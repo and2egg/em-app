@@ -1,21 +1,13 @@
 package at.ac.tuwien.thesis.caddc.data.market;
 
-import java.util.Date;
 import java.util.List;
-
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
 
 import at.ac.tuwien.thesis.caddc.data.fetch.exception.FetchDataException;
 import at.ac.tuwien.thesis.caddc.data.format.Resource;
 import at.ac.tuwien.thesis.caddc.data.parse.exception.ParseException;
-import at.ac.tuwien.thesis.caddc.data.resource.ResourceManager;
 import at.ac.tuwien.thesis.caddc.data.resource.types.ResourceType;
 import at.ac.tuwien.thesis.caddc.model.Location;
-import at.ac.tuwien.thesis.caddc.persistence.DAPricePersistence;
 import at.ac.tuwien.thesis.caddc.persistence.exception.ImportDataException;
-import at.ac.tuwien.thesis.caddc.persistence.exception.LocationNotFoundException;
-import at.ac.tuwien.thesis.caddc.util.DateUtils;
 
 /**
  * Defines a MarketData Instance responsible for retrieving energy

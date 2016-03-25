@@ -1,18 +1,12 @@
 package at.ac.tuwien.thesis.caddc.data.parse.types.rt;
 
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-
-import com.opencsv.CSVReader;
 
 import at.ac.tuwien.thesis.caddc.data.format.Resource;
 import at.ac.tuwien.thesis.caddc.data.parse.Parser;
 import at.ac.tuwien.thesis.caddc.data.parse.exception.ParseException;
 import at.ac.tuwien.thesis.caddc.data.parse.types.ParserCSV;
-import at.ac.tuwien.thesis.caddc.data.parse.types.ParserXLS;
 
 /**
  * Class to fetch an XLS file containing real time (RT) 

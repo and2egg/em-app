@@ -1,8 +1,6 @@
 package at.ac.tuwien.thesis.caddc.data.market.da;
 
-import at.ac.tuwien.thesis.caddc.data.market.MarketData;
 import at.ac.tuwien.thesis.caddc.data.market.MarketDataDA;
-import at.ac.tuwien.thesis.caddc.data.resource.da.ResourceManagerFinlandDA;
 import at.ac.tuwien.thesis.caddc.data.resource.da.ResourceManagerGermanyDA;
 import at.ac.tuwien.thesis.caddc.model.Location;
 import at.ac.tuwien.thesis.caddc.persistence.DAPricePersistence;

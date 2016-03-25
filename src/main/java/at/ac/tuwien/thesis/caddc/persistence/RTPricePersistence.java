@@ -1,27 +1,18 @@
 package at.ac.tuwien.thesis.caddc.persistence;
 
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
-import java.util.TimeZone;
-
 import javax.ejb.Stateless;
 import javax.inject.Inject;
 import javax.persistence.EntityManager;
 import javax.persistence.TypedQuery;
 
-import at.ac.tuwien.thesis.caddc.model.DAPrice;
 import at.ac.tuwien.thesis.caddc.model.Location;
 import at.ac.tuwien.thesis.caddc.model.RTPrice;
-import at.ac.tuwien.thesis.caddc.model.handler.EnergyPriceHandler;
 import at.ac.tuwien.thesis.caddc.model.handler.EnergyPriceManager;
-import at.ac.tuwien.thesis.caddc.model.type.EnergyMarketType;
 import at.ac.tuwien.thesis.caddc.model.type.EnergyPriceType;
 import at.ac.tuwien.thesis.caddc.model.type.EnergyPriceType.IntervalType;
 import at.ac.tuwien.thesis.caddc.persistence.exception.LocationNotFoundException;
-import at.ac.tuwien.thesis.caddc.util.DateParser;
 
 /**
  * 

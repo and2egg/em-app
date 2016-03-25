@@ -241,8 +241,9 @@ automatedBoxTest <- function(model, lag=NULL, fitdf=NULL,
 
 #' generateARIMAModel: function for automatic model generation based on given data values
 #' -------------------
-#' estimates the occurring frequency in the data,  
-#' builds and evaluates the model
+#' estimates the occurring frequency in the data, builds and evaluates
+#' the model and does a boxcox transformation if necessary 
+#' (when data does not appear to have stationary variance)
 #' @param data the data series to generate the model upon
 #' @param targetPeriod the target period to search for within the periodogram of the dataset
 #' @param periods if not null take this periods to build time series objects
@@ -250,6 +251,7 @@ automatedBoxTest <- function(model, lag=NULL, fitdf=NULL,
 #' @param maxLimit if not NULL each generated period exceeding this limit will be set to NA
 #' @param wAicc weight for the aicc utility value
 #' @param wLjung weight for the ljung box test p utility value
+#' @param boxcox boolean value to indicate whether a boxcox transform should be done
 #' @param approximation boolean value to indicate whether model generation should be approximated (faster)
 #' @param stepwise boolean value to indicate whether model search should be done stepwise (faster)
 #' @param enforceTarget boolean value to indicate whether the target period should be set in any case (if not NULL)
@@ -281,7 +283,9 @@ generateARIMAModel <- function(data, targetPeriod=NULL, periods=NULL, numTopPeri
   series_ts <- vector(mode="list", length=length(periods))
   lambda_ts <- vector(mode="list", length=length(periods))
   auto.fit <- vector(mode="list", length=length(periods))
+  auto.fit.lambda <- vector(mode="list", length=length(periods))
   box_t <- vector(mode="list", length=length(periods))
+  box_t_lambda <- vector(mode="list", length=length(periods))
   
   # time series and lambda parameter generation
   for(i in 1:length(periods)) {
@@ -298,8 +302,30 @@ generateARIMAModel <- function(data, targetPeriod=NULL, periods=NULL, numTopPeri
     box_t[[i]] <- automatedBoxTest(auto.fit[[i]], type="Ljung", output=output)
   }
   
-  models <- auto.fit
-  boxtests <- box_t
+  if(boxcox == TRUE) {
+    # boxcox transformations (if applicable)
+    for(i in 1:length(periods)) {
+      lambda_ts[[i]] = BoxCox.lambda(series_ts[[i]])
+      # if lambda = 1 the model will not be changed
+      if(lambda_ts[[i]] != 1)
+      {
+        if(output) {
+          print("------------------")
+          print(paste("Creating model ",i," (with BoxCox transformation)",sep=""))
+        }
+        auto.fit.lambda[[i]] <- auto.arima(series_ts[[i]], lambda=lambda_ts[[i]], approximation=approximation, stepwise=stepwise)
+        box_t_lambda[[i]] <- automatedBoxTest(auto.fit.lambda[[i]], type="Ljung", output=output)
+      }
+      else {
+        if(output) {
+          print(paste("Not creating model ",i," (lambda == 1)",sep=""))
+        }
+      }
+    }
+  }
+  
+  models <- append(auto.fit, auto.fit.lambda)
+  boxtests <- append(box_t, box_t_lambda)
   
   aicc.values <- numeric()
   p.values <- numeric()
@@ -348,6 +374,11 @@ generateARIMAModel <- function(data, targetPeriod=NULL, periods=NULL, numTopPeri
   resultModel <- models[[idx]]
   resultTest <- boxtests[[idx]]
   resultPeriod <- periods[[idx]]
+  if(is.null(resultModel$lambda)) {
+    boxcoxTransformed <- FALSE
+  } else {
+    boxcoxTransformed <- TRUE
+  }
   
   if(output)
   {
@@ -363,7 +394,7 @@ generateARIMAModel <- function(data, targetPeriod=NULL, periods=NULL, numTopPeri
     
     print("Resulting model:")
     print("------------------")
-    print(paste("BoxCox transformed = FALSE, Estimated period = ",resultPeriod, sep=""))
+    print(paste("BoxCox transformed = ",boxcoxTransformed,", Estimated period = ",resultPeriod, sep=""))
     print(resultModel$coef)
     print(paste("model parameters (aic,aicc,bic):",resultModel$aic,resultModel$aicc,resultModel$bic))
     print(paste("Ljung box test p-value:",resultTest$p.value))

@@ -12,7 +12,6 @@ import java.util.TimeZone;
 import at.ac.tuwien.thesis.caddc.model.Location;
 import at.ac.tuwien.thesis.caddc.model.type.EnergyMarketType;
 import at.ac.tuwien.thesis.caddc.model.type.EnergyPriceType;
-import at.ac.tuwien.thesis.caddc.model.type.LocationType;
 import at.ac.tuwien.thesis.caddc.util.DateParser;
 
 /**
@@ -22,6 +21,7 @@ public class EnergyPriceHandlerPJM extends EnergyPriceHandler {
 	
 	
 
+	@Override
 	public List<EnergyPriceType> parseEnergyPriceData(List<String> priceData, Location location, Date lastDate, boolean debug) {
     	
     	List<EnergyPriceType> energyPrices = new ArrayList<EnergyPriceType>();

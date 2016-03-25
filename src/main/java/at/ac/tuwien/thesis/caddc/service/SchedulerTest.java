@@ -1,11 +1,5 @@
 package at.ac.tuwien.thesis.caddc.service;
 
-import java.util.Date;
-
-import javax.ejb.Schedule;
-import javax.ejb.Schedules;
-import javax.ejb.Stateless;
-
 
 //@Stateless
 public class SchedulerTest {

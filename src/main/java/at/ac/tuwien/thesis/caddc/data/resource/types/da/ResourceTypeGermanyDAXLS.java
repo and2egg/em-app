@@ -1,7 +1,6 @@
 package at.ac.tuwien.thesis.caddc.data.resource.types.da;
 
 import at.ac.tuwien.thesis.caddc.data.parse.types.da.ParserGermanyDAXLS;
-import at.ac.tuwien.thesis.caddc.data.parse.types.da.ParserMaineDAXLS;
 import at.ac.tuwien.thesis.caddc.data.resource.types.ResourceType;
 
 /**

@@ -1,7 +1,5 @@
 package at.ac.tuwien.thesis.caddc.data.resource.types.rt;
 
-import at.ac.tuwien.thesis.caddc.data.parse.types.da.ParserMaineDAXLS;
-import at.ac.tuwien.thesis.caddc.data.parse.types.rt.ParserMaineRTXLS;
 import at.ac.tuwien.thesis.caddc.data.parse.types.rt.ParserPJMRTCSV;
 import at.ac.tuwien.thesis.caddc.data.resource.types.ResourceType;
 
