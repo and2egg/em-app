@@ -345,6 +345,7 @@ public class RManager {
 	    String run = names[0];
     	String rName = run.substring(0, run.lastIndexOf("."));
     	
+    	// Dynamically reading number of models
 //    	RList l = c.eval("load(\"simulation/"+simulationName+"/"+rName+"\")").asList();
 //    	int numberModels = l.at(0).asList().size();
     	int numberModels = 6;
@@ -394,6 +395,7 @@ public class RManager {
     		    	String r = names[i];
     		    	String name = r.substring(0, r.lastIndexOf("."));
     		    	c.eval("acc <- "+name+"[[2]][["+model+"]][["+h+"]]");
+    		    	// dynamically reading number of accuracy measures
 //    		    	int numAccMeasures = c.eval("length(acc)/2").asInteger();
     		    	int numAccMeasures = 5;
     		    	
