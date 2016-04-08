@@ -1,1 +1,11 @@
+# General
 /target/
+/bin/
+
+# javadoc
+/doc/
+javadoc.xml
+
+# R
+**/*.RData
+*.RData
